@@ -88,7 +88,15 @@ export class OWAEMail extends ExchangeEMail {
       SuppressReadReceipts: true,
     });
     request.addField("Message", "IsRead", read, "message:IsRead");
-    await this.folder.account.callOWA(request);
+    try {
+      await this.folder.account.callOWA(request);
+    } catch (ex) {
+      if (ex.type == "ErrorItemNotFound") { // it is gone on the server
+        await this.deleteMessageLocally();
+        return;
+      }
+      throw ex;
+    }
     await super.markRead(read);
   }
 
@@ -165,6 +173,9 @@ export class OWAEMail extends ExchangeEMail {
       let request = new OWADeleteItemRequest(this.itemID, {
         DeleteType: hardDelete ? "HardDelete" : "MoveToDeletedItems",
         SuppressReadReceipts: true,
+        // Otherwise server refuses to delete calendar and tasks, and they can be any mail
+        SendMeetingCancellations: "SendToNone",
+        AffectedTaskOccurrences: "AllOccurrences",
       });
       await this.folder.account.callOWA(request);
     } finally {

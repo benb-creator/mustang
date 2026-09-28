@@ -228,6 +228,8 @@ export class HTTPFetchError extends Error {
   httpStatusText: string;
   httpMethod: string;
   hostname: string;
+  /** `Retry-After`, in seconds, when the server rate-limited us */
+  retryAfterSeconds: number;
 
   constructor(ex: Error) {
     super(ex?.message ?? ex + "");
@@ -242,6 +244,7 @@ export class HTTPFetchError extends Error {
       this.httpStatusText = response.statusText;
       this.httpMethod = request.method;
       this.hostname = new URL(this.url).hostname;
+      this.retryAfterSeconds = parseInt(response.headers.get("Retry-After")) || undefined;
       this.message = `HTTP ${this.httpMethod} <${this.url}>${this.redirectedURL ? ` redirected to <${this.redirectedURL}>` : ''} failed with ${this.httpCode} ${this.httpStatusText}`;
     } else if (cause) {
       this.code = cause.code;
@@ -421,6 +424,24 @@ function setTheme(theme: "system" | "light" | "dark") {
 }
 
 async function openExternalURL(url: string) {
+  let scheme = new URL(url).protocol; // throws on a malformed URL
+
+  /** Schemes that we let the OS open. A mail fully controls the URL of its links,
+   * and `shell.openExternal()` starts whichever app the OS registered for the scheme.
+   * E.g. `file:` runs a `.desktop` file or an `.exe`, and `ms-msdt:` and `search-ms:`
+   * are remote code execution on Windows. */
+  const kAllowedURLSchemes = [
+    "https:",
+    "http:",
+    "mailto:",
+    "tel:",
+    "xmpp:",
+    "matrix:",
+  ];
+  if (!kAllowedURLSchemes.includes(scheme)) {
+    throw new Error(`Refusing to open a ${scheme} URL in an OS app`);
+  }
+
   await shell.openExternal(url);
 }
 
@@ -532,13 +553,14 @@ function createIMAPFlowConnection(...args): ImapFlow {
 }
 
 function getSQLiteDatabase(filename: string, options: any, buffer?: Uint8Array): Database {
+  let safeOptions = { readonly: !!options?.readonly }; // `nativeBinding` in it would `require()` any file as native code
   if (buffer) {
-    return new Database(Buffer.from(buffer), options);
+    return new Database(Buffer.from(buffer), safeOptions);
   }
   if (!filename.startsWith("/")) {
     filename = path.join(getConfigDir(), filename);
   }
-  return new Database(filename, options);
+  return new Database(filename, safeOptions);
 }
 
 async function sendMailNodemailer(transport, mail) {

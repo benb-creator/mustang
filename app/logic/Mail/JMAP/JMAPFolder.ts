@@ -89,7 +89,16 @@ export class JMAPFolder extends Folder {
       return await this.listAllMessages();
     }
 
-    return await this.fetchChangedMessagesForAllFolders();
+    try {
+      return await this.fetchChangedMessagesForAllFolders();
+    } catch (ex) {
+      if (ex.code == "cannotCalculateChanges") {
+        // Our sync state is too old <https://www.rfc-editor.org/rfc/rfc8620#section-5.2>
+        this.account.syncState.delete("Email");
+        return await this.listAllMessages();
+      }
+      throw ex;
+    }
   }
 
   protected async fetchMessageList(start?: number, limit?: number, options?: any): Promise<{ newMessages: ArrayColl<JMAPEMail>, updatedMessages: ArrayColl<JMAPEMail>, syncState: string }> {
@@ -330,8 +339,7 @@ export class JMAPFolder extends Folder {
   async downloadMessages(emails: Collection<JMAPEMail>): Promise<Collection<JMAPEMail>> {
     let needMsgs = new ArrayColl(emails);
     let downloadedMsgs = new ArrayColl<JMAPEMail>();
-    const kMaxParallelCount = 5;
-    let semaphore = new Semaphore(kMaxParallelCount);
+    let semaphore = new Semaphore(this.account.maxParallelRequests);
     let downloads = new PromiseAllDone();
     while (needMsgs.hasItems) {
       let msg = needMsgs.pop();

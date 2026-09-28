@@ -26,7 +26,7 @@ import { notifyChangedProperty } from "../../util/Observable";
 import { Lock } from "../../util/flow/Lock";
 import { RunOnce } from "../../util/flow/RunOnce";
 import { Throttle } from "../../util/flow/Throttle";
-import { waitUntilOnline, isNetworkError, HTTPError } from "../../util/netUtil";
+import { waitUntilOnline, isNetworkError, isTransientError, HTTPError } from "../../util/netUtil";
 import { assert } from "../../util/util";
 import { gt } from "../../../l10n/l10n";
 import { ArrayColl, Collection, MapColl, SetColl } from "svelte-collections";
@@ -47,6 +47,7 @@ export class JMAPAccount extends MailAccount {
   protected loginRunOnce = new RunOnce();
   protected startupRunOnce = new RunOnce();
   protected pushAbort: AbortController | null = null;
+  protected throttle = new Throttle(50, 1);
   logging = true;
 
   constructor() {
@@ -173,6 +174,12 @@ export class JMAPAccount extends MailAccount {
   }
   get haveSharing(): boolean {
     return this.hasCapability("urn:ietf:params:jmap:principals");
+  }
+  /** One below what the server allows, so that the mail the user clicks on still gets through.
+   * @see <https://www.rfc-editor.org/rfc/rfc8620#section-2> `maxConcurrentRequests` */
+  get maxParallelRequests(): number {
+    let serverMax = sanitize.integer(this.session?.capabilities?.["urn:ietf:params:jmap:core"]?.maxConcurrentRequests, null);
+    return serverMax ? Math.max(1, Math.min(serverMax - 1, 30)) : 5;
   }
   // <compat for="Cyrus">
   // Cyrus announces its core extension always, even when its non-standard extensions are off.
@@ -352,6 +359,7 @@ export class JMAPAccount extends MailAccount {
 
   async httpGet(url: string, options?: any): Promise<any> {
     let ky = await this.ky(options);
+    await this.throttle.throttle();
     try {
       return await ky.get(url);
     } catch (ex) {
@@ -361,6 +369,7 @@ export class JMAPAccount extends MailAccount {
 
   async httpPost(url: string, sendJSON: any): Promise<any> {
     let ky = await this.ky();
+    await this.throttle.throttle();
     try {
       return await ky.post(url, { json: sendJSON });
     } catch (ex) {
@@ -370,6 +379,7 @@ export class JMAPAccount extends MailAccount {
 
   async httpPostBinary(url: string, body: any, options?: any): Promise<any> {
     let ky = await this.ky(options);
+    await this.throttle.throttle();
     try {
       return await ky.post(url, { body: body });
     } catch (ex) {
@@ -385,6 +395,11 @@ export class JMAPAccount extends MailAccount {
       if (ext.httpCode == 401) {
         throw new LoginError(ex, null);
       } else {
+        if (isTransientError(ext)) {
+          const kDefaultBackoffSec = 5;
+          const kMaxBackoffSec = 20; // Sensible upper limit
+          this.throttle.waitForSecond(Math.min(ext.retryAfterSeconds ?? kDefaultBackoffSec, kMaxBackoffSec));
+        }
         throw new ConnectError(ex, null);
       }
     }
@@ -647,6 +662,7 @@ export class JMAPAccount extends MailAccount {
           signal: this.pushAbort.signal,
         });
         if (!stream.ok) {
+          reconnectThrottle.waitForSecond(parseInt(stream.headers.get("Retry-After")) || 5);
           throw new HTTPError(stream);
         }
         let eventStream = stream.body.pipeThrough(new TextDecoderStream()).pipeThrough(new TransformStream(new EventDecoder()));
@@ -678,11 +694,13 @@ export class JMAPAccount extends MailAccount {
         if (ex.name == "AbortError") { // disconnect()
           return;
         }
-        if (isNetworkError(ex)) {
+        if (isTransientError(ex)) {
           // A connection that stays open for hours drops all the time: computer
           // sleep, Wi-Fi change, server restart. Reconnecting is normal, not an error.
           console.log(this.name + ": Push connection dropped, reconnecting:", ex?.message);
-          await waitUntilOnline(); // Computer sleep drops the network
+          if (isNetworkError(ex)) {
+            await waitUntilOnline(); // Computer sleep drops the network
+          }
         } else {
           throw ex;
         }

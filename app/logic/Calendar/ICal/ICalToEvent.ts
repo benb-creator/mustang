@@ -114,8 +114,11 @@ export function convertICalContainerToEvent(vevent: ICalContainer, event: Event)
   }
   if (vevent.entries.conference) {
     // <https://www.rfc-editor.org/rfc/rfc7986#section-5.11>
+    // There can be several, e.g. a `tel:` dial-in next to the video link
     event.isOnline = true;
-    event.onlineMeetingURL = vevent.entries.conference[0].value;
+    event.onlineMeetingURL = vevent.entries.conference
+      .map(entry => sanitize.url(entry.value, null))
+      .find(url => !!url) ?? null;
   }
   if (vevent.entries.location) {
     // Some clients send the online meeting URL in `LOCATION` (see `CONFERENCE` above)
@@ -126,15 +129,21 @@ export function convertICalContainerToEvent(vevent: ICalContainer, event: Event)
   }
   event.participants.clear(); // in case we're updating an existing event
   let organizer: Participant | undefined;
-  if (vevent.entries.organizer) {
-    let value = vevent.entries.organizer[0].value.replace(/^MAILTO:/i, "");
-    organizer = new Participant(sanitize.emailAddress(value), sanitize.label(vevent.entries.organizer[0].properties.cn, null), InvitationResponse.Organizer);
-    event.participants.add(organizer);
+  let organizerEntry = vevent.entries.organizer?.[0];
+  if (organizerEntry) {
+    let emailAddress = sanitize.emailAddress(emailAddressFromCalAddress(organizerEntry.value), null);
+    if (emailAddress) {
+      organizer = new Participant(emailAddress, sanitize.label(organizerEntry.properties.cn, null), InvitationResponse.Organizer);
+      event.participants.add(organizer);
+    }
   }
   if (vevent.entries.attendee) {
     for (let { value, properties: { role, partstat, cn } } of vevent.entries.attendee) {
-      value = value.replace(/^MAILTO:/i, "");
-      let participant = new Participant(sanitize.emailAddress(value), sanitize.label(cn, null), sanitize.integer(ParticipationStatus[partstat?.toUpperCase() as keyof typeof ParticipationStatus] || InvitationResponse.Unknown));
+      let emailAddress = sanitize.emailAddress(emailAddressFromCalAddress(value), null);
+      if (!emailAddress) {
+        continue; // we cannot address this participant, e.g. free text instead of an address
+      }
+      let participant = new Participant(emailAddress, sanitize.label(cn, null), sanitize.integer(ParticipationStatus[partstat?.toUpperCase() as keyof typeof ParticipationStatus] || InvitationResponse.Unknown));
       if (participant.emailAddress == organizer?.emailAddress || /^CHAIR$/i.test(role)) {
         participant.response = InvitationResponse.Organizer;
         // Remove the organizer as it has less detail than an attendee
@@ -147,6 +156,14 @@ export function convertICalContainerToEvent(vevent: ICalContainer, event: Event)
     }
   }
   readAttachments(vevent, event);
+}
+
+/** ORGANIZER and ATTENDEE are a CAL-ADDRESS, RFC 5545 3.3.3, i.e. a `mailto:` URI.
+ * // <compat for="Doctolib" reason="Writes `MAILTO:<foo@example.com>`, with the angle
+ * brackets of an RFC 5322 mail header inside the URI, where RFC 6068 allows only the
+ * bare address and RFC 3986 does not allow the brackets at all"> */
+function emailAddressFromCalAddress(calAddress: string): string {
+  return calAddress.replace(/^MAILTO:/i, "").replace(/^<(.*)>$/, "$1");
 }
 
 /** Inline attachments, RFC 5545 3.8.1.1.

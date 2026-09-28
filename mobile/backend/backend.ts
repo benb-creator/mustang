@@ -174,6 +174,8 @@ export class HTTPFetchError extends Error {
   httpStatusText: string;
   httpMethod: string;
   hostname: string;
+  /** `Retry-After`, in seconds, when the server rate-limited us */
+  retryAfterSeconds: number;
 
   constructor(ex: Error) {
     super(ex?.message ?? ex + "");
@@ -188,6 +190,7 @@ export class HTTPFetchError extends Error {
       this.httpStatusText = response.statusText;
       this.httpMethod = request.method;
       this.hostname = new URL(this.url).hostname;
+      this.retryAfterSeconds = parseInt(response.headers.get("Retry-After")) || undefined;
       this.message = `HTTP ${this.httpMethod} <${this.url}>${this.redirectedURL ? ` redirected to <${this.redirectedURL}>` : ''} failed with ${this.httpCode} ${this.httpStatusText}`;
     } else if (cause) {
       this.code = cause.code;
@@ -333,10 +336,11 @@ async function createIMAPFlowConnection(...args): ImapFlow {
 }
 
 function getSQLiteDatabase(filename: string, options: any, buffer?: Uint8Array): Database {
+  let safeOptions = { readonly: !!options?.readonly }; // `nativeBinding` in it would `require()` any file as native code
   if (buffer) {
-    return new Database(Buffer.from(buffer), options);
+    return new Database(Buffer.from(buffer), safeOptions);
   }
-  return new Database(filename, options);
+  return new Database(filename, safeOptions);
 }
 
 async function sendMailNodemailer(transport, mail) {

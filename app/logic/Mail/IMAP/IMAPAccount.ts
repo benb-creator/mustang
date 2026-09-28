@@ -140,7 +140,7 @@ export class IMAPAccount extends MailAccount {
         greetingTimeout: 5 * 1000, // 5 s greeting timeout
         socketTimeout: purpose == ConnectionPurpose.Main
           ? (2 * kIDLERenewalSeconds) * 1000 + 1 * 60 * 1000 // 2 * 5 min IDLE + 1 min leeway
-          : 10 * 60 * 1000, // 10 min - Fetch/Display connections time one when unused, and we re-create them on demand
+          : (Math.max(this.pollIntervalMinutes, 10) + 1) * 60 * 1000, // 11 min - Fetch/Display connections time out when unused, and we re-create them on demand
         logger: false, // true, // Run backend using: `yarn run dev | npx pino-pretty -i time,msg`
         emitLogs: this.logLibrary,
       }
@@ -222,7 +222,7 @@ export class IMAPAccount extends MailAccount {
         await folder.messageFlagsChanged(info.uid ?? null, info.seq, info.flags, info.modseq, connection);
       } catch (ex) {
         console.error("Error", ex, "in processing server event", info);
-        this.errorCallback(new IMAPCommandError(ex, `Server event about message seq ${info.seq} = UID ${info.uid} in folder ${info.path} failed:\n${ex.message}\n${this.hostname} IMAP server`));
+        this.errorCallback(new IMAPCommandError(ex, `Server event about a message in folder ${info.path} failed:\n${ex.message}\n${this.hostname} IMAP server`));
       }
     });
     connection.on("expunge", async (info) => {

@@ -15,7 +15,8 @@ import { Event } from "../Calendar/Event";
 import { InvitationMessage, type iCalMethod } from "../Calendar/Invitation/InvitationStatus";
 import { FilterMoment } from "./FilterRules/FilterMoments";
 import type { EncryptionSystem } from "./Encryption/enums";
-import { fileExtensionForMIMEType, assert, AbstractFunction } from "../util/util";
+import { fileExtensionForMIMEType, blobToDataURL, assert, AbstractFunction } from "../util/util";
+import { isMobile, webMail } from "../build";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
 import { PromiseAllDone } from "../util/flow/PromiseAllDone";
 import { Lock } from "../util/flow/Lock";
@@ -150,7 +151,7 @@ export class EMail extends Message {
   }
 
   get baseSubject(): string {
-    return this.subject.replace(/^((Re|RE|AW|Aw): ?)+/g, "");
+    return this.subject?.replace(/^((Re|RE|AW|Aw): ?)+/g, "") ?? "";
   }
 
   get storage(): MailAccountStorage {
@@ -284,24 +285,30 @@ export class EMail extends Message {
   async deleteMessageLocally() {
     this.isDeleted = true;
     this.folder.messages.remove(this);
-    await this.storage.deleteMessage(this);
     let contentDeletes = new PromiseAllDone();
     for (let contentStorage of this.folder.account.contentStorage) {
       contentDeletes.add(contentStorage.deleteIt(this));
     }
     await contentDeletes.wait();
+    await this.storage.deleteMessage(this);
   }
 
   async deleteMessageOnServer(strategy?: DeleteStrategy) {
   }
 
   async addTag(tag: Tag) {
+    if (this.tags.contains(tag)) {
+      return;
+    }
     this.tags.add(tag);
     await this.storage.saveMessageTags(this);
     await this.addTagOnServer(tag);
   }
 
   async removeTag(tag: Tag) {
+    if (!this.tags.contains(tag)) {
+      return;
+    }
     this.tags.remove(tag);
     await this.storage.saveMessageTags(this);
     await this.removeTagOnServer(tag);
@@ -425,6 +432,7 @@ export class EMail extends Message {
       }
     }).filter(attachment => !!attachment));
     oldAttachments.clear();
+    await Promise.all(this.attachments.contents.map(a => a.checkExecutable()));
 
     // Run processors, filters, calendar invitations, SML, etc.
     for (let processor of EMailProcessorList.processors) {
@@ -634,9 +642,13 @@ export class EMail extends Message {
     } else if (this.folder.specialFolder == SpecialFolder.Sent) {
       moments = [FilterMoment.Outgoing];
     }
-    let rules = account.filterRuleActions.contents.filter(rule => moments.includes(rule.when));
+    let rules = account.filterRuleActions.filterOnce(rule => moments.includes(rule.when));
     for (let rule of rules) {
-      await rule.run(this);
+      try {
+        await rule.run(this);
+      } catch (ex) {
+        account.errorCallback(ex);
+      }
       if (this.isDeleted) { // rule deleted or moved
         return;
       }
@@ -717,13 +729,14 @@ export class EMail extends Message {
    * true: older message
    * false: newer message
    * null: Same list position, after deleting this message
+   * @returns null, if there is no message left to show
    *
    * Implementation: If there are more functions that are
    * not about the email itself, this might move to an `EMailActions` class,
    * like `ComposeActions`.
    * For now, given that it's just 1 function and small, keep it here.
    */
-  nextMessage(previous?: boolean): EMail {
+  nextMessage(previous?: boolean): EMail | null {
     let i = this.folder.messages.getKeyForValue(this);
     if (typeof (previous) == "boolean") {
       previous ? --i : ++i;
@@ -731,7 +744,7 @@ export class EMail extends Message {
     return this.folder.messages.getIndex(i) ??
       this.folder.messages.first ??
       this.folder.account.inbox.messages.first ??
-      this.folder.newEMail();
+      null;
   }
 
   get compose(): ComposeActions {
@@ -739,7 +752,7 @@ export class EMail extends Message {
   }
 }
 
-/** For inline images, convert `cid:` URIs into `data:` URIs. */
+/** For inline images, convert `cid:` URIs into `blob:` or `data:` URLs. */
 async function addCID(html: string, email: EMail): Promise<string> {
   try {
     let doc = new DOMParser().parseFromString(html, "text/html");
@@ -754,15 +767,19 @@ async function addCID(html: string, email: EMail): Promise<string> {
       }
       let cid = src.substring(4);
       let attachment = email.attachments.find(a => a.contentID == "<" + cid + ">");
+      // mobile/web `<iframe sandbox>` has opaque origin and won't load our `blob:`. Electron <webview> has the same origin.
+      let canLoadBlobURL = !webMail && !isMobile;
       src = attachment?.content
-        ? attachment.blobURL
+        ? canLoadBlobURL
+          ? attachment.blobURL
+          : await blobToDataURL(attachment.content)
         : "";
       img.setAttribute("src", src);
       if (src) {
         attachment.hidden = true;
       }
     }
-    html = new XMLSerializer().serializeToString(doc);
+    html = doc.documentElement.outerHTML; // Serialize HTML (XMLSerializer would escape `>` in `<style>`)
   } catch (ex) {
     email.folder.account.errorCallback(ex);
   }

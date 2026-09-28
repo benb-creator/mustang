@@ -26,10 +26,12 @@ import { XML2JSON, JSON2XML } from "./XML2JSON";
 import { ensureLicensed } from "../../util/LicenseClient";
 import { Throttle } from "../../util/flow/Throttle";
 import { Semaphore } from "../../util/flow/Semaphore";
+import { ConnectionPurpose } from "./ConnectionPurpose";
 import { RunOnce } from "../../util/flow/RunOnce";
 import { Lock } from "../../util/flow/Lock";
 import { notifyChangedProperty } from "../../util/Observable";
 import { isNetworkError } from "../../util/netUtil";
+import { logError } from "../../../frontend/Util/error";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { assert, ensureArray, NotReached, NotSupported, type Json } from "../../util/util";
 import { gt } from "../../../l10n/l10n";
@@ -43,7 +45,14 @@ export class EWSAccount extends ExchangeMailAccount implements EWSSubscribable {
   @notifyChangedProperty
   protected hasLoggedIn = false;
   protected throttle = new Throttle(50, 1);
-  protected semaphore = new Semaphore(20);
+  /** How many requests may be underway at the same time.
+   * The user commands have their own budget, so that they never wait for
+   * the background download. @see `ConnectionPurpose`
+   * @see `NTLMConnectionPool` has its own limits for TCP conn on top of this. */
+  protected semaphores = new Map<ConnectionPurpose, Semaphore>([
+    [ConnectionPurpose.Fetch, new Semaphore(16)],
+    [ConnectionPurpose.Display, new Semaphore(4)],
+  ]);
   protected loginRunOnce = new RunOnce();
   protected startupRunOnce = new RunOnce();
   /** NTLM authenticates TCP connections, not HTTP requests, so it needs
@@ -363,24 +372,30 @@ export class EWSAccount extends ExchangeMailAccount implements EWSSubscribable {
    * @param options for internal use only
    * @returns XML2JSON = XML as JSON. What the server returned.
    */
-  async callEWS(aRequest: JsonRequest, options?: any): Promise<any> {
+  async callEWS(aRequest: JsonRequest, purpose = ConnectionPurpose.Display, options?: any): Promise<any> {
     if (this.mainAccount) {
-      return await (this.mainAccount as EWSAccount).callEWS(aRequest, options);
+      return await (this.mainAccount as EWSAccount).callEWS(aRequest, purpose, options);
     }
     await this.throttle.throttle();
-    let lock = await this.semaphore.lock();
 
     if (this.oAuth2 && !this.oAuth2.isLoggedIn) {
       await this.oAuth2.login(false);
     }
 
+    let startTime = Date.now();
+    let lock = await this.semaphores.get(purpose).lock();
     let response: any;
     try {
       response = this.authMethod == AuthMethod.NTLM
-        ? await this.ntlm.request(this.request2XML(aRequest), { headers: { 'Content-Type': kXMLContentType } })
+        ? await this.ntlm.request(this.request2XML(aRequest), { headers: { 'Content-Type': kXMLContentType }, purpose })
         : await fetch(this.url, this.createRequestOptions({ body: this.request2XML(aRequest) }));
     } finally {
       lock.release();
+
+      let seconds = Math.round((Date.now() - startTime) / 100) / 10;
+      if (purpose == ConnectionPurpose.Display && seconds > 3) {
+        logError(new Error(`Server needed ${seconds} seconds to answer`));
+      }
     }
     try {
       response.responseText = await response.text();
@@ -394,7 +409,7 @@ export class EWSAccount extends ExchangeMailAccount implements EWSSubscribable {
         return this.checkResponse(response, aRequest);
       } catch (ex) {
         if (this.isThrottleError(ex)) {
-          return await this.callEWS(aRequest);
+          return await this.callEWS(aRequest, purpose);
         } else {
           this.throttle.waitForSecond(1);
           throw ex;
@@ -404,7 +419,7 @@ export class EWSAccount extends ExchangeMailAccount implements EWSSubscribable {
     if (response.status == 401) {
       const repeat = async (options: any = {}) => {
         options.isRepeating = true;
-        return await this.callEWS(aRequest, options); // repeat the call
+        return await this.callEWS(aRequest, purpose, options); // repeat the call
       }
       if (options?.isRepeating) {
         let ex = new EWSError(response, aRequest);
@@ -477,7 +492,7 @@ export class EWSAccount extends ExchangeMailAccount implements EWSSubscribable {
               if (signal.aborted) {
                 continue; // Server errors on cancel
               }
-              if (ex.type == "ErrorSubscriptionNotFound") {
+              if (ex.type == "ErrorSubscriptionNotFound" || ex.type == "ErrorMissedNotificationEvents") {
                 // The server dropped it, e.g. while the computer slept
                 await this.resubscribeNotifications(username);
                 return; // it restarted the stream, and aborted this one

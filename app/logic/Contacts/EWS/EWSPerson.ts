@@ -191,13 +191,13 @@ export class EWSPerson extends ExchangePerson {
     if (!this.itemID) {
       return;
     }
-    let request = new EWSDeleteItemRequest(this.itemID);
+    let request = new EWSDeleteItemRequest(this.itemID, { DeleteType: "HardDelete" });
     await this.addressbook.account.callEWS(request);
   }
 
   /** The GAL search leaves out the S/MIME certificates, so we resolve the
    * person once more, with the property set that has them. */
-  async fetchEncryptionKeys() {
+  protected async fetchEncryptionKeysFromDirectory() {
     let emailAddress = this.emailAddresses.first?.value;
     if (!emailAddress) {
       return;

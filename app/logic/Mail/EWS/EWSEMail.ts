@@ -138,7 +138,15 @@ export class EWSEMail extends ExchangeEMail {
       SuppressReadReceipts: true,
     });
     request.addField("Message", "IsRead", read, "message:IsRead");
-    await this.folder.account.callEWS(request);
+    try {
+      await this.folder.account.callEWS(request);
+    } catch (ex) {
+      if (ex.type == "ErrorItemNotFound") { // it is gone on the server
+        await this.deleteMessageLocally();
+        return;
+      }
+      throw ex;
+    }
     await super.markRead(read);
   }
 
@@ -159,6 +167,11 @@ export class EWSEMail extends ExchangeEMail {
   }
 
   async markSpam(spam = true) {
+    if (!spam && this.folder.specialFolder != SpecialFolder.Spam) {
+      // For Office365, "is Junk" == "is in Junk folder", so it attempts to move
+      await super.markSpam(spam);
+      return;
+    }
     let request = {
       m$MarkAsJunk: {
         IsJunk: spam,
@@ -216,6 +229,9 @@ export class EWSEMail extends ExchangeEMail {
       let request = new EWSDeleteItemRequest(this.itemID, {
         DeleteType: hardDelete ? "HardDelete" : "MoveToDeletedItems",
         SuppressReadReceipts: true,
+        // Otherwise server refuses to delete calendar and tasks, and they can be any mail
+        SendMeetingCancellations: "SendToNone",
+        AffectedTaskOccurrences: "AllOccurrences",
       });
       await this.folder.account.callEWS(request);
     } finally {

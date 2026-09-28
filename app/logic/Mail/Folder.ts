@@ -105,12 +105,11 @@ export class Folder extends Observable implements TreeItem<Folder> {
    * so that most of them are readable as early as possible.
    * @returns the actually downloaded emails. */
   protected async downloadSmallMessagesFirst(emails: Collection<EMail>): Promise<Collection<EMail>> {
-    let missing = emails.filter(msg => !msg.downloadComplete);
     const kMaxSize = 50000;
-    let missingLarge = missing.filter(msg => msg.size && msg.size > kMaxSize);
-    let missingSmall = missing.subtract(missingLarge);
-    let downloadedSmall = await this.downloadMessages(missingSmall);
-    let downloadedLarge = await this.downloadMessages(missingLarge);
+    let isLarge = (msg: EMail) => !!msg.size && msg.size > kMaxSize;
+    let missing = emails.filterOnce(msg => !msg.downloadComplete);
+    let downloadedSmall = await this.downloadMessages(missing.filterOnce(msg => !isLarge(msg)));
+    let downloadedLarge = await this.downloadMessages(missing.filterOnce(isLarge));
     return downloadedSmall.concat(downloadedLarge);
   }
 
@@ -132,12 +131,11 @@ export class Folder extends Observable implements TreeItem<Folder> {
     throw new AbstractFunction();
   }
 
-  /** Lists all messages of this folder, and then downloads only the recent ones.
-   * Called when we switch to a folder, including the first time we see a folder.
+  /** Lists all messages of this folder, and then downloads the recent ones
    * @returns the newly listed messages */
   async getRecentMessages(): Promise<Collection<EMail>> {
     let newMessages = await this.listMessages();
-    await this.downloadRecentMessages(newMessages);
+    await this.downloadRecentMessages(this.messages); // not newMessages, in case we missed some last time
     return newMessages;
   }
 

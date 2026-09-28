@@ -10,6 +10,7 @@ import { gLicense } from "../util/License";
 import { getLocalStorage } from "../../frontend/Util/LocalStorage";
 import { importAutoCryptKeys } from "./Encryption/PGP/AutoCrypt";
 import { fileExtensionForMIMEType } from "../Files/FileType/MIMETypes";
+import { escapeAttr, escapeHTML } from "../Files/FileType/htmlHelper";
 import { backgroundError } from "../../frontend/Util/error";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
 import { UserError, assert, dataURLToBlob, type URLString, ensureArray } from "../util/util";
@@ -78,12 +79,13 @@ export class ComposeActions {
     reply.references = original.references?.slice() ?? [];
     reply.references.push(original.messageID);
     reply.mustEncrypt = original.wasEncrypted;
+    reply.system = original.system;
     importAutoCryptKeys(original)
       .catch(original.folder.account.errorCallback);
 
     let quoteSetting = getLocalStorage("mail.send.quote", "below").value;
-    let quote = `<p class="quote-header">${this.quotePrefixLine()}</p>
-    <blockquote cite="mid:${original.id}">
+    let quote = `<p class="quote-header">${escapeHTML(this.quotePrefixLine())}</p>
+    <blockquote cite="mid:${escapeAttr(original.id ?? "")}">
       ${original.html}
     </blockquote>`;
     reply.html = quoteSetting == "none" ? `<p></p>` :
@@ -138,6 +140,7 @@ export class ComposeActions {
     let forward = this.email.folder.account.newEMailFrom();
     forward.subject = "Fwd: " + this.email.subject; // Do *not* localize "Fwd: "
     forward.mustEncrypt = this.email.wasEncrypted;
+    forward.system = this.email.system;
     let sendData = new SendData();
     sendData.forwarded = this.email;
     forward.extraData.set(SendData.extraDataName, sendData);
@@ -154,7 +157,7 @@ export class ComposeActions {
     <p class="forward-header">
       <div>
         <span class="field">From:</span> <span class="value">
-          ${this.email.from?.name ?? this.email.from.emailAddress}${this.email.from?.name != this.email.from?.emailAddress ? ' <' + this.email.from.emailAddress + '>' : ''}
+          ${escapeHTML(this.email.from?.name ?? this.email.from.emailAddress ?? "")}${this.email.from?.name != this.email.from?.emailAddress ? escapeHTML(' <' + this.email.from.emailAddress + '>') : ''}
         </span>
       </div>
       <div>
@@ -164,7 +167,7 @@ export class ComposeActions {
       </div>
       <div>
         <span class="field">Subject:</span> <span class="value">
-          ${this.email.subject ?? ""}
+          ${escapeHTML(this.email.subject ?? "")}
         </span>
       </div>
     </p>
@@ -268,11 +271,11 @@ export class ComposeActions {
   populateFromMailtoURL(mailtoURL: URLString) {
     let urlObj = new URL(mailtoURL);
     let args = new URLSearchParams(urlObj.search);
-    let tos = ensureArray(urlObj.pathname.split(","));
+    let tos = ensureArray(urlObj.pathname.split(",")).filter(to => to);
     for (let to of tos) {
       this.email.to.add(findOrCreatePersonUID(sanitize.emailAddress(to), null));
     }
-    let ccs = ensureArray(args.get("cc")?.split(","));
+    let ccs = ensureArray(args.get("cc")?.split(",")).filter(cc => cc);
     for (let cc of ccs) {
       this.email.cc.add(findOrCreatePersonUID(sanitize.emailAddress(cc), null));
     }

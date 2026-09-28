@@ -102,13 +102,15 @@ test("The login only connects, the startup downloads the mails", async () => {
 
   await acc.login(false);
 
-  expect(acc.isLoggedIn).toBe(true);
   expect(server.commands).toContain("PASS secret");
   expect(server.commands.filter(c => c.startsWith("RETR"))).toEqual([]);
 
   await acc.syncOnStartup();
 
   expect(inboxOf(acc).messages.length).toBe(3);
+  expect(acc.isLoggedIn).toBe(true);
+
+  await acc.logout(); // the login left its connection open, for the first mail check
 });
 
 test("Two concurrent logins open one session", async () => {
@@ -300,4 +302,14 @@ test("Local folders: Sent, move to trash, delete", async () => {
   expect(sub.path).toBe(inbox.path + "/Work");
   await sub.rename("Projects");
   expect(sub.path).toBe(inbox.path + "/Projects");
+});
+
+test("Local folders exist, even when the login failed", async () => {
+  await server.start();
+  let acc = newAccount();
+  await acc.readFromDB(); // The app start does this, before the login
+  expect(acc.getSpecialFolder(SpecialFolder.Sent).path).toBe("Sent");
+
+  let mail = acc.newEMailFrom();
+  expect(mail.folder.specialFolder).toBe(SpecialFolder.Sent);
 });

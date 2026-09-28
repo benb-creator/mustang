@@ -36,10 +36,15 @@ export class SMIMEReadProcessor extends EMailProcessor {
         return;
       }
       let blob = new Uint8Array(await cms.arrayBuffer());
-      // Some archivers keep the S/MIME headers, but store the message that
-      // they decrypted. What we have is then MIME, not an ASN.1 SEQUENCE.
-      if (blob[0] != 0x30) {
-        await this.unwrapMIME(email, blob);
+      if (blob[0] != 0x30) { // not an ASN.1 SEQUENCE
+        // Some archivers keep the S/MIME headers, but store the message that
+        // they decrypted. What we have is then MIME.
+        if (/^[\w-]+:/.test(new TextDecoder().decode(blob.subarray(0, 100)))) {
+          await this.unwrapMIME(email, blob);
+          return;
+        }
+        // Spam and broken senders label plain text as `application/pkcs7-mime`
+        console.warn("pkcs7-mime message is not a CMS blob");
         return;
       }
       let type: string | number[];
