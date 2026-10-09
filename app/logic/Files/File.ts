@@ -185,10 +185,8 @@ export class File extends FileOrDirectory {
     if (!filepathLocal) {
       return;
     }
-    let removing = this.deleteOrRenameLocalFile(filepathLocal, lastMod);
-    this.removingLocalFile = removing.then(() => {}, () => {});
-    let conflictedCopy = await removing;
-    if (!conflictedCopy) {
+    this.removingLocalFile = this.deleteOrRenameLocalFile(filepathLocal, lastMod);
+    if (!await this.removingLocalFile) {
       return;
     }
     await conflictedCopy.upload();
