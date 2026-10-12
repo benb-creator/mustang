@@ -13,7 +13,7 @@
     <hbox class="right" style={
       rightFixedWidth
       ? `width: ${rightFixedWidth};`
-      : `flex: ${rightRatio} 0 0;`
+      : `flex: ${shownRightRatio} 0 0;`
       }>
       <ErrorBoundary>
         <slot name="right" />
@@ -71,17 +71,32 @@
   let currentLeftWidth: number;
   let previousLeftWidth: number;
 
+  $: shownRightRatio = limitRightRatio(rightRatio, containerWidth);
+
+  function limitRightRatio(ratio: number, containerWidth: number): number {
+    let availableWidth = containerWidth - barWidth;
+    if (!(availableWidth > leftMinWidth)) {
+      return ratio;
+    }
+    let leftWidth = limitLeftWidth(availableWidth / (1 + ratio), availableWidth);
+    return (availableWidth - leftWidth) / leftWidth;
+  }
+
+  function limitLeftWidth(leftWidth: number, availableWidth: number): number {
+    return Math.max(
+      Math.min(
+        leftWidth,
+        availableWidth - rightMinWidth),
+      leftMinWidth);
+  }
+
   function onMouseMove(event: PointerEvent) {
     if (!isMouseDown) {
       return;
     }
     let availableWidth = containerWidth - barWidth;
     mouseMoveX = previousMousePosX - event.clientX;
-    let newLeftWidth = Math.max(
-      Math.min(
-        previousLeftWidth - mouseMoveX,
-        availableWidth - rightMinWidth),
-      leftMinWidth);
+    let newLeftWidth = limitLeftWidth(previousLeftWidth - mouseMoveX, availableWidth);
     let newRightWidth = availableWidth - newLeftWidth;
     let right = newRightWidth / availableWidth;
     let left = newLeftWidth / availableWidth;

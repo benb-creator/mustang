@@ -10,7 +10,7 @@
       on:pointerdown={onMouseDown}
       style="height: {barHeight}px;"
       />
-    <hbox class="bottom" style="flex: {bottomRatio} 0 0;">
+    <hbox class="bottom" style="flex: {shownBottomRatio} 0 0;">
       <ErrorBoundary>
         <slot name="bottom" />
       </ErrorBoundary>
@@ -65,17 +65,32 @@
   let currentTopHeight: number;
   let previousTopHeight: number;
 
+  $: shownBottomRatio = limitBottomRatio(bottomRatio, containerHeight);
+
+  function limitBottomRatio(ratio: number, containerHeight: number): number {
+    let availableHeight = containerHeight - barHeight;
+    if (!(availableHeight > topMinWidth)) {
+      return ratio;
+    }
+    let topHeight = limitTopHeight(availableHeight / (1 + ratio), availableHeight);
+    return (availableHeight - topHeight) / topHeight;
+  }
+
+  function limitTopHeight(topHeight: number, availableHeight: number): number {
+    return Math.max(
+      Math.min(
+        topHeight,
+        availableHeight - bottomMinWidth),
+      topMinWidth);
+  }
+
   function onMouseMove(event: PointerEvent) {
     if (!isMouseDown) {
       return;
     }
     let availableHeight = containerHeight - barHeight;
     mouseMoveY = previousMousePosY - event.clientY;
-    let newLeftWidth = Math.max(
-      Math.min(
-        previousTopHeight - mouseMoveY,
-        availableHeight - bottomMinWidth),
-      topMinWidth);
+    let newLeftWidth = limitTopHeight(previousTopHeight - mouseMoveY, availableHeight);
     let newBottomWidth = availableHeight - newLeftWidth;
     let bottom = newBottomWidth / availableHeight;
     let top = newLeftWidth / availableHeight;
