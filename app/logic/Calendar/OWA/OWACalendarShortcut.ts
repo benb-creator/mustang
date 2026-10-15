@@ -33,7 +33,7 @@ export class OWACalendarShortcut {
       }
       try {
         let calendar = await shortcut.createCalendar();
-        if (calendar && !calendars.some(other => other.folderID == calendar.folderID)) {
+        if (calendar && !calendars.some(existing => existing.folderID == calendar.folderID)) {
           calendars.push(calendar);
         }
       } catch (ex) {
