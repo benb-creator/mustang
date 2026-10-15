@@ -15,10 +15,6 @@ export class EWSCalendarShortcut {
   readonly storeEntryID: MAPIStoreEntryID | null;
   readonly addressBookEntryID: MAPIAddressBookEntryID | null;
 
-  static readonly kFolderName = "Common Views";
-  static readonly kItemClass = "IPM.Microsoft.WunderBar.Link";
-  static readonly kSharedFolderType = 2;
-  static readonly kCalendarSection = 3;
   static readonly kProperties = {
     type: { tag: 0x6849, type: "Integer" },
     section: { tag: 0x6852, type: "Integer" },
@@ -75,12 +71,12 @@ export class EWSCalendarShortcut {
     let calendars: EWSCalendar[] = [];
     for (let item of items) {
       let shortcut = new EWSCalendarShortcut(account, item);
-      if (!shortcut.isCalendarOfOtherUser) {
+      if (!shortcut.isCalendarSharedWithUs) {
         continue;
       }
       try {
         let calendar = await shortcut.createCalendar();
-        if (calendar && !calendars.some(other => other.folderID == calendar.folderID)) {
+        if (calendar && !calendars.some(existing => existing.folderID == calendar.folderID)) {
           calendars.push(calendar);
         }
       } catch (ex) {
@@ -123,7 +119,8 @@ export class EWSCalendarShortcut {
     };
     let result = await account.callEWS(request);
     let folders: any[] = Object.values(result.RootFolder?.Folders ?? {}).flatMap(folders => ensureArray(folders));
-    let commonViews = folders.find(folder => folder?.DisplayName == EWSCalendarShortcut.kFolderName);
+    const kFolderName = "Common Views";
+    let commonViews = folders.find(folder => folder?.DisplayName == kFolderName);
     return sanitize.nonemptystring(commonViews?.FolderId?.Id, null);
   }
 
@@ -135,10 +132,13 @@ export class EWSCalendarShortcut {
     return !!this.folderEntryID?.bytes.length;
   }
 
-  get isCalendarOfOtherUser(): boolean {
-    return this.itemClass == EWSCalendarShortcut.kItemClass &&
-      this.section == EWSCalendarShortcut.kCalendarSection &&
-      this.type == EWSCalendarShortcut.kSharedFolderType &&
+  get isCalendarSharedWithUs(): boolean {
+    const kItemClass = "IPM.Microsoft.WunderBar.Link";
+    const kCalendarSection = 3;
+    const kSharedFolderType = 2;
+    return this.itemClass == kItemClass &&
+      this.section == kCalendarSection &&
+      this.type == kSharedFolderType &&
       !!this.ownerLegacyDN &&
       (this.hasFolder || !!this.addressBookEntryID?.legacyDN);
   }

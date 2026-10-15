@@ -126,7 +126,7 @@ test("Owner of the shortcut, from the store EntryID", () => {
 test("Default calendar of another user", () => {
   let shortcut = new EWSCalendarShortcut(new EWSAccount(), linkItem(kBobLink));
 
-  expect(shortcut.isCalendarOfOtherUser).toBe(true);
+  expect(shortcut.isCalendarSharedWithUs).toBe(true);
   expect(shortcut.ownerLegacyDN).toBe(kBobDN);
   // Outlook saves only the owner, which means: the owner's default calendar
   expect(shortcut.hasFolder).toBe(false);
@@ -136,23 +136,23 @@ test("Default calendar of another user", () => {
 test("Other calendar of another user", () => {
   let shortcut = new EWSCalendarShortcut(new EWSAccount(), linkItem(kCarolLink));
 
-  expect(shortcut.isCalendarOfOtherUser).toBe(true);
+  expect(shortcut.isCalendarSharedWithUs).toBe(true);
   expect(shortcut.ownerLegacyDN).toBe(kCarolDN);
   expect(shortcut.hasFolder).toBe(true);
   expect(shortcut.folderEntryID.hex).toBe(kCarolProjectsHex);
 });
 
 test("Ignore shortcuts that are not calendars of other users", () => {
-  let isCalendarOfOtherUser = (item: any) => new EWSCalendarShortcut(new EWSAccount(), item).isCalendarOfOtherUser;
-  expect(isCalendarOfOtherUser(linkItem(kOwnCalendarLink))).toBe(false);
-  expect(isCalendarOfOtherUser(linkItem(kGroupHeaderLink))).toBe(false);
-  expect(isCalendarOfOtherUser(linkItem(kMailFavoriteLink))).toBe(false);
-  expect(isCalendarOfOtherUser(linkItem(kContactsLink))).toBe(false);
-  expect(isCalendarOfOtherUser(linkItem({ ...kBobLink, itemClass: "IPM.Microsoft.WunderBar.SFInfo" }))).toBe(false);
+  let isCalendarSharedWithUs = (item: any) => new EWSCalendarShortcut(new EWSAccount(), item).isCalendarSharedWithUs;
+  expect(isCalendarSharedWithUs(linkItem(kOwnCalendarLink))).toBe(false);
+  expect(isCalendarSharedWithUs(linkItem(kGroupHeaderLink))).toBe(false);
+  expect(isCalendarSharedWithUs(linkItem(kMailFavoriteLink))).toBe(false);
+  expect(isCalendarSharedWithUs(linkItem(kContactsLink))).toBe(false);
+  expect(isCalendarSharedWithUs(linkItem({ ...kBobLink, itemClass: "IPM.Microsoft.WunderBar.SFInfo" }))).toBe(false);
   // Another calendar needs the folder
-  expect(isCalendarOfOtherUser(linkItem({ ...kCarolLink, entryID: undefined }))).toBe(false);
-  expect(isCalendarOfOtherUser(linkItem({ ...kCarolLink, storeEntryID: base64([1, 2, 3]) }))).toBe(false);
-  expect(isCalendarOfOtherUser(null)).toBe(false);
+  expect(isCalendarSharedWithUs(linkItem({ ...kCarolLink, entryID: undefined }))).toBe(false);
+  expect(isCalendarSharedWithUs(linkItem({ ...kCarolLink, storeEntryID: base64([1, 2, 3]) }))).toBe(false);
+  expect(isCalendarSharedWithUs(null)).toBe(false);
 });
 
 /* The EWS server */

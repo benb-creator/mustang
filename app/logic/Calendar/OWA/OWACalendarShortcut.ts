@@ -28,12 +28,12 @@ export class OWACalendarShortcut {
     let calendars: OWACalendar[] = [];
     for (let entry of entries) {
       let shortcut = new OWACalendarShortcut(account, entry);
-      if (!shortcut.isCalendarOfOtherUser) {
+      if (!shortcut.isCalendarSharedWithUs) {
         continue;
       }
       try {
         let calendar = await shortcut.createCalendar();
-        if (calendar && !calendars.some(other => other.folderID == calendar.folderID)) {
+        if (calendar && !calendars.some(existing => existing.folderID == calendar.folderID)) {
           calendars.push(calendar);
         }
       } catch (ex) {
@@ -45,7 +45,7 @@ export class OWACalendarShortcut {
     return calendars;
   }
 
-  get isCalendarOfOtherUser(): boolean {
+  get isCalendarSharedWithUs(): boolean {
     return !!this.ownerEmailAddress && !this.account.isMyEMailAddress(this.ownerEmailAddress);
   }
 
