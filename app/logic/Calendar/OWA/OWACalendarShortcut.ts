@@ -28,7 +28,7 @@ export class OWACalendarShortcut {
     let calendars: OWACalendar[] = [];
     for (let entry of entries) {
       let shortcut = new OWACalendarShortcut(account, entry);
-      if (!shortcut.isCalendarSharedWithUs) {
+      if (!shortcut.isCalendarOfOtherUser) {
         continue;
       }
       try {
@@ -45,7 +45,7 @@ export class OWACalendarShortcut {
     return calendars;
   }
 
-  get isCalendarSharedWithUs(): boolean {
+  get isCalendarOfOtherUser(): boolean {
     return !!this.ownerEmailAddress && !this.account.isMyEMailAddress(this.ownerEmailAddress);
   }
 

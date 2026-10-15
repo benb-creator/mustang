@@ -71,7 +71,7 @@ export class EWSCalendarShortcut {
     let calendars: EWSCalendar[] = [];
     for (let item of items) {
       let shortcut = new EWSCalendarShortcut(account, item);
-      if (!shortcut.isCalendarSharedWithUs) {
+      if (!shortcut.isCalendarOfOtherUser) {
         continue;
       }
       try {
@@ -132,7 +132,7 @@ export class EWSCalendarShortcut {
     return !!this.folderEntryID?.bytes.length;
   }
 
-  get isCalendarSharedWithUs(): boolean {
+  get isCalendarOfOtherUser(): boolean {
     const kItemClass = "IPM.Microsoft.WunderBar.Link";
     const kCalendarSection = 3;
     const kSharedFolderType = 2;
