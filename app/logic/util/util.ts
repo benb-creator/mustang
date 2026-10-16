@@ -78,7 +78,7 @@ export function base64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
 }
 
 export function uint8ArrayToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+  return bytes.toHex?.() ?? Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export async function dataURLToBlob(dataURL: URLString): Promise<Blob> {
@@ -168,3 +168,9 @@ export class AbstractFunction extends Error {
 export type URLString = string;
 export type Json = { [key: string]: JsonValue } | JsonValue[];
 type JsonValue = string | number | boolean | null | Json;
+
+declare global {
+  interface Uint8Array {
+    toHex(): string;
+  }
+}
