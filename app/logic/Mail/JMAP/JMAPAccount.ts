@@ -45,6 +45,8 @@ export class JMAPAccount extends MailAccount {
   pollIntervalMinutes = 10;
   syncState = new MapColl<TJMAPObjectType, string>(); /** JMAP state is account-global. Use stateLock. */
   readonly stateLock = new Lock(); /** Protects syncState */
+  /** Accounts of other users that the user deleted here, so we don't add them again */
+  readonly deletedSharedAccountIDs = new SetColl<string>();
   protected loginRunOnce = new RunOnce();
   protected startupRunOnce = new RunOnce();
   protected readonly requestSemaphore = new Semaphore(4);
@@ -109,7 +111,6 @@ export class JMAPAccount extends MailAccount {
       if (this.isDependentAccount) {
         this.session = (this.mainAccount as JMAPAccount).session;
       }
-      let firstSync = this.rootFolders.isEmpty;
       try {
         if (this.haveSubmission) {
           await this.listIdentities();
@@ -136,7 +137,7 @@ export class JMAPAccount extends MailAccount {
       } finally { // Even when the mail folders failed, so that calendar and addressbook still work
         await this.startupDependentAccounts();
       }
-      if (firstSync && !this.isDependentAccount) {
+      if (!this.isDependentAccount) {
         await this.addSharedAccounts(); // after `startupDependentAccounts()`: they start up on their own
       }
     });
@@ -833,9 +834,13 @@ export class JMAPAccount extends MailAccount {
     return sanitize.emailAddress(shared.name, null);
   }
 
+  /** Not every account comes with a `ShareNotification`, e.g. the account of a group
+   * that the server admin made us a member of. */
   async addSharedAccounts(): Promise<void> {
     for (let person of await this.availableSharedAccounts()) {
-      await this.addSharedFolders(person, "msgfolderroot");
+      if (!this.deletedSharedAccountIDs.contains(this.sharedAccountID(person))) {
+        await this.addSharedFolders(person, "msgfolderroot");
+      }
     }
   }
 
@@ -929,6 +934,15 @@ export class JMAPAccount extends MailAccount {
       }
     }
     return null;
+  }
+
+  async deleteIt(): Promise<void> {
+    if (this.isDependentAccount) {
+      let main = this.mainAccount as JMAPAccount;
+      main.deletedSharedAccountIDs.add(this.accountID);
+      await main.save();
+    }
+    await super.deleteIt();
   }
 
   // Outgoing: Our account, shared with other users
@@ -1114,12 +1128,15 @@ export class JMAPAccount extends MailAccount {
         }
       }
     }
+    this.deletedSharedAccountIDs.addAll(sanitize.array(json.deletedSharedAccountIDs, [])
+      .map(id => sanitize.alphanumdash(id)));
   }
   toConfigJSON(): any {
     let json = super.toConfigJSON();
     json.accountID = this.accountID;
     json.pollIntervalMinutes = this.pollIntervalMinutes;
     json.syncState = this.syncState.contentKeyValues();
+    json.deletedSharedAccountIDs = this.deletedSharedAccountIDs.contents;
     return json;
   }
 

@@ -2,6 +2,9 @@
 import { appGlobal } from "../../../../logic/app";
 import { JMAPAccount } from "../../../../logic/Mail/JMAP/JMAPAccount";
 import { newAccountForProtocol } from "../../../../logic/Mail/AccountsList/MailAccounts";
+import { SQLMailAccount } from "../../../../logic/Mail/SQL/SQLMailAccount";
+import { setMainAccounts } from "../../../../logic/Abstract/Account";
+import { Person } from "../../../../logic/Abstract/Person";
 import type { TJMAPSession } from "../../../../logic/Mail/JMAP/TJMAPGeneric";
 import { InProcessSQLiteDatabase } from "../../util/inProcessSQLite";
 import { mkdtempSync } from "node:fs";
@@ -52,6 +55,8 @@ function newSession(extraCapabilities: Record<string, any>): TJMAPSession {
 }
 
 const kStalwartSession = newSession({ "urn:ietf:params:jmap:mail:share": {} });
+/** Before Jane's account was shared with John */
+const kOwnOnlySession = { ...kStalwartSession, accounts: { u1: kStalwartSession.accounts.u1 } } as TJMAPSession;
 /** Cyrus always announces its own core extension */
 const kCyrusSession = newSession({ "https://cyrusimap.org/ns/jmap/core": {} });
 
@@ -127,6 +132,19 @@ function newAccount(): JMAPAccount {
 async function loginToNewAccount(): Promise<JMAPAccount> {
   let account = newAccount();
   await account.loginAndStartup(true);
+  return account;
+}
+
+/** Like the next start of the app: the accounts as saved, with their folders */
+async function restartApp(): Promise<JMAPAccount> {
+  let accountIDs = appGlobal.emailAccounts.contents.map(acc => acc.id);
+  appGlobal.emailAccounts.clear();
+  appGlobal.me = new Person(); // The app reads it before the accounts
+  appGlobal.emailAccounts.addAll((await SQLMailAccount.readAll()).filterOnce(acc => accountIDs.includes(acc.id)));
+  setMainAccounts();
+  let account = appGlobal.emailAccounts.find(acc => !acc.isDependentAccount) as JMAPAccount;
+  account.pollIntervalMinutes = 0;
+  await account.loginAndStartup(false);
   return account;
 }
 
@@ -207,4 +225,32 @@ test("The delegated account is added only once", async () => {
   await account.loginAndStartup(true);
 
   expect(delegatedAccounts().length).toBe(1);
+});
+
+test("An account that the session lists only later is added at the next start", async () => {
+  // e.g. the server admin made John a member of a group, which sends no `ShareNotification`
+  session = kOwnOnlySession;
+  await loginToNewAccount();
+  expect(delegatedAccounts().length).toBe(0);
+
+  session = kStalwartSession;
+  let account = await restartApp();
+
+  let shared = delegatedAccounts();
+  expect(shared.length).toBe(1);
+  expect(shared[0].mainAccount).toBe(account);
+  expect(shared[0].rootFolders.hasItems).toBe(true);
+});
+
+test("An account that the user deleted is not added again at the next start", async () => {
+  session = kStalwartSession;
+  await loginToNewAccount();
+  await delegatedAccounts()[0].deleteIt();
+
+  let account = await restartApp();
+
+  expect(delegatedAccounts().length).toBe(0);
+  // The user can still add it manually
+  expect((await account.availableSharedAccounts()).contents.map(person => person.emailAddress))
+    .toEqual(["jane.smith@example.com"]);
 });
