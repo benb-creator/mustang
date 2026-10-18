@@ -20,21 +20,21 @@
   --fg: #160C27; /* #142862, #213547 */
   --inverted-bg: #160C27;
   --inverted-fg: white; /* #142862, #213547 */
-  --selected-bg: #20AE9E; /* or #27C1AA */
+  --selected-bg: #0F8578;
   --selected-fg: white;
   --icon-primary: #27C1AA;
-  --hover-bg: #A9DAD4;
+  --hover-bg: #EBEDF0;
   --hover-fg: #160C27;
-  --selected-hover-bg: #1C998B;
+  --selected-hover-bg: #0B7468;
   --selected-hover-fg: white;
   --main-bg: var(--bg);
   --main-fg: var(--fg);
   /** Encryption, Island Selected faint */
-  --offset-bg: #E6F2F1;
+  --offset-bg: #E4E7EB;
   --offset-fg: #160C27;
-  --leftbar-bg: #F9F9FD; /* #F9F9FD, #F9F9F9, #716E7D */
+  --leftbar-bg: #F5F6F8;
   --leftbar-fg: #160C27;
-  --headerbar-bg: #EEEEEE;
+  --headerbar-bg: #EDEEF1;
   --headerbar-fg: #160C27;
   --windowheader-bg: #160C27;
   --windowheader-fg: white;
@@ -49,22 +49,22 @@
   --input-line: #DFDFDF;
   --input-placeholder: #707070;
   --input-focus: #20AE9E;
-  --link-fg: #747bff;
-  --link-hover-fg: #535bf2;
-  --button-bg: #F9F9FD;
+  --link-fg: #0B63CE;
+  --link-hover-fg: #084C9E;
+  --button-bg: white;
   --button-fg: black;
-  --button-border: #B2ADB8;
-  --button-secondary-line: #A1E4DA;
+  --button-border: #A9AEB7;
+  --button-secondary-line: #20AE9E;
   --shadow-color: 22, 12, 39; /* #160C27 */
   --border-radius: 5px;
   --chat-bubble-incoming-bg: #fdfefe;
   --chat-bubble-incoming-fg: inherit;
-  --chat-bubble-outgoing-bg: #CDECE1;
+  --chat-bubble-outgoing-bg: #E6EAEE;
   --chat-bubble-outgoing-fg: inherit;
   /** Mail thread graph: Lines to msgs that were read, and to unread msgs */
-  --thread-line: #A8D5CD;
+  --thread-line: #BCC3CA;
   --thread-unread: #19916F;
-  --thread-node-bg: #E8E8F0;
+  --thread-node-bg: #E6E9ED;
 
   color: var(--fg);
   background-color: var(--bg);
@@ -76,15 +76,15 @@
     --fg: #C1C1C2;
     --inverted-bg: #C1C1C2;
     --inverted-fg: #141416;
-    --selected-bg: #1F897E;
+    --selected-bg: #17796F;
     --selected-fg: white;
-    --hover-bg: #1E6A63;
+    --hover-bg: #2B2D31;
     --hover-fg: #C1C1C2;
-    --selected-hover-bg: #1C998B;
+    --selected-hover-bg: #1F897E;
     --selected-hover-fg: white;
     --main-bg: #1B1B1B;
     --main-fg: var(--fg);
-    --offset-bg: #22312F;
+    --offset-bg: #2E3135;
     --offset-fg: #C1C1C2;
     --leftbar-bg: #1E1E1E;
     --leftbar-fg: #C1C1C2;
@@ -102,18 +102,18 @@
     --input-line: #3A3A3B;
     --input-placeholder: #909090; /* or #AAAAAA */
     --input-focus: #20AE9E;
-    --link-fg: #646cff;
-    --link-hover-fg: #535bf2;
+    --link-fg: #6AA9F0;
+    --link-hover-fg: #8DBEF5;
     --button-bg: transparent;
     --button-fg: #CDCDCD;
     --button-border: #CDCDCD;
-    --button-secondary-line: #a1e4da91;
+    --button-secondary-line: #20AE9E;
     --shadow-color: 107, 107, 108; /* #6B6B6C */
     --chat-bubble-incoming-bg: #1d2628;
     --chat-bubble-incoming-fg: #CCCCCC;
     --chat-bubble-outgoing-bg: #1b5954;
     --chat-bubble-outgoing-fg: #CCCCCC;
-    --thread-line: #3D6A61;
+    --thread-line: #4A5056;
     --thread-unread: #29B78E;
     --thread-node-bg: #2C2C2E;
 
