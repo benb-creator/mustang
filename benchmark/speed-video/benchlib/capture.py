@@ -55,7 +55,22 @@ class CaptureLayout:
                 "marker_cell": self.marker.cell_px}
 
 
+class LiveRegion:
+    """A region of the low-resolution live stream with its expected (low-resolution) content."""
+
+    def __init__(self, rect, reference: np.ndarray | None, tolerance: float):
+        self.rect = rect
+        self.reference = reference
+        self.tolerance = tolerance
+
+    def crop(self, frame: np.ndarray) -> np.ndarray:
+        r = self.rect
+        return frame[r.y:r.y + r.height, r.x:r.x + r.width]
+
+
 class LiveMonitor:
+    live_pixel_threshold_match = 12
+
     def __init__(self, stream, width: int, height: int, pixel_threshold: int, min_changed_pixels: int):
         self.stream = stream
         self.width = width
@@ -65,6 +80,7 @@ class LiveMonitor:
         self.arrivals: list[float] = []
         self.changes: list[int] = []
         self.latest: np.ndarray | None = None
+        self.watch_regions: list[LiveRegion] = []
         self.ended = threading.Event()
         self.first_frame = threading.Event()
         self.lock = threading.Lock()
@@ -81,8 +97,14 @@ class LiveMonitor:
                     break
                 now = time.perf_counter()
                 frame = np.frombuffer(buf, dtype=np.uint8).reshape(self.height, self.width)
-                changed = 0 if previous is None else int(np.count_nonzero(
-                    np.abs(frame.astype(np.int16) - previous.astype(np.int16)) > self.pixel_threshold))
+                changed = 0
+                if previous is not None:
+                    moved = np.abs(frame.astype(np.int16) - previous.astype(np.int16)) > self.pixel_threshold
+                    changed = int(np.count_nonzero(moved))
+                    with self.lock:
+                        regions = list(self.watch_regions)
+                    if any(region.crop(moved).any() for region in regions):
+                        changed = max(changed, self.min_changed_pixels)
                 with self.lock:
                     self.arrivals.append(now)
                     self.changes.append(changed)
@@ -92,41 +114,63 @@ class LiveMonitor:
         finally:
             self.ended.set()
 
-    def matches(self, reference: np.ndarray | None, tolerance: float) -> bool:
-        if reference is None:
-            return True
+    def distance(self, latest: np.ndarray, reference: np.ndarray) -> float:
+        if latest.shape != reference.shape:
+            return 1.0
+        differing = np.count_nonzero(np.abs(latest.astype(np.int16) - reference.astype(np.int16))
+                                     > self.live_pixel_threshold_match)
+        return differing / max(1, latest.size)
+
+    def matches(self, reference: np.ndarray | None, tolerance: float, regions: list[LiveRegion]) -> bool:
         with self.lock:
             latest = self.latest
-        if latest is None or latest.shape != reference.shape:
+        if latest is None:
+            return reference is None and not regions
+        if reference is not None and self.distance(latest, reference) > tolerance:
             return False
-        differing = np.count_nonzero(np.abs(latest.astype(np.int16) - reference.astype(np.int16)) > 40)
-        return differing / latest.size <= tolerance
+        return all(r.reference is None or self.distance(r.crop(latest), r.reference) <= r.tolerance for r in regions)
 
     def wait_settled(self, since: float, quiet_s: float, timeout_s: float, label: str,
                      expect_change: bool = True, reference: np.ndarray | None = None,
-                     reference_tolerance: float = 0.05) -> tuple[bool, dict]:
+                     reference_tolerance: float = 0.01, regions: list[LiveRegion] | None = None,
+                     no_reaction_s: float | None = None, grace_s: float | None = None) -> tuple[str, dict]:
+        """Returns ("settled" | "timeout" | "no-reaction", info). With a reference or regions, a quiet screen only
+        counts once it matches them; after `grace_s` of stillness without a match the gate opens anyway (the
+        offline analysis then decides), so a strict live match can't turn into a timeout."""
+        regions = list(regions or [])
+        with self.lock:
+            self.watch_regions = regions
         deadline = since + timeout_s
-        while True:
-            now = time.perf_counter()
+        try:
+            while True:
+                now = time.perf_counter()
+                with self.lock:
+                    start = int(np.searchsorted(np.asarray(self.arrivals), since, side="left"))
+                    last_change = None
+                    first_change = None
+                    for t, c in zip(self.arrivals[start:], self.changes[start:]):
+                        if c >= self.min_changed_pixels:
+                            last_change = t
+                            first_change = first_change or t
+                info = {"live_end": last_change, "live_first_change": first_change, "live_quiet_s": quiet_s,
+                        "live_reference": reference is not None, "live_regions": len(regions)}
+                if last_change is not None and now - last_change >= quiet_s:
+                    if self.matches(reference, reference_tolerance, regions):
+                        return "settled", {**info, "live_matched": True}
+                    if grace_s is not None and now - last_change >= grace_s:
+                        return "settled", {**info, "live_matched": False}
+                if last_change is None and not expect_change and now - since >= quiet_s:
+                    return "settled", {**info, "live_end": None}
+                if last_change is None and expect_change and no_reaction_s is not None and now - since >= no_reaction_s:
+                    return "no-reaction", info
+                if self.ended.is_set():
+                    raise CaptureError(f"Capture stream ended while waiting for '{label}' to settle")
+                if now > deadline:
+                    return "timeout", {**info, "timeout_s": timeout_s}
+                time.sleep(0.02)
+        finally:
             with self.lock:
-                start = int(np.searchsorted(np.asarray(self.arrivals), since, side="left"))
-                last_change = None
-                first_change = None
-                for t, c in zip(self.arrivals[start:], self.changes[start:]):
-                    if c >= self.min_changed_pixels:
-                        last_change = t
-                        first_change = first_change or t
-            quiet = last_change is not None and now - last_change >= quiet_s
-            if quiet and self.matches(reference, reference_tolerance):
-                return True, {"live_end": last_change, "live_first_change": first_change, "live_quiet_s": quiet_s,
-                              "live_reference": reference is not None}
-            if last_change is None and not expect_change and now - since >= quiet_s:
-                return True, {"live_end": None, "live_quiet_s": quiet_s}
-            if self.ended.is_set():
-                raise CaptureError(f"Capture stream ended while waiting for '{label}' to settle")
-            if now > deadline:
-                return False, {"live_last_change": last_change, "timeout_s": timeout_s}
-            time.sleep(0.02)
+                self.watch_regions = []
 
 
 class FFmpegCapture:
@@ -147,6 +191,7 @@ class FFmpegCapture:
         self.encoder = encoder or ["-c:v", "libx264rgb", "-preset", "ultrafast", "-qp", "0"]
         self.process: subprocess.Popen | None = None
         self.live: LiveMonitor | None = None
+        self.log = None
 
     def live_reference(self, path) -> np.ndarray | None:
         from PIL import Image
@@ -155,6 +200,24 @@ class FFmpegCapture:
         image = Image.open(path).convert("L")
         width, height = self.live_size
         return np.asarray(image.resize((width, height), Image.Resampling.BOX))
+
+    def live_region(self, region) -> LiveRegion:
+        """The low-resolution version of a calibrated region (`settle.Region`) and of its reference: only the live
+        pixels that lie wholly inside the region, so they average exactly the pixels the reference has."""
+        from PIL import Image
+        s, r = self.live_scale, region.rect
+        x0, y0 = -(-r.x // s), -(-r.y // s)
+        x1, y1 = (r.x + r.width) // s, (r.y + r.height) // s
+        if x1 <= x0 or y1 <= y0:
+            x0, y0, x1, y1 = r.x // s, r.y // s, max(r.x // s + 1, x1), max(r.y // s + 1, y1)
+        rect = Rect(x0, y0, x1 - x0, y1 - y0)
+        reference = None
+        if region.reference is not None:
+            ox, oy = max(0, x0 * s - r.x), max(0, y0 * s - r.y)
+            inner = region.reference[oy:oy + rect.height * s, ox:ox + rect.width * s]
+            image = Image.fromarray(inner).convert("L")
+            reference = np.asarray(image.resize((rect.width, rect.height), Image.Resampling.BOX))
+        return LiveRegion(rect, reference, max(region.tolerance, 0.0))
 
     @property
     def live_size(self) -> tuple[int, int]:
@@ -179,9 +242,9 @@ class FFmpegCapture:
         return cmd
 
     def start(self, first_frame_timeout_s: float = 15) -> LiveMonitor:
-        log = open(self.log_path, "ab") if self.log_path else subprocess.DEVNULL
-        self.process = subprocess.Popen(self.command(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=log,
-                                        env=getattr(self.desktop, "env", None))
+        self.log = open(self.log_path, "ab") if self.log_path else None
+        self.process = subprocess.Popen(self.command(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                        stderr=self.log or subprocess.DEVNULL, env=getattr(self.desktop, "env", None))
         self.desktop.set_affinity(self.process, self.cpus)
         live_w, live_h = self.live_size
         self.live = LiveMonitor(self.process.stdout, live_w, live_h, self.live_pixel_threshold, self.live_min_changed)
@@ -210,3 +273,6 @@ class FFmpegCapture:
         if self.live:
             self.live.thread.join(5)
         self.process = None
+        if self.log:
+            self.log.close()
+            self.log = None

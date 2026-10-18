@@ -8,8 +8,11 @@ key arrived and when the last pixel of the final state was drawn: that is the gr
 measurement is checked against.
 
 Config (JSON): {"title": "...", "background": [r,g,b], "steps": [{"key": "Return", "delay_s": 0.8,
-"feedback": "spinner"|"loading"|"none", "progressive": 4, "rows": 12}, ...]}; a key press triggers the first
-step with that key that hasn't run yet.
+"feedback": "spinner"|"loading"|"none", "progressive": 4, "rows": 12, "counter_s": 1.5}, ...]}; a key press
+triggers the first step with that key that hasn't run yet. With `counter_s`, a small "n of 30000" counter at the
+bottom of the list keeps counting for that long after the rows are final (like an Inbox that shows its first page
+and loads the rest of the list in the background); the final state is the counter's last update. End draws the
+"oldest message" row at the bottom of the list (the verify check).
 """
 
 import argparse
@@ -39,6 +42,7 @@ class FakeMailApp:
         self.window.change_property(self.display.intern_atom("_NET_WM_PID"), Xatom.CARDINAL, 32, [os.getpid()])
         self.gc = self.window.create_gc()
         self.font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
+        self.small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 9)
         self.big = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 22)
         self.image = Image.new("RGB", (width, height), tuple(config.get("background", [246, 247, 250])))
         self.steps = config.get("steps", [])
@@ -99,6 +103,7 @@ class FakeMailApp:
             if y + row_h > y1:
                 break
             shade = 60 + (seed * 37 + r * 11) % 120
+            d.rectangle([x0 + 1, y, x1 - 1, y + row_h - 1], fill=(255, 255, 255))
             d.rectangle([x0 + 8, y + 4, x0 + 8 + 12, y + 16], fill=(shade, 120, 200))
             d.text((x0 + 30, y), f"Message {seed}-{r}: subject line number {r + 1}", font=self.font,
                    fill=(20, 20, 30))
@@ -147,10 +152,15 @@ class FakeMailApp:
             self.at(time.perf_counter() + 1 / 30, "spin", None)
         chunks = max(1, int(step.get("progressive", 1)))
         rows = int(step.get("rows", 12))
+        counter_s = float(step.get("counter_s", 0))
         for c in range(chunks):
             when = t_key + delay - (chunks - 1 - c) * 0.05
             upto = rows if c == chunks - 1 else max(1, rows * (c + 1) // chunks)
-            self.at(when, "content", (index, rows, upto, c == chunks - 1, c == 0))
+            self.at(when, "content", (index, rows, upto, c == chunks - 1 and not counter_s, c == 0))
+        if counter_s:
+            updates = max(1, int(counter_s / 0.1))
+            for k in range(1, updates + 1):
+                self.at(t_key + delay + k * counter_s / updates, "counter", (index, k, updates))
 
     def handle_timer(self, kind: str, payload):
         if kind == "caret":
@@ -171,7 +181,20 @@ class FakeMailApp:
             self.paint_list(index + 1, rows, upto)
             self.blit((self.list_box()[0], self.list_box()[1], self.list_box()[2] + 1, self.list_box()[3] + 1))
             self.display.sync()
+            if first:
+                self.write("first_drawn", step=index)
             if final:
+                self.write("final_drawn", step=index)
+        elif kind == "counter":
+            index, k, updates = payload
+            x0, y0, x1, y1 = self.list_box()
+            box = (x0 + 8, y1 - 16, x0 + 60, y1 - 4)
+            d = ImageDraw.Draw(self.image)
+            d.rectangle(box, fill=(255, 255, 255))
+            d.text((box[0], box[1]), f"{k:02d}", font=self.small, fill=(90, 90, 100))
+            self.blit((box[0], box[1], box[2] + 1, box[3] + 1))
+            self.display.sync()
+            if k == updates:
                 self.write("final_drawn", step=index)
 
     def handle_key(self, event):
@@ -181,6 +204,15 @@ class FakeMailApp:
                 self.used_steps.add(index)
                 self.on_trigger(step, index)
                 return
+        if keysym == XK.string_to_keysym("End"):
+            x0, y0, x1, y1 = self.list_box()
+            d = ImageDraw.Draw(self.image)
+            d.rectangle([x0 + 8, y1 - 52, x1 - 8, y1 - 24], fill=(255, 236, 200))
+            d.text((x0 + 30, y1 - 48), "Oldest message: welcome to the corpus", font=self.font, fill=(20, 20, 30))
+            self.blit((x0, y1 - 52, x1, y1 - 23))
+            self.display.sync()
+            self.write("verify_drawn")
+            return
         if keysym == XK.string_to_keysym("q") and event.state & X.ControlMask:
             self.write("quit")
             sys.exit(0)

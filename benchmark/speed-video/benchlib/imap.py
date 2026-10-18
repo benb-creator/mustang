@@ -106,6 +106,11 @@ class IMAPAccount:
         data = self.check(self.conn.uid("SEARCH", "CHARSET", "UTF-8", key, self.quote(term)))
         return len(data[0].split())
 
+    def larger_count(self, folder: str, size: int) -> int:
+        self.check(self.conn.select(self.quote(folder), readonly=True))
+        data = self.check(self.conn.uid("SEARCH", "LARGER", str(int(size))))
+        return len(data[0].split())
+
     def delete_all(self, folder: str):
         count = self.status(folder)["MESSAGES"]
         self.check(self.conn.select(self.quote(folder)))

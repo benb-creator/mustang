@@ -21,11 +21,18 @@ server:
     method: storage
     ssh: <bench@bench.mail.example.org>         # Windows 10/11 ship OpenSSH (ssh.exe); use key authentication
     instance_dir: /opt/stalwart-bench
-    data_dir: /opt/stalwart-bench/data
+    data_dir: /opt/stalwart-bench/data                  # inside instance_dir; must contain the file BENCHMARK-DATA
     snapshot_dir: /opt/stalwart-bench/snapshots
     stop: sudo systemctl stop stalwart-bench
     start: sudo systemctl start stalwart-bench
     wipe_allowed_for: <bench@example.org>
+  password_rotation:                # after every restore a new random password of the same length (typed by the driver)
+    admin_user: <admin@example.org>  # a Stalwart administrator of the benchmark instance
+    admin_password_env: BENCH_ADMIN_PASSWORD
+  log:                              # the evidence tracer's log on the server (README: "Server log evidence")
+    path: /opt/stalwart-bench/logs/evidence.*
+    cloud_asns: [8075]              # Microsoft; logins from these networks count as "cloud"
+    final_watch_min: 60             # C4: keep watching for Microsoft logins after the last run
 
 account:
   email: <bench@example.org>
@@ -34,6 +41,7 @@ account:
   password_env: BENCH_ACCOUNT_PASSWORD
 
 corpus:
+  profile: inbox-30k                # 30,000 messages in the Inbox, 300 with one 1,000,000-byte attachment
   seed: 20261018
   owner_name: Robin Sample
   owner_address: <bench@example.org>
@@ -46,25 +54,28 @@ display:
   platform: windows
   monitor: 0                         # ddagrab output_idx
   layout: 2560x1440-100pct           # display scaling 100 % (the driver is per-monitor DPI aware)
-  app_region: {x: 0, y: 0, width: 1280, height: 1080}
+  app_region: {x: 0, y: 0, width: 1280, height: 940}
   marker: {cell: 12, position: below, gap: 4}
 
 capture:
   fps: 60
   cpus: "11"                         # ffmpeg process affinity (SetProcessAffinityMask)
-  draw_mouse: true
+  draw_mouse: false                  # the pointer is parked outside the capture after each click
   live_scale: 4
 
 settle:
   pixel_threshold: 8
   min_changed_pixels: 150
   quiet_s: 1.0
-  live_quiet_s: 1.5
   step_timeout_s: 300
+  task_timeout_s: 7200
+  no_reaction_s: 60
+  roi_grace_s: 20
+  max_gap_frames: 3
   reference_quiet_s: 4.0
   reference_tolerance: 0.02
 
-runs: {measured: 5, warmup: 1, retries: 2}
+runs: {measured: 5, warmup: 1, retries: 2, analyze_after_each: true}
 
 driver:
   type_delay_ms: 40
@@ -84,10 +95,14 @@ apps:
     name: Outlook (classic)
     protocol: IMAP
     os: Windows
+    microsoft_ui: true                # compose: complete window, no held frame, timer race beyond the budget
     launch: ["C:/Program Files/Microsoft Office/root/Office16/OUTLOOK.EXE", /profile, Bench]
     profile:
       dirs: ["{home}/AppData/Local/Microsoft/Outlook"]      # the IMAP account's .ost data file(s)
-      registry: ["HKCU\\Software\\Microsoft\\Office\\16.0\\Outlook\\Profiles\\Bench"]
+      registry: ["HKCU\\Software\\Microsoft\\Office\\16.0\\Outlook\\Profiles\\Bench",
+                 "HKCU\\Software\\Microsoft\\Office\\16.0\\Outlook\\Setup"]
+      registry_create_empty: true     # "fresh": an empty Bench profile, so /profile Bench opens the account setup
+      credential_targets: []          # Credential Manager entries of the IMAP account (check `cmdkey /list` after a setup)
     window: {class: rctrl_renwnd32, timeout_s: 180}
     close: {key: alt+F4, timeout_s: 120}
     process_names: [outlook.exe]
@@ -98,27 +113,38 @@ apps:
     name: Outlook (new)
     protocol: IMAP (via Microsoft cloud)
     os: Windows
+    microsoft_ui: true
+    cloud_sync: true                  # server log evidence: logins and fetches from Microsoft's networks
     launch: [explorer.exe, "shell:AppsFolder\\Microsoft.OutlookForWindows_8wekyb3d8bbwe!Microsoft.OutlookforWindows"]
     profile:
       dirs: ["{home}/AppData/Local/Microsoft/Olk"]
     window: {process: olk.exe, timeout_s: 180}
     close: {key: alt+F4, timeout_s: 120}
-    process_names: [olk.exe]
+    process_names: [olk.exe]          # new Outlook may keep running after Alt+F4; it is ended before the next run
     version_from:
       command: [powershell, -NoProfile, -Command, "(Get-AppxPackage Microsoft.OutlookForWindows).Version"]
 
+sessions:                            # one interleaved series per computer; C3 and C4 use the same Parula runs
+  windows: {apps: [parula-jmap, outlook-classic, outlook-new]}
+
 comparisons:
-  C3: {os: Windows, left: parula-jmap, right: outlook-classic, tasks: [T1, T2, T3, T4, T5, T6, T7]}
-  C4:
-    os: Windows
-    left: parula-jmap
-    right: outlook-new
-    tasks: [T1, T2, T3, T4, T5, T6, T7]
-    environment: {cloud_sync_confirmed: 0}   # set to 1 after confirming the IMAP account syncs through Microsoft's cloud
+  C3: {os: Windows, left: parula-jmap, right: outlook-classic, tasks: [T1], session: windows}  # T2–T7: multi-folder
+  C4: {os: Windows, left: parula-jmap, right: outlook-new, tasks: [T1], session: windows}
+  # Person-set facts (cloud_sync_confirmed, dialog_text, right_protocol_default, …) go into work/results/facts.json.
 
 deviations:
+  - "Server: an additional log of logins, fetches and downloads (Stalwart debug level for these events), the same in every run of every app; the test account gets a new random password of the same length before every run."
   - "Outlook (classic): started with /profile Bench, a profile that only holds the benchmark IMAP account."
   - "Windows: notifications (Focus assist / Do not disturb) on, so no toasts appear during capture."
+
+procedures:
+  - "New Outlook: before every run, the account was removed from new Outlook with \"remove from all devices\" (also from the Microsoft cloud), so every run was a new account setup; the next run started only after the server log showed no further login from outside the test computer for 10 minutes."
+  - "Every run starts from a fresh app profile and the same server snapshot (`seeded`, taken right after the import)."
+
+publish:
+  page_url: <https://parula.app/…>
+  repo_url: https://github.com/mustang-im/mustang/tree/master/benchmark/speed-video
+  imprint_url: <https://parula.app/…>
 
 compose:
   font_regular: C:/Windows/Fonts/segoeui.ttf

@@ -11,7 +11,8 @@ class EncodeError(Exception):
 class Encoder:
     color_tags = ["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv"]
 
-    def __init__(self, config, master: Path, audio: Path | None, out_dir: Path, name: str, progress=print):
+    def __init__(self, config, master: Path, audio: Path | None, out_dir: Path, name: str, progress=print,
+                 watermark: str | None = None):
         self.config = config
         self.master = Path(master)
         self.audio = Path(audio) if audio else None
@@ -27,6 +28,9 @@ class Encoder:
         self.youtube_crf = int(encode.get("youtube_crf", 12))
         self.youtube_height = int(encode.get("youtube_height", 2160))
         self.threads = encode.get("threads")
+        self.watermark = watermark
+        compose = config.get("compose") or {}
+        self.font = compose.get("font_bold")
 
     def run(self, args: list[str]) -> str:
         result = subprocess.run([self.ffmpeg, "-hide_banner", "-y", *args], capture_output=True, text=True)
@@ -36,6 +40,12 @@ class Encoder:
 
     def video_filter(self, height: int | None = None) -> str:
         scale = f"scale=-2:{height}:flags=lanczos+accurate_rnd+full_chroma_int," if height else ""
+        if self.watermark:
+            from .cards import Fonts
+            font = (self.font or Fonts.default(True)).replace("\\", "/").replace(":", "\\:")
+            text = self.watermark.replace("'", "").replace(":", "\\:")
+            scale = (f"drawtext=fontfile='{font}':text='{text}':fontsize=h/18:fontcolor=white@0.85:box=1:"
+                     f"boxcolor=0xB00020@0.8:boxborderw=20:x=(w-tw)/2:y=(h-th)/2,") + scale
         return (f"{scale}scale=in_range=pc:out_range=tv:out_color_matrix=bt709:"
                 f"flags=accurate_rnd+full_chroma_int,format=yuv420p,setparams=range=tv:colorspace=bt709:"
                 f"color_primaries=bt709:color_trc=bt709")

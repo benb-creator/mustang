@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from benchlib.analyze import Aggregator  # noqa: E402
 from benchlib.attachments import SyntheticFiles  # noqa: E402
-from benchlib.compose import SubtitleWriter, TimeLapse, VoicePart  # noqa: E402
+from benchlib.compose import RacePlan, SubtitleWriter, VoicePart  # noqa: E402
 from benchlib.corpus import CorpusGenerator, CorpusSpec  # noqa: E402
 from benchlib.marker import ClockFit, ClockFitError, MarkerCode, MarkerTrack  # noqa: E402
 from benchlib.narration import Condition, Narration, NarrationValues  # noqa: E402
@@ -290,7 +290,7 @@ def test_config_expands_keys_and_values(tmp_path):
 
 # --- corpus determinism and validity -----------------------------------------------------------------------------
 
-SMALL = {"seed": 99, "folders": [
+SMALL = {"profile": "multi-folder", "seed": 99, "folders": [
     {"name": "Inbox", "count": 60, "role": "inbox", "days_back_from": 90, "days_back_to": 0, "seen_ratio": 0.7},
     {"name": "Archive", "count": 120, "role": "archive", "days_back_from": 3650, "days_back_to": 90},
     {"name": "Sent", "count": 40, "role": "sent"},
@@ -356,14 +356,22 @@ def test_synthetic_files_are_valid():
 
 # --- compose helpers ---------------------------------------------------------------------------------------------
 
-def test_timelapse_mapping():
-    lapse = TimeLapse.plan(pre=2.0, fast_end=3.0, slow_end=60.0, threshold_s=25, max_compressed_s=8)
-    assert lapse.active and lapse.start == 7.0 and lapse.end == 60.0
-    assert lapse.factor == 8
-    assert lapse.output_time(5.0) == 5.0
-    assert abs(lapse.output_time(60.0) - (7.0 + 53.0 / 8)) < 1e-9
-    assert abs(lapse.output_time(62.0) - (7.0 + 53.0 / 8 + 2.0)) < 1e-9
-    assert not TimeLapse.plan(2.0, 1.0, 10.0, 25, 8).active
+def test_race_plan_follows_the_budget_rule():
+    factors = [2, 3, 4, 5, 8, 10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500,
+               2000, 3000, 5000]
+    within = RacePlan.for_budget(2.0, 0.8, 3.0, 8.0, 8.5, factors, 1.0, 0.5, 4.0)
+    assert not within.lapsed and within.total == 2.0 + 0.8 + 8.0 + 4.0
+    plan = RacePlan.for_budget(2.0, 0.8, 3.0, 60.0, 8.5, factors, 1.0, 0.5, 4.0)
+    assert plan.a == 3.5, "real time until just after the faster app (3 s + 0.5 s <= budget / 2)"
+    assert plan.factor == 15, "the smallest listed factor with a + (s - a) / F <= budget"
+    assert plan.a + (plan.s - plan.a) / plan.factor <= 8.5
+    assert abs(plan.out(60.0) - (2.8 + 3.5 + 56.5 / 15)) < 1e-9
+    assert plan.out(1.0) == 3.8
+    slow_fast = RacePlan.for_budget(2.0, 0.8, 6.0, 1800.0, 2.5, factors, 1.0, 0.5, 4.0)
+    assert slow_fast.a == 1.0, "faster app later than budget / 2: real time for the first second only"
+    assert slow_fast.factor == 1500 and slow_fast.a + (slow_fast.s - 1.0) / 1500 <= 2.5
+    timer_race = RacePlan.for_budget(2.0, 0.8, 3.0, 60.0, 8.5, factors, 1.0, 0.5, 4.0, timer_race=True)
+    assert timer_race.a == 1.0 and timer_race.timer_race
 
 
 def test_subtitles(tmp_path):

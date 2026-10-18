@@ -15,7 +15,7 @@ class Action:
     options: dict = field(default_factory=dict)
 
     input_kinds = ("launch", "key", "type", "click", "double_click", "right_click", "scroll", "drag")
-    known_kinds = input_kinds + ("close", "sleep", "wait_settled", "wait_window", "focus")
+    known_kinds = input_kinds + ("close", "sleep", "wait_settled", "wait_window", "focus", "wait_cloud_quiet")
 
     @property
     def is_input(self) -> bool:
@@ -65,6 +65,36 @@ class Action:
 
 
 @dataclass
+class RegionCheck:
+    """A calibrated region (by name) whose content must match its reference image (made by `calibrate references`)."""
+    region: str
+    tolerance: float = 0.0
+    pixel_threshold: int = 24
+
+    @classmethod
+    def parse(cls, raw) -> "RegionCheck":
+        if isinstance(raw, str):
+            return cls(raw)
+        return cls(str(raw["region"]), float(raw.get("tolerance", 0.0)), int(raw.get("pixel_threshold", 24)))
+
+
+@dataclass
+class Verify:
+    """A check after the measured end of a step (not waiting time, not a user action): actions, then within
+    `within_s` the regions must match their references (e.g. End shows the corpus's oldest message)."""
+    actions: list
+    regions: list
+    within_s: float = 5.0
+
+    @classmethod
+    def parse(cls, raw: dict | None) -> "Verify | None":
+        if not raw:
+            return None
+        return cls([Action.parse(a) for a in raw.get("actions") or []],
+                   [RegionCheck.parse(r) for r in raw.get("regions") or []], float(raw.get("within_s", 5.0)))
+
+
+@dataclass
 class Step:
     name: str
     actions: list
@@ -72,6 +102,19 @@ class Step:
     settle: dict = field(default_factory=dict)
     expect: str | None = "auto"
     timeout_s: float | None = None
+    regions: list = field(default_factory=list)
+    first_visible: RegionCheck | None = None
+    verify: Verify | None = None
+    after_end: str = "report"
+
+    @property
+    def region_names(self) -> set[str]:
+        names = {r.region for r in self.regions}
+        if self.first_visible:
+            names.add(self.first_visible.region)
+        if self.verify:
+            names |= {r.region for r in self.verify.regions}
+        return names
 
     @property
     def trigger_index(self) -> int:
@@ -93,6 +136,9 @@ class AppScenario:
     finish: list
     masks: list
     settle: dict
+    tail_s: float | None = None
+    finish_required: bool = False
+    opening_screen: RegionCheck | None = None
 
     @property
     def user_action_count(self) -> int:
@@ -103,9 +149,15 @@ class AppScenario:
         return [a.describe() for s in self.steps for a in s.actions if a.is_input]
 
     @property
+    def region_names(self) -> set[str]:
+        names = {name for s in self.steps for name in s.region_names}
+        return names | ({self.opening_screen.region} if self.opening_screen else set())
+
+    @property
     def point_names(self) -> set[str]:
         names = set()
-        for action in self.prepare + [a for s in self.steps for a in s.actions] + self.finish:
+        verify = [a for s in self.steps if s.verify for a in s.verify.actions]
+        for action in self.prepare + [a for s in self.steps for a in s.actions] + verify + self.finish:
             points = [action.arg] if action.kind in ("click", "double_click", "right_click", "scroll") else []
             if action.kind == "drag":
                 points = [action.arg, action.options.get("to")]
@@ -121,6 +173,7 @@ class Scenario:
     start_state: dict
     apps: dict
     path: Path
+    timeout_s: float | None = None
 
     def title_for(self, lang: str) -> str:
         return self.title.get(lang) or self.title.get("en") or self.task_id
@@ -145,6 +198,10 @@ class Scenario:
                     settle=dict(s.get("settle") or {}),
                     expect=s.get("expect", "auto"),
                     timeout_s=s.get("timeout_s"),
+                    regions=[RegionCheck.parse(r) for r in s.get("regions") or []],
+                    first_visible=RegionCheck.parse(s["first_visible"]) if s.get("first_visible") else None,
+                    verify=Verify.parse(s.get("verify")),
+                    after_end=str(s.get("after_end", "report")),
                 ))
             for step in steps:
                 if step.measure:
@@ -156,12 +213,15 @@ class Scenario:
                 finish=[Action.parse(a) for a in spec.get("finish") or []],
                 masks=list(spec.get("masks") or []),
                 settle=dict(spec.get("settle") or {}),
+                tail_s=spec.get("tail_s"),
+                finish_required=bool(spec.get("finish_required", False)),
+                opening_screen=RegionCheck.parse(spec["opening_screen"]) if spec.get("opening_screen") else None,
             )
         title = raw.get("title") or {}
         if isinstance(title, str):
             title = {"en": title}
         return cls(str(raw["id"]), title, str(raw.get("description", "")), dict(raw.get("start_state") or {}), apps,
-                   Path(path))
+                   Path(path), raw.get("timeout_s"))
 
 
 class ScenarioLibrary:

@@ -85,24 +85,39 @@ class CardRenderer:
         return path
 
     def race_background(self, path: Path, layout, title: str, left_label: str, right_label: str,
-                        footnote: str) -> Path:
+                        footnote: list[str]) -> Path:
         image, draw = self.canvas()
         t = self.theme
         draw.rectangle([0, 0, self.width, layout.header_h], fill=t.band)
-        font = self.fit_font(draw, title, self.px(64), self.width - self.px(80), True)
+        font = self.fit_font(draw, title, self.px(52), self.width - self.px(80), True)
         w = draw.textlength(title, font=font)
-        draw.text(((self.width - w) / 2, (layout.header_h - self.px(64) * 1.2) / 2), title, font=font, fill=t.text)
+        draw.text(((self.width - w) / 2, self.px(10)), title, font=font, fill=t.text)
         for x0, label, color in ((0, left_label, t.left_band), (layout.pane_w, right_label, t.right_band)):
-            draw.rectangle([x0, layout.header_h, x0 + layout.pane_w, layout.header_h + layout.label_h], fill=color)
-            font = self.fit_font(draw, label, self.px(40), layout.pane_w - self.px(420), True)
-            draw.text((x0 + self.px(28), layout.header_h + (layout.label_h - self.px(40) * 1.2) / 2), label,
+            draw.rectangle([x0, layout.label_top, x0 + layout.pane_w, layout.label_top + layout.label_h], fill=color)
+            font = self.fit_font(draw, label, self.px(36), layout.pane_w - self.px(460), True)
+            draw.text((x0 + self.px(24), layout.label_top + (layout.label_h - self.px(36) * 1.2) / 2), label,
                       font=font, fill=t.text)
-        footer_top = layout.header_h + layout.label_h + layout.pane_h
-        draw.rectangle([0, footer_top, self.width, self.height], fill=t.band)
-        font = self.fit_font(draw, footnote, self.px(30), self.width - self.px(80), False)
-        w = draw.textlength(footnote, font=font)
-        draw.text(((self.width - w) / 2, footer_top + (layout.footer_h - self.px(30) * 1.2) / 2), footnote,
-                  font=font, fill=t.muted)
+        draw.rectangle([0, layout.hold_top, self.width, self.height], fill=t.band)
+        y = layout.footer_top + self.px(10)
+        for line in footnote[:2]:
+            font = self.fit_font(draw, line, self.px(30), self.width - self.px(80), False)
+            w = draw.textlength(line, font=font)
+            draw.text(((self.width - w) / 2, y), line, font=font, fill=t.muted)
+            y += self.px(42)
+        image.save(path)
+        return path
+
+    def pane_card(self, path: Path, width: int, height: int, lines: list[str]) -> Path:
+        """Neutral card in a pane's place (no recording shown): the same look for both sides."""
+        image = Image.new("RGB", (width, height), self.theme.band)
+        draw = ImageDraw.Draw(image)
+        sizes = [56, 40] + [36] * max(0, len(lines) - 2)
+        y = (height - sum(self.px(s) * 1.5 for s in sizes[:len(lines)])) / 2
+        for line, size in zip(lines, sizes):
+            font = self.fit_font(draw, line, self.px(size), width - self.px(80), size == 56)
+            w = draw.textlength(line, font=font)
+            draw.text(((width - w) / 2, y), line, font=font, fill=self.theme.text if size == 56 else self.theme.muted)
+            y += self.px(size) * 1.5
         image.save(path)
         return path
 

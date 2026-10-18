@@ -34,7 +34,7 @@ class SnapshotCheck:
 
     def state(self) -> dict:
         client = self.seeder.jmap()
-        boxes = client.mailbox_paths()
+        boxes = client.folder_paths()
         jmap = {path: sorted(client.query_ids({"inMailbox": m["id"]})) for path, m in boxes.items()}
         flagged = client.query_count({"hasKeyword": "$flagged"})
         account = self.seeder.imap()
@@ -46,13 +46,13 @@ class SnapshotCheck:
                               "uids": account.uids(name)}
         finally:
             account.close()
-        return {"jmap": jmap, "imap": imap, "flagged": flagged, "mailbox_ids": {p: m["id"] for p, m in boxes.items()}}
+        return {"jmap": jmap, "imap": imap, "flagged": flagged, "folder_ids": {p: m["id"] for p, m in boxes.items()}}
 
     def mutate(self, before: dict) -> dict:
         client = self.seeder.jmap()
         inbox = next(p for p in before["jmap"] if p.lower() == "inbox")
         ids = before["jmap"][inbox]
-        target = before["mailbox_ids"].get("Projects/Done") or before["mailbox_ids"][inbox]
+        target = before["folder_ids"].get("Projects/Done") or before["folder_ids"][inbox]
         client.one("Email/set", {"update": {ids[0]: {"keywords/$flagged": True},
                                             ids[1]: {"mailboxIds": {target: True}}},
                                  "destroy": [ids[2]]})
@@ -62,7 +62,7 @@ class SnapshotCheck:
         problems = []
         if a["jmap"] != b["jmap"]:
             problems.append("JMAP ids per folder differ")
-        if a["mailbox_ids"] != b["mailbox_ids"]:
+        if a["folder_ids"] != b["folder_ids"]:
             problems.append("folder ids differ")
         for name, s in a["imap"].items():
             t = b["imap"].get(name)

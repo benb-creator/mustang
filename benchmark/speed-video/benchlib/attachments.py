@@ -112,6 +112,24 @@ class SyntheticFiles:
         return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
     def pdf(self, size: int, label: str) -> Attachment:
+        padding = max(0, size - 1200)
+        data = self.pdf_with_padding(label, lambda: self.rng.randbytes(padding) if padding else b"")
+        return Attachment(f"{label}.pdf", "application/pdf", data)
+
+    def exact_pdf(self, size: int, label: str) -> Attachment:
+        """A PDF of exactly `size` bytes: the padding stream is regenerated until the file length matches."""
+        padding_seed = self.rng.getrandbits(64)
+        lines_state = self.rng.getstate()
+        padding = max(0, size - 1200)
+        for _ in range(6):
+            self.rng.setstate(lines_state)
+            data = self.pdf_with_padding(label, lambda: random.Random(padding_seed).randbytes(padding))
+            if len(data) == size:
+                return Attachment(f"{label}.pdf", "application/pdf", data)
+            padding = max(0, padding + size - len(data))
+        raise ValueError(f"Can't make a PDF of exactly {size} bytes")
+
+    def pdf_with_padding(self, label: str, padding) -> bytes:
         lines = [f"Document {label}", "", *[f"Item {i + 1}: {self.rng.randint(10, 9999)}.{self.rng.randint(0, 99):02d} EUR"
                                            for i in range(self.rng.randint(5, 25))]]
         text_ops = "BT /F1 12 Tf 72 770 Td 16 TL " + " ".join(f"({self.pdf_escape(l)}) '" for l in lines) + " ET"
@@ -124,9 +142,8 @@ class SyntheticFiles:
             b"<< /Length %d >>\nstream\n" % len(content) + content + b"\nendstream",
             b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
         ]
-        padding = max(0, size - 1200)
-        if padding:
-            blob = self.rng.randbytes(padding)
+        blob = padding()
+        if blob:
             objects.append(b"<< /Length %d >>\nstream\n" % len(blob) + blob + b"\nendstream")
         out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
         offsets = []
@@ -138,7 +155,7 @@ class SyntheticFiles:
         for offset in offsets:
             out += b"%010d 00000 n \n" % offset
         out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objects) + 1, xref)
-        return Attachment(f"{label}.pdf", "application/pdf", bytes(out))
+        return bytes(out)
 
     @staticmethod
     def zip_stored(files: list[tuple[str, bytes]]) -> bytes:

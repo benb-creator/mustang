@@ -14,12 +14,6 @@ class WindowsDesktopError(Exception):
     pass
 
 
-INPUT_MOUSE, INPUT_KEYBOARD = 0, 1
-KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, KEYEVENTF_EXTENDEDKEY = 0x0002, 0x0004, 0x0001
-MOUSEEVENTF_MOVE, MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_VIRTUALDESK = 0x0001, 0x8000, 0x4000
-MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP = 0x0002, 0x0004
-MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP = 0x0008, 0x0010
-MOUSEEVENTF_WHEEL = 0x0800
 ULONG_PTR = ctypes.c_size_t
 
 
@@ -47,6 +41,9 @@ class INPUT(ctypes.Structure):
 
 class WindowsDesktop:
     platform = "windows"
+    INPUT_KEYBOARD = 1
+    KEYEVENTF_KEYUP = 0x0002
+    MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP = 0x0002, 0x0004
 
     virtual_keys = {
         "return": 0x0D, "enter": 0x0D, "tab": 0x09, "escape": 0x1B, "esc": 0x1B, "space": 0x20,
@@ -66,6 +63,11 @@ class WindowsDesktop:
         else:
             self.user32.SetProcessDPIAware()
         self.user32.SendInput.argtypes = (wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int)
+        self.user32.VkKeyScanW.restype = ctypes.c_short
+        self.user32.VkKeyScanW.argtypes = (wintypes.WCHAR,)
+        self.user32.GetForegroundWindow.restype = wintypes.HWND
+        self.user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+        self.user32.GetAncestor.restype = wintypes.HWND
         self.kernel32.OpenProcess.restype = wintypes.HANDLE
         self.kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
         self.kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
@@ -80,32 +82,40 @@ class WindowsDesktop:
             raise WindowsDesktopError(f"SendInput sent {sent} of {len(inputs)} events (error {ctypes.get_last_error()})")
 
     def key_input(self, vk: int, up: bool) -> INPUT:
-        flags = (KEYEVENTF_KEYUP if up else 0) | (KEYEVENTF_EXTENDEDKEY if vk in self.extended_keys else 0)
-        return INPUT(INPUT_KEYBOARD, _INPUTUNION(ki=KEYBDINPUT(vk, 0, flags, 0, 0)))
+        KEYEVENTF_EXTENDEDKEY = 0x0001
+        flags = (self.KEYEVENTF_KEYUP if up else 0) | (KEYEVENTF_EXTENDEDKEY if vk in self.extended_keys else 0)
+        return INPUT(self.INPUT_KEYBOARD, _INPUTUNION(ki=KEYBDINPUT(vk, 0, flags, 0, 0)))
 
-    def vk_for(self, name: str) -> int:
+    def vk_for(self, name: str) -> list[int]:
+        """Virtual keys for one key name: modifiers that VkKeyScanW reports (shift, ctrl, alt), then the key."""
         lower = name.lower()
         if lower in self.virtual_keys:
-            return self.virtual_keys[lower]
+            return [self.virtual_keys[lower]]
         if len(name) == 1:
-            result = self.user32.VkKeyScanW(ord(name))
+            result = self.user32.VkKeyScanW(name)
             if result == -1:
                 raise WindowsDesktopError(f"No virtual key for '{name}'")
-            return result & 0xFF
+            shift_state = (result >> 8) & 0xFF
+            modifiers = [vk for bit, vk in ((1, 0x10), (2, 0x11), (4, 0x12)) if shift_state & bit]
+            return [*modifiers, result & 0xFF]
         raise WindowsDesktopError(f"Unknown key name '{name}'")
 
     def key(self, combo: str):
         for chord in combo.split():
-            keys = [self.vk_for(k) for k in chord.split("+")]
+            keys = []
+            for name in chord.split("+"):
+                keys += [vk for vk in self.vk_for(name) if vk not in keys]
             self.send(*[self.key_input(vk, False) for vk in keys], *[self.key_input(vk, True) for vk in reversed(keys)])
 
     def type_text(self, text: str, delay_ms: int):
+        KEYEVENTF_UNICODE = 0x0004
         for ch in text:
             units = ch.encode("utf-16-le")
             for i in range(0, len(units), 2):
                 code = int.from_bytes(units[i:i + 2], "little")
-                down = INPUT(INPUT_KEYBOARD, _INPUTUNION(ki=KEYBDINPUT(0, code, KEYEVENTF_UNICODE, 0, 0)))
-                up = INPUT(INPUT_KEYBOARD, _INPUTUNION(ki=KEYBDINPUT(0, code, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, 0, 0)))
+                down = INPUT(self.INPUT_KEYBOARD, _INPUTUNION(ki=KEYBDINPUT(0, code, KEYEVENTF_UNICODE, 0, 0)))
+                up = INPUT(self.INPUT_KEYBOARD, _INPUTUNION(ki=KEYBDINPUT(0, code, KEYEVENTF_UNICODE |
+                                                                          self.KEYEVENTF_KEYUP, 0, 0)))
                 self.send(down, up)
             time.sleep(delay_ms / 1000)
 
@@ -114,18 +124,22 @@ class WindowsDesktop:
                     self.user32.GetSystemMetrics(78), self.user32.GetSystemMetrics(79))
 
     def mouse_input(self, flags: int, x: int = 0, y: int = 0, data: int = 0) -> INPUT:
+        INPUT_MOUSE = 0
         return INPUT(INPUT_MOUSE, _INPUTUNION(mi=MOUSEINPUT(x, y, data, flags, 0, 0)))
 
     def move(self, x: int, y: int):
+        MOUSEEVENTF_MOVE, MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_VIRTUALDESK = 0x0001, 0x8000, 0x4000
         screen = self.virtual_screen()
         nx = round((x - screen.x) * 65535 / max(1, screen.width - 1))
         ny = round((y - screen.y) * 65535 / max(1, screen.height - 1))
         self.send(self.mouse_input(MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK, nx, ny))
 
     def click(self, x: int, y: int, button: int = 1, count: int = 1, hover_s: float = 0.15):
+        MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP = 0x0008, 0x0010
         self.move(x, y)
         time.sleep(hover_s)
-        down, up = (MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP) if button == 3 else (MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP)
+        down, up = (MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP) if button == 3 else \
+            (self.MOUSEEVENTF_LEFTDOWN, self.MOUSEEVENTF_LEFTUP)
         for i in range(count):
             self.send(self.mouse_input(down), self.mouse_input(up))
             if i + 1 < count:
@@ -134,15 +148,16 @@ class WindowsDesktop:
     def drag(self, x0: int, y0: int, x1: int, y1: int, duration_s: float):
         self.move(x0, y0)
         time.sleep(0.15)
-        self.send(self.mouse_input(MOUSEEVENTF_LEFTDOWN))
+        self.send(self.mouse_input(self.MOUSEEVENTF_LEFTDOWN))
         steps = 12
         for i in range(1, steps + 1):
             time.sleep(duration_s / steps)
             self.move(x0 + (x1 - x0) * i // steps, y0 + (y1 - y0) * i // steps)
         time.sleep(0.15)
-        self.send(self.mouse_input(MOUSEEVENTF_LEFTUP))
+        self.send(self.mouse_input(self.MOUSEEVENTF_LEFTUP))
 
     def scroll(self, x: int, y: int, clicks: int):
+        MOUSEEVENTF_WHEEL = 0x0800
         self.move(x, y)
         for _ in range(abs(clicks)):
             self.send(self.mouse_input(MOUSEEVENTF_WHEEL, data=ctypes.c_uint32(-120 if clicks > 0 else 120).value))
@@ -215,8 +230,37 @@ class WindowsDesktop:
                                region.width + int(offsets.get("width", 0)),
                                region.height + int(offsets.get("height", 0)), True)
 
+    def window_process_id(self, hwnd) -> int:
+        pid = wintypes.DWORD()
+        self.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        return pid.value
+
+    def foreground_matches(self, match: dict, pid: int | None, hwnd) -> bool:
+        GA_ROOTOWNER = 3
+        foreground = self.user32.GetForegroundWindow()
+        if not foreground:
+            return False
+        if foreground == hwnd or self.user32.GetAncestor(foreground, GA_ROOTOWNER) == hwnd:
+            return True
+        foreground_pid = self.window_process_id(foreground)
+        if foreground_pid in (pid, self.window_process_id(hwnd)):
+            return True
+        return bool(match.get("process")) and self.process_image_name(foreground_pid) == match["process"].lower()
+
     def focus_window(self, hwnd):
-        self.user32.SetForegroundWindow(hwnd)
+        """SetForegroundWindow only works for the foreground process; attach to its input queue first."""
+        foreground = self.user32.GetForegroundWindow()
+        own_thread = self.kernel32.GetCurrentThreadId()
+        other_thread = self.user32.GetWindowThreadProcessId(foreground, None) if foreground else 0
+        attached = bool(other_thread and other_thread != own_thread and
+                        self.user32.AttachThreadInput(own_thread, other_thread, True))
+        try:
+            self.user32.ShowWindow(hwnd, 9)
+            self.user32.BringWindowToTop(hwnd)
+            self.user32.SetForegroundWindow(hwnd)
+        finally:
+            if attached:
+                self.user32.AttachThreadInput(own_thread, other_thread, False)
 
     def start_process(self, command: list[str], env: dict, cwd: str | None, output: Path | None = None):
         out = open(output, "ab") if output else subprocess.DEVNULL
@@ -233,11 +277,11 @@ class WindowsDesktop:
         out = subprocess.run(["tasklist", "/FO", "CSV", "/NH"], capture_output=True, text=True).stdout
         return {line.split('","')[0].strip('"').lower() for line in out.splitlines() if line}
 
-    def processes_running(self, names: list[str]) -> bool:
+    def processes_running(self, names: list[str], env: dict | None = None) -> bool:
         running = self.running_image_names()
         return any(n.lower() in running for n in names)
 
-    def kill_by_name(self, names: list[str]):
+    def kill_by_name(self, names: list[str], env: dict | None = None):
         for name in names:
             subprocess.run(["taskkill", "/IM", name, "/T", "/F"], capture_output=True)
 

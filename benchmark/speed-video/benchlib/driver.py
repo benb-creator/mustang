@@ -16,6 +16,23 @@ class DriverError(Exception):
     pass
 
 
+class StepTimeout(DriverError):
+    """The app didn't finish a step within the task's time limit: a measurement ("not done within N s")."""
+
+    def __init__(self, step: str, limit_s: float):
+        super().__init__(f"Step '{step}' didn't settle within its time limit of {limit_s:.0f} s")
+        self.step = step
+        self.limit_s = limit_s
+
+
+class NoReaction(DriverError):
+    pass
+
+
+class FocusError(DriverError):
+    pass
+
+
 class EventLog:
     """JSON lines with the monotonic clock (`time.perf_counter()`, CLOCK_MONOTONIC / QueryPerformanceCounter)."""
 
@@ -35,6 +52,10 @@ class EventLog:
             self.file.flush()
         return t
 
+    def clock(self, label: str) -> float:
+        """Pairs the monotonic clock with UTC wall time, to match the run with the server's log."""
+        return self.write("clock", label=label, utc=time.time())
+
     def close(self):
         self.file.close()
 
@@ -43,19 +64,26 @@ class EventLog:
         with open(path, encoding="utf-8") as f:
             return [json.loads(line) for line in f if line.strip()]
 
+    @staticmethod
+    def utc_offset(events: list[dict]) -> float | None:
+        clocks = [e for e in events if e["type"] == "clock"]
+        return clocks[0]["utc"] - clocks[0]["t"] if clocks else None
+
 
 class Calibration:
-    """Screen points per app and layout, stored relative to the app region's top left corner."""
+    """Screen points and regions per app and layout, stored relative to the app region's top left corner."""
 
     def __init__(self, path: Path, region: Rect):
         self.path = Path(path)
         self.region = region
         self.points: dict = {}
+        self.regions: dict = {}
         self.window: dict = {}
         if self.path.exists():
             with open(self.path, encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
             self.points = dict(data.get("points") or {})
+            self.regions = dict(data.get("regions") or {})
             self.window = dict(data.get("window") or {})
 
     def absolute(self, point) -> tuple[int, int]:
@@ -71,16 +99,29 @@ class Calibration:
     def set_point(self, name: str, absolute_x: int, absolute_y: int):
         self.points[name] = {"x": absolute_x - self.region.x, "y": absolute_y - self.region.y}
 
+    def set_region(self, name: str, corner_a: tuple[int, int], corner_b: tuple[int, int]):
+        (xa, ya), (xb, yb) = corner_a, corner_b
+        self.regions[name] = {"x": min(xa, xb) - self.region.x, "y": min(ya, yb) - self.region.y,
+                              "width": abs(xb - xa) + 1, "height": abs(yb - ya) + 1}
+
+    def region_rects(self) -> dict[str, Rect]:
+        return {name: Rect.from_dict(r) for name, r in self.regions.items()}
+
     def save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.path, "w", encoding="utf-8") as f:
-            yaml.safe_dump({"region": self.region.to_dict(), "window": self.window, "points": self.points}, f,
-                           sort_keys=True)
+            yaml.safe_dump({"region": self.region.to_dict(), "window": self.window, "points": self.points,
+                            "regions": self.regions}, f, sort_keys=True)
 
 
 class TextVariables:
-    def __init__(self, values: dict[str, str]):
+    def __init__(self, values: dict[str, str], secret_names: set[str] | None = None):
         self.values = values
+        self.secret_names = set(secret_names or ())
+
+    @property
+    def secrets(self) -> list[str]:
+        return [self.values[n] for n in self.secret_names if self.values.get(n)]
 
     def expand(self, text: str) -> str:
         def lookup(m):
@@ -88,6 +129,14 @@ class TextVariables:
                 raise DriverError(f"Unknown variable ${{{m.group(1)}}} in typed text")
             return self.values[m.group(1)]
         return re.sub(r"\$\{([\w.]+)\}", lookup, text)
+
+    def is_secret(self, text: str) -> bool:
+        return any(f"${{{name}}}" in text for name in self.secret_names)
+
+    def redact(self, text: str) -> str:
+        for secret in sorted(self.secrets, key=len, reverse=True):
+            text = text.replace(secret, "<secret>")
+        return text
 
 
 class AppProcess:
@@ -138,6 +187,20 @@ class AppProcess:
             raise DriverError(f"{self.app_id}: window not found: {self.window_error}")
         return self.window
 
+    def ensure_foreground(self):
+        """Keys and typed text go to the foreground window: make sure it is the app's, or fail."""
+        if self.spec.get("focus_check") is False:
+            return
+        window = self.ensure_window()
+        match = dict(self.spec.get("window") or {})
+        pid = self.process.pid if self.process else None
+        if self.desktop.foreground_matches(match, pid, window):
+            return
+        self.desktop.focus_window(window)
+        time.sleep(0.2)
+        if not self.desktop.foreground_matches(match, pid, window):
+            raise FocusError(f"{self.app_id}: its window isn't in the foreground, so no keys were sent")
+
     def close(self) -> bool:
         close = self.spec.get("close") or {"key": "ctrl+q"}
         timeout = float(close.get("timeout_s", 60))
@@ -156,16 +219,17 @@ class AppProcess:
 
     def wait_exit(self, timeout: float) -> bool:
         names = self.spec.get("process_names") or []
+        env = self.spec.get("process_env")
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             own_exited = self.process is None or self.process.poll() is not None
-            if own_exited and not (names and self.desktop.processes_running(names)):
+            if own_exited and not (names and self.desktop.processes_running(names, env)):
                 return True
             time.sleep(0.2)
         if self.process is not None and self.process.poll() is None:
             self.desktop.kill_tree(self.process)
         if names:
-            self.desktop.kill_by_name(names)
+            self.desktop.kill_by_name(names, env)
         if self.log:
             self.log.write("killed_after_timeout", app=self.app_id)
         return False
@@ -173,8 +237,10 @@ class AppProcess:
 
 class ScenarioDriver:
     def __init__(self, desktop, app: AppProcess, calibration: Calibration, variables: TextVariables,
-                 log: EventLog, marker=None, live=None, type_delay_ms: int = 40, live_quiet_s: float = 1.5,
-                 step_timeout_s: float = 300.0):
+                 log: EventLog, marker=None, live=None, type_delay_ms: int = 40, quiet_s: float = 1.0,
+                 step_timeout_s: float = 300.0, task_timeout_s: float | None = None,
+                 park: tuple[int, int] | None = None, no_reaction_s: float | None = 60.0,
+                 grace_s: float | None = 20.0, server_log=None):
         self.desktop = desktop
         self.app = app
         self.calibration = calibration
@@ -183,10 +249,17 @@ class ScenarioDriver:
         self.marker = marker
         self.live = live
         self.type_delay_ms = type_delay_ms
-        self.live_quiet_s = live_quiet_s
+        self.quiet_s = quiet_s
         self.step_timeout_s = step_timeout_s
+        self.task_timeout_s = task_timeout_s
+        self.park = park
+        self.no_reaction_s = no_reaction_s
+        self.grace_s = grace_s
+        self.server_log = server_log
         self.next_marker_code = 1
         self.live_references: dict = {}
+        self.live_regions: dict = {}
+        self.quiet_by_step: dict = {}
 
     def show_marker(self, label: str) -> float:
         code = self.next_marker_code
@@ -204,11 +277,10 @@ class ScenarioDriver:
                    trigger_index: int = -1) -> float | None:
         trigger_time = None
         for i, action in enumerate(actions):
-            if i == trigger_index:
-                self.show_marker(f"step:{step.name}")
+            if i == trigger_index and self.marker is not None:
+                self.show_marker(f"{phase}:{step.name}")
             t_before = EventLog.now()
-            self.perform(action)
-            t_after = EventLog.now()
+            t_after = self.perform(action)
             if action.is_input:
                 fields = {"phase": phase, "action": action.kind, "arg": self.loggable_arg(action),
                           "t_before": t_before}
@@ -216,38 +288,52 @@ class ScenarioDriver:
                     fields["step"] = step.name
                 self.log.write("input", t=t_after, **fields)
                 if i == trigger_index:
-                    trigger_time = self.log.write("step_start", t=t_after, step=step.name, measure=step.measure)
+                    kind = "verify_start" if phase == "verify" else "step_start"
+                    trigger_time = self.log.write(kind, t=t_after, step=step.name, measure=step.measure)
         return trigger_time
 
     def loggable_arg(self, action: Action):
-        if action.kind == "type" and "password" in str(action.arg):
-            return "<password>"
+        if action.kind == "type" and self.variables.is_secret(str(action.arg)):
+            return "<secret>"
         return action.arg
 
-    def run_steps(self, scenario: AppScenario, live_quiet_overrides: dict | None = None):
+    def run_steps(self, scenario: AppScenario):
+        waited = 0.0
         for step in scenario.steps:
             trigger = step.trigger_index if step.measure else -1
             since = self.do_actions(step.actions, "step", step, trigger)
             if not step.measure:
                 continue
-            timeout = float(step.timeout_s or self.step_timeout_s)
-            quiet = float((live_quiet_overrides or {}).get(step.name, self.live_quiet_s))
-            settled, info = self.live.wait_settled(since, quiet, timeout, step.name,
-                                                   reference=self.live_references.get(step.name))
-            self.log.write("step_live_settled" if settled else "step_live_timeout", step=step.name, **info)
-            if not settled:
-                raise DriverError(f"Step '{step.name}' didn't settle within {timeout:.0f} s")
+            limit = float(step.timeout_s or self.step_timeout_s)
+            if self.task_timeout_s is not None:
+                limit = min(limit, max(0.0, self.task_timeout_s - waited))
+            status, info = self.live.wait_settled(
+                since, self.quiet_by_step.get(step.name, self.quiet_s), limit, step.name, reference=self.live_references.get(step.name),
+                regions=self.live_regions.get(step.name), no_reaction_s=self.no_reaction_s, grace_s=self.grace_s)
+            self.log.write(f"step_live_{status.replace('-', '_')}", step=step.name, limit_s=limit, **info)
+            if status == "timeout":
+                raise StepTimeout(step.name, limit)
+            if status == "no-reaction":
+                raise NoReaction(f"Step '{step.name}': no screen change within {self.no_reaction_s:.0f} s after "
+                                 f"its input (a missed click or key?)")
+            waited += (info.get("live_end") or EventLog.now()) - since
+            if step.verify:
+                self.do_actions(step.verify.actions, "verify", step, Step("verify", step.verify.actions).trigger_index)
+                self.live.wait_settled(EventLog.now(), self.quiet_s, max(step.verify.within_s, self.quiet_s) + 5,
+                                       f"{step.name}:verify", expect_change=False)
 
-    def perform(self, action: Action):
+    def perform(self, action: Action) -> float:
         kind = action.kind
         if kind == "launch":
             self.app.launch(place_window=bool(action.options.get("place_window", True)))
         elif kind == "close":
             self.app.close()
         elif kind == "key":
+            self.app.ensure_foreground()
             for _ in range(int(action.options.get("repeat", 1))):
                 self.desktop.key(str(action.arg))
         elif kind == "type":
+            self.app.ensure_foreground()
             delay = int(action.options.get("delay_ms", self.type_delay_ms))
             self.desktop.type_text(self.variables.expand(str(action.arg)), delay)
         elif kind in ("click", "double_click", "right_click"):
@@ -275,11 +361,25 @@ class ScenarioDriver:
             self.desktop.focus_window(window)
         elif kind == "wait_settled":
             since = EventLog.now()
-            quiet = float(action.options.get("quiet_s", self.live_quiet_s))
+            quiet = float(action.options.get("quiet_s", self.quiet_s))
             timeout = float(action.options.get("timeout_s", self.step_timeout_s))
-            settled, info = self.live.wait_settled(since, quiet, timeout, "prepare",
-                                                   expect_change=bool(action.options.get("expect_change", False)))
-            if not settled:
+            status, _ = self.live.wait_settled(since, quiet, timeout, "prepare",
+                                               expect_change=bool(action.options.get("expect_change", False)))
+            if status != "settled":
                 raise DriverError(f"Screen didn't settle within {timeout:.0f} s while preparing")
+        elif kind == "wait_cloud_quiet":
+            if self.server_log is None:
+                raise DriverError("wait_cloud_quiet needs server.log in the config (the server's evidence log)")
+            minutes = float(action.options.get("minutes", action.arg or 10))
+            watch = str(action.options.get("watch", "logins"))
+            info = self.server_log.wait_quiet(minutes * 60, float(action.options.get("timeout_min", 120)) * 60, watch)
+            self.log.write("cloud_quiet", **info)
+            if not info.get("quiet") and action.options.get("required", watch == "logins"):
+                raise DriverError(f"{watch.capitalize()} from outside the benchmark computer didn't stop within "
+                                  f"{info.get('timeout_s', 0) / 60:.0f} minutes")
         else:
             raise DriverError(f"Action '{kind}' not supported")
+        done = EventLog.now()
+        if self.park and kind in ("click", "double_click", "right_click", "scroll", "drag"):
+            self.desktop.move(*self.park)
+        return done

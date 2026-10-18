@@ -43,12 +43,17 @@ class CommandLine:
         snapshot.add_argument("--sync-wait", type=float, default=60, help="seconds to let each app sync")
         snapshot.add_argument("--no-resync", action="store_true")
 
-        calibrate = sub.add_parser("calibrate", help="click points, window geometry, reference images")
-        calibrate.add_argument("action", choices=["points", "window", "references"])
+        calibrate = sub.add_parser("calibrate", help="click points and regions, window geometry, reference images")
+        calibrate.add_argument("action", choices=["points", "window", "references", "crop"])
         calibrate.add_argument("--app")
-        calibrate.add_argument("--points", help="only these point names")
+        calibrate.add_argument("--points", help="only these point or region names")
         calibrate.add_argument("--comparison")
         calibrate.add_argument("--tasks")
+        calibrate.add_argument("--run", help="for 'crop': a recorded run directory")
+        calibrate.add_argument("--at", type=float, help="for 'crop': video time in seconds")
+        calibrate.add_argument("--region", help="for 'crop': calibrated region name")
+        calibrate.add_argument("--kind", choices=["opening", "end", "first", "verify"], default="opening")
+        calibrate.add_argument("--step", help="for 'crop' of kind end/first/verify")
 
         env = sub.add_parser("env", help="record the test environment")
         env.add_argument("--comparison", required=True)
@@ -67,15 +72,31 @@ class CommandLine:
         compose = sub.add_parser("compose", help="side-by-side video, cards, timeline, subtitles, audio")
         compose.add_argument("--comparisons", help="default: all in results.json")
         compose.add_argument("--lang", default="en")
-        compose.add_argument("--narration", help="narration.<lang>.json")
-        compose.add_argument("--variant", help="segment list from variants/variants.json next to the narration")
+        compose.add_argument("--narration", help="the voice-over directory, or a narration.<lang>.json")
+        compose.add_argument("--variant", help="c1, c2, c3, c4, combined, … (variants/variants.json)")
         compose.add_argument("--name", default="speed")
         compose.add_argument("--results", help="comma-separated results.json files to merge (e.g. Linux + Windows)")
+
+        method = sub.add_parser("method", help="method texts below the video: YouTube description, website expander")
+        method.add_argument("--narration", required=True, help="the voice-over directory (with method/)")
+        method.add_argument("--variant", required=True)
+        method.add_argument("--lang", default="en")
+        method.add_argument("--name", default="speed")
+        method.add_argument("--comparisons")
+        method.add_argument("--results", help="comma-separated results.json files to merge")
+        method.add_argument("--allow-missing", action="store_true", help="draft: render missing values as '–'")
+
+        voice = sub.add_parser("voice", help="text-to-speech for the lines a composition chose (voice-script.json)")
+        voice.add_argument("--name", default="speed")
+        voice.add_argument("--lang", default="en")
+        voice.add_argument("--replace", action="store_true", help="synthesize files that exist again")
 
         encode = sub.add_parser("encode", help="WebM VP9, MP4 H.264, YouTube master")
         encode.add_argument("--name", default="speed")
         encode.add_argument("--lang", default="en")
         encode.add_argument("--formats", help="webm,mp4,youtube")
+        encode.add_argument("--internal-preview", action="store_true",
+                            help="encode a variant whose publication condition is false, marked 'not for publication'")
 
         verify = sub.add_parser("verify", help="check the encoded files with ffprobe")
         verify.add_argument("--name", default="speed")
@@ -162,10 +183,13 @@ class CommandLine:
     def cmd_calibrate(self, pipeline, config, args):
         calibrator = Calibrator(pipeline)
         if args.action == "points":
-            return {"saved": str(calibrator.points(args.app, split(args.points)))}
+            return {"saved": str(calibrator.points(args.app, split(args.points), split(args.tasks)))}
         if args.action == "window":
             return calibrator.window(args.app)
-        return {"references": calibrator.references(args.comparison, split(args.tasks))}
+        if args.action == "crop":
+            task = (split(args.tasks) or ["T1"])[0]
+            return {"saved": calibrator.crop(args.run, args.at, args.app, task, args.region, args.kind, args.step)}
+        return {"references": calibrator.references_for(args.comparison, split(args.tasks))}
 
     def cmd_env(self, pipeline, config, args):
         return pipeline.environment(args.comparison)
@@ -186,8 +210,15 @@ class CommandLine:
         return pipeline.compose(split(args.comparisons), args.lang, args.narration, args.variant, args.name,
                                 split(args.results))
 
+    def cmd_method(self, pipeline, config, args):
+        return pipeline.method(split(args.comparisons), args.lang, args.narration, args.variant, args.name,
+                               split(args.results), args.allow_missing)
+
+    def cmd_voice(self, pipeline, config, args):
+        return pipeline.voice(args.name, args.lang, args.replace)
+
     def cmd_encode(self, pipeline, config, args):
-        return pipeline.encode(args.name, args.lang, split(args.formats))
+        return pipeline.encode(args.name, args.lang, split(args.formats), args.internal_preview)
 
     def cmd_verify(self, pipeline, config, args):
         return pipeline.verify(args.name, args.lang)

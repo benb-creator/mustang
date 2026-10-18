@@ -89,6 +89,9 @@ class ClockFit:
     def to_video(self, driver_time: float) -> float:
         return self.slope * driver_time + self.offset
 
+    def to_driver(self, video_time: float) -> float:
+        return (video_time - self.offset) / self.slope
+
     @property
     def max_abs_residual(self) -> float:
         return max((abs(r) for r in self.residuals), default=0.0)

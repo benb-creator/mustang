@@ -47,8 +47,8 @@ class Seeder:
         inline_limit = min(budget, max_blob) if max_blob else budget
         max_objects = min(200, int(client.capability("urn:ietf:params:jmap:core").get("maxObjectsInSet", 500)))
         for folder in self.generator.spec.folders:
-            mailbox_id = client.ensure_mailbox(folder.name, folder.role)
-            start = client.query_count({"inMailbox": mailbox_id}) if resume else 0
+            folder_id = client.ensure_folder(folder.name, folder.role)
+            start = client.query_count({"inMailbox": folder_id}) if resume else 0
             batch, batch_bytes = [], 0
             done = start
             for msg in self.generator.folder_messages(folder.name, start):
@@ -59,7 +59,7 @@ class Seeder:
                         self.progress(f"  {folder.name}: {done + len(batch)}/{folder.count}")
                     done += len(batch)
                     batch, batch_bytes = [], 0
-                batch.append({"raw": msg.raw, "mailbox_id": mailbox_id, "keywords": msg.keywords,
+                batch.append({"raw": msg.raw, "folder_id": folder_id, "keywords": msg.keywords,
                               "received_at": msg.received_at})
                 batch_bytes += len(msg.raw) if inline else 0
             if batch:
@@ -85,7 +85,7 @@ class Seeder:
         report = {"protocol": protocol, "folders": {}, "planted": {}, "ok": True}
         if protocol == "jmap":
             client = self.jmap()
-            paths = client.mailbox_paths()
+            paths = client.folder_paths()
             by_role = {m.get("role"): m for m in paths.values() if m.get("role")}
             for folder in self.generator.spec.folders:
                 box = by_role.get(folder.role) or paths.get(folder.name)
@@ -98,6 +98,9 @@ class Seeder:
                     key = "subject" if info["field"] == "subject" else "text"
                     counts[term] = client.query_count({key: term})
                 return counts
+
+            def attachment_count():
+                return client.query_count({"hasAttachment": True})
         else:
             account = self.imap()
             for folder in self.generator.spec.folders:
@@ -116,6 +119,13 @@ class Seeder:
                                        for f in self.generator.spec.folders if f.count)
                 return counts
 
+            def attachment_count():
+                """The attachment messages are the only ones above the attachment size (IMAP has no attachment
+                search)."""
+                size = expected["attachment_size"]
+                return sum(account.larger_count(account.server_name(f.name, f.role), size)
+                           for f in self.generator.spec.folders if f.count)
+
         deadline = time.monotonic() + search_wait_s
         while True:
             counts = planted_counts()
@@ -125,10 +135,14 @@ class Seeder:
             time.sleep(3)
         for term, info in expected["planted"].items():
             report["planted"][term] = {"expected": info["count"], "actual": counts[term], "field": info["field"]}
+        if expected["attachment_messages"] is not None:
+            report["attachments"] = {"expected": expected["attachment_messages"], "actual": attachment_count(),
+                                     "size": expected["attachment_size"]}
         if protocol != "jmap":
             account.close()
         report["ok"] = all(v["expected"] == v["actual"] for v in report["folders"].values()) and \
-            all(v["expected"] == v["actual"] for v in report["planted"].values())
+            all(v["expected"] == v["actual"] for v in report["planted"].values()) and \
+            ("attachments" not in report or report["attachments"]["expected"] == report["attachments"]["actual"])
         return report
 
     def wipe(self):
@@ -139,8 +153,8 @@ class Seeder:
         client = self.jmap()
         ids = client.query_ids()
         client.destroy_emails(ids)
-        paths = client.mailbox_paths()
+        paths = client.folder_paths()
         custom = sorted((p for p, m in paths.items() if not m.get("role")), key=lambda p: -p.count("/"))
         for path in custom:
-            client.destroy_mailboxes([paths[path]["id"]])
+            client.destroy_folders([paths[path]["id"]])
         self.progress(f"Wiped {len(ids)} messages and {len(custom)} folders of {self.username}")

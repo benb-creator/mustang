@@ -21,11 +21,19 @@ server:
     method: storage                 # storage (stop, copy data dir, start) | protocol (wipe + re-import) | none
     ssh: <bench@bench.mail.example.org>
     instance_dir: /opt/stalwart-bench                   # must contain the file BENCHMARK-INSTANCE
-    data_dir: /opt/stalwart-bench/data
-    snapshot_dir: /opt/stalwart-bench/snapshots
+    data_dir: /opt/stalwart-bench/data                  # inside instance_dir; must contain the file BENCHMARK-DATA
+    snapshot_dir: /opt/stalwart-bench/snapshots         # inside instance_dir
     stop: sudo systemctl stop stalwart-bench
     start: sudo systemctl start stalwart-bench
-    wipe_allowed_for: <bench@example.org>              # protocol level only wipes exactly this user
+    # running_check: "systemctl is-active --quiet stalwart-bench"   # default: a process with instance_dir in its command line
+    wipe_allowed_for: <bench@example.org>
+  password_rotation:                # after every restore a new random password of the same length (typed by the driver)
+    admin_user: <admin@example.org>  # a Stalwart administrator of the benchmark instance
+    admin_password_env: BENCH_ADMIN_PASSWORD              # protocol level only wipes exactly this user
+  log:                              # the evidence tracer's log on the server (README: "Server log evidence")
+    path: /opt/stalwart-bench/logs/evidence.*
+    # benchmark_ips: [<203.0.113.7>]  # the benchmark computer's address(es) as the server sees them; also probed
+    final_watch_min: 0              # keep watching the log after the last run of a series
 
 account:
   email: <bench@example.org>
@@ -34,12 +42,11 @@ account:
   password_env: BENCH_ACCOUNT_PASSWORD
 
 corpus:
+  profile: inbox-30k                # 30,000 messages in the Inbox, 300 of them with one 1,000,000-byte attachment;
+                                    # multi-folder: the corpus of T2–T7 (benchlib/corpus.py CorpusSpec)
   seed: 20261018
   owner_name: Robin Sample
   owner_address: <bench@example.org>
-  # Defaults: Inbox 3,000 · Archive 20,000 (10 years) · Sent 4,000 · Projects/Alpha 800, Beta 600, Gamma 600,
-  # Move-me 1,000 · Projects/Done empty; 15 % with attachments (20 KB–5 MB); planted: "kumquat" in 250 bodies,
-  # "Zanzibar" in 40 subjects. Override any of these here, see benchlib/corpus.py CorpusSpec.
 
 corpus_facts:
   search_term: kumquat
@@ -49,26 +56,31 @@ display:
   platform: linux
   display: ":0"                     # an X11 (Xorg) session; Wayland sessions can't be captured with x11grab
   layout: 2560x1440                 # name of the calibration set
-  app_region: {x: 0, y: 0, width: 1280, height: 1080}
+  app_region: {x: 0, y: 0, width: 1280, height: 940}   # 2 panes of this size + the bands fill 2560x1440
   marker: {cell: 12, position: below, gap: 4}   # sync marker strip just outside the app region (cropped later)
+  # pointer_park: {x: 2400, y: 1300}   # the pointer goes here after every click (default: right of the capture)
   masks: []                         # rectangles (relative to the app region) ignored by settle detection, e.g. a clock
 
 capture:
   fps: 60
   cpus: "11"                        # ffmpeg pinned to this core (taskset); keep the apps off it if you can
-  draw_mouse: true
+  draw_mouse: false                 # the pointer is parked outside the capture after each click and not recorded
   live_scale: 4
+  tail_s: 0                         # seconds recorded after the last step (scenarios set their own, T1: 30)
 
 settle:
   pixel_threshold: 8                # a pixel counts as changed if a channel differs by more than this
-  min_changed_pixels: 150           # smaller changes (caret, cursor blink) are ignored
-  quiet_s: 1.0                      # a step ends at the last change before this much stillness
-  live_quiet_s: 1.5                 # live gate before the next action (conservative)
+  min_changed_pixels: 150           # smaller changes (caret, cursor blink) are ignored, except inside check regions
+  quiet_s: 1.0                      # a step ends at the last change before this much stillness (live gate and analysis)
   step_timeout_s: 300
+  task_timeout_s: 7200              # time limit per task; a run that reaches it counts as "not done within the limit"
+  no_reaction_s: 60                 # no screen change this long after an input: the run failed (a missed click?)
+  roi_grace_s: 20                   # the live gate moves on after this much stillness even without a region match
+  max_gap_frames: 3                 # a longer gap between captured frames inside a measured step fails the run
   reference_quiet_s: 4.0            # quiet period of the calibration run that makes the reference images
   reference_tolerance: 0.02         # fraction of differing pixels still accepted as "same state as the reference"
 
-runs: {measured: 5, warmup: 1, retries: 2}
+runs: {measured: 5, warmup: 1, retries: 2, analyze_after_each: true}
 
 driver:
   type_delay_ms: 40                 # the same typing speed for every app
@@ -78,13 +90,20 @@ apps:
     name: Parula
     protocol: JMAP
     os: Linux
-    launch: [/opt/Parula/parula]    # .deb install; or the extracted AppImage: <dir>/squashfs-root/AppRun
-    env: {HOME: "{profile}/home"}   # separate profile: ~/.parula and ~/.config/Parula move with HOME
+    launch: [/opt/Parula/parula]    # installed from the .deb (sudo apt install ./parula_<version>_amd64.deb)
+    # Separate profile: ~/.parula and ~/.config/Parula move with HOME. The user's GTK and font settings and the
+    # font cache stay the user's, so Parula looks and starts like Thunderbird, which runs with the real HOME.
+    env: {HOME: "{profile}/home", XDG_CACHE_HOME: "{home}/.cache"}
     create_dirs: ["{profile}/home"]
-    profile: {dirs: ["{profile}/home"]}
+    profile:
+      dirs: ["{profile}/home"]
+      links:
+        "{profile}/home/.config/gtk-3.0": "{home}/.config/gtk-3.0"
+        "{profile}/home/.config/fontconfig": "{home}/.config/fontconfig"
     window: {class: "[Pp]arula", timeout_s: 120}
     close: {key: ctrl+q, timeout_s: 60}
-    process_names: ["{profile}/home"]
+    process_names: ["^/opt/Parula/"]
+    process_env: {HOME: "{profile}/home"}   # only the benchmark profile's processes, never your own Parula
     version_from: {asar: /opt/Parula/resources/app.asar}
   parula-imap:
     <<: *parula
@@ -106,28 +125,61 @@ apps:
           user_pref("mail.rights.override", true);
           user_pref("app.donation.eoy.version.viewed", 999);
           user_pref("mail.inappnotifications.enabled", false);
+          user_pref("mailnews.start_page.enabled", false);
     window: {class: "thunderbird", timeout_s: 120}
     close: {key: ctrl+q, timeout_s: 60}
     process_names: ["{profile}/tb"]
     version_from: {ini: "{config_dir}/tools/thunderbird/application.ini"}
 
+sessions:                           # one interleaved series per computer (A B C A B C …); C1 and C2 use the same
+  linux: {apps: [parula-jmap, parula-imap, thunderbird]}    # Parula JMAP runs, so the combined cut shows one median
+
 comparisons:
-  C1: {os: Linux, left: parula-jmap, right: parula-imap, tasks: [T1, T2, T3, T4, T5, T6, T7]}
-  C2: {os: Linux, left: parula-jmap, right: thunderbird, tasks: [T1, T2, T3, T4, T5, T6, T7]}
+  C1: {os: Linux, left: parula-jmap, right: parula-imap, tasks: [T1], session: linux}   # T2–T7: corpus multi-folder
+  C2: {os: Linux, left: parula-jmap, right: thunderbird, tasks: [T1], session: linux}
 
 deviations:
-  - "Thunderbird: user.js switches off only pop-ups that would appear during capture: update checks, the default-client question, the telemetry and rights notices, donation and in-app notifications. Install-wide app updates disabled with distribution/policies.json (DisableAppUpdate)."
+  - "Server: an additional log of logins, fetches and downloads (Stalwart debug level for these events), the same in every run of every app; the test account gets a new random password of the same length before every run."
+  - "Thunderbird: start page switched off (mailnews.start_page.enabled = false), so no web page loads during the measurement."
+  - "Thunderbird: user.js also switches off pop-ups that would appear during capture: update checks, the default-client question, the telemetry and rights notices, donation and in-app notifications. Install-wide app updates disabled with distribution/policies.json (DisableAppUpdate)."
   - "Parula: installed from the .deb package (no auto-update)."
+
+procedures:
+  - "Every run starts from a fresh app profile and the same server snapshot (`seeded`, taken right after the import)."
+  - "Neither app keeps the password in the desktop keyring: Parula stores it encrypted in its own profile, Thunderbird in its profile's logins.json; both profiles are reset before every run."
+
+publish:
+  page_url: <https://parula.app/…>
+  repo_url: https://github.com/mustang-im/mustang/tree/master/benchmark/speed-video
+  imprint_url: <https://parula.app/…>
 
 compose:
   font_regular: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
   font_bold: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
-  voice_dir: ./voice                # voice/<lang>/<segment-id>.wav, <segment-id>.before|during|after.wav
-  # music: ./music/bed.wav          # optional, ducked under the voice
-  countdown_s: 2.4
+  voice_dir: ./voice                # voice/<lang>/<segment-id>.wav, <segment-id>.before|during|after.wav, countdown-go.wav
   min_hold_s: 2.0
-  timelapse_threshold_s: 25
-  timelapse_max_compressed_s: 8
+  race_budget_s: 30                 # only for narrations without variants/compose.json
+  # music: ./music/bed.wav          # optional, ducked under the voice, faded out at the end; needs music_license
+  # music_license: {title: "…", author: "…", license: "CC0 1.0", url: "https://…", content_id: "none known"}
+  # sfx_start: ./sfx/start.wav      # optional start beep at "Go!" and finish chime per pane (the same for both)
+  # sfx_finish: ./sfx/finish.wav
+
+speech:                             # bench.py voice: text-to-speech for the chosen lines (see benchlib/speech.py)
+  en:
+    engine: command
+    name: Piper
+    command: [piper, --model, "{model}", --output_file, "{out}"]
+    model: ./voices/en_US-norman-medium.onnx
+    # model_sha256: <pin it>
+    voice: en_US-norman-medium
+    license: "Piper voice trained on public-domain LibriVox recordings"
+    lexicon: {JMAP: Jay-Map, IMAP: Eye-Map}
+  de:
+    engine: google
+    voice: de-DE-Chirp3-HD-Orus
+    language_code: de-DE
+    api_key_env: GOOGLE_TTS_API_KEY
+    lexicon: {JMAP: Jay-Map, IMAP: Eye-Map}
 
 encode:
   loudness_lufs: -14

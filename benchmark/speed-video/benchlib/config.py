@@ -15,12 +15,21 @@ class Config:
         self.data = data
         self.base_dir = base_dir
 
+    removed = {"settle.live_quiet_s": "the live gate now uses settle.quiet_s, like the analysis",
+               "compose.countdown_s": "the short-video settings come from the voice-over's variants/compose.json",
+               "compose.timelapse_threshold_s": "time-lapse follows the race budget in variants/compose.json",
+               "compose.timelapse_max_compressed_s": "time-lapse follows the race budget in variants/compose.json"}
+
     @classmethod
     def load(cls, path) -> "Config":
         path = Path(path).resolve()
         with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-        return cls(data, path.parent)
+        config = cls(data, path.parent)
+        for key, reason in cls.removed.items():
+            if config.get(key) is not None:
+                raise ConfigError(f"{path}: '{key}' is no longer used ({reason}); remove it")
+        return config
 
     def get(self, dotted: str, default=None):
         node = self.data
@@ -69,6 +78,25 @@ class Config:
         if comparison_id not in comparisons:
             raise ConfigError(f"Unknown comparison '{comparison_id}'. Known: {', '.join(comparisons)}")
         return comparisons[comparison_id]
+
+    def run_group(self, comparison_id: str) -> str:
+        """The recording session of a comparison: its own, or a session shared by the comparisons of one computer
+        (`sessions`), whose apps are interleaved in one series, so both comparisons use the same Parula runs."""
+        return str((self.get("comparisons", {}).get(comparison_id) or {}).get("session") or comparison_id)
+
+    def group_apps(self, comparison_id: str) -> list[str]:
+        group = self.run_group(comparison_id)
+        if group == comparison_id:
+            spec = self.comparison(comparison_id)
+            return [spec["left"], spec["right"]]
+        sessions = self.get("sessions") or {}
+        if group not in sessions:
+            raise ConfigError(f"Comparison {comparison_id} names session '{group}', which isn't in `sessions`")
+        return list(sessions[group]["apps"])
+
+    def group_comparisons(self, comparison_id: str) -> list[str]:
+        group = self.run_group(comparison_id)
+        return [c for c in self.get("comparisons", {}) if self.run_group(c) == group]
 
     def profile_dir(self, app_id: str) -> Path:
         return self.workdir / "profiles" / app_id

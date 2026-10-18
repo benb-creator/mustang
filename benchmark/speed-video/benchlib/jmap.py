@@ -66,19 +66,19 @@ class JMAPClient:
         url = self.session["uploadUrl"].replace("{accountId}", self.account_id)
         return self.request(url, data, content_type)["blobId"]
 
-    def mailboxes(self) -> list[dict]:
+    def folders(self) -> list[dict]:
         return self.one("Mailbox/get", {"ids": None, "properties": ["id", "name", "parentId", "role",
                                                                     "totalEmails", "unreadEmails"]})["list"]
 
-    def mailbox_paths(self) -> dict[str, dict]:
-        boxes = {m["id"]: m for m in self.mailboxes()}
+    def folder_paths(self) -> dict[str, dict]:
+        boxes = {m["id"]: m for m in self.folders()}
 
         def path(m):
             return m["name"] if not m.get("parentId") else f"{path(boxes[m['parentId']])}/{m['name']}"
         return {path(m): m for m in boxes.values()}
 
-    def ensure_mailbox(self, path: str, role: str | None) -> str:
-        existing = self.mailbox_paths()
+    def ensure_folder(self, path: str, role: str | None) -> str:
+        existing = self.folder_paths()
         if role:
             for m in existing.values():
                 if m.get("role") == role:
@@ -87,7 +87,7 @@ class JMAPClient:
             return existing[path]["id"]
         parent_id = None
         if "/" in path:
-            parent_id = self.ensure_mailbox(path.rsplit("/", 1)[0], None)
+            parent_id = self.ensure_folder(path.rsplit("/", 1)[0], None)
         create = {"name": path.rsplit("/", 1)[-1], "parentId": parent_id}
         if role:
             create["role"] = role
@@ -97,7 +97,7 @@ class JMAPClient:
         return result["created"]["m"]["id"]
 
     def import_batch(self, items: list[dict], inline_limit: int) -> list[str]:
-        """items: {raw, mailbox_id, keywords, received_at}; small messages go inline via Blob/upload."""
+        """items: {raw, folder_id, keywords, received_at}; small messages go inline via Blob/upload."""
         calls = []
         uploads = {}
         emails = {}
@@ -109,7 +109,7 @@ class JMAPClient:
                 blob_id = f"#{cid}"
             else:
                 blob_id = self.upload(item["raw"])
-            emails[cid] = {"blobId": blob_id, "mailboxIds": {item["mailbox_id"]: True},
+            emails[cid] = {"blobId": blob_id, "mailboxIds": {item["folder_id"]: True},
                            "keywords": {k: True for k in item["keywords"]},
                            "receivedAt": item["received_at"].strftime("%Y-%m-%dT%H:%M:%SZ")}
         if uploads:
@@ -141,10 +141,18 @@ class JMAPClient:
                 return ids
             position += page
 
+    def email_sizes(self, page: int = 500) -> dict[str, int]:
+        sizes = {}
+        ids = self.query_ids()
+        for i in range(0, len(ids), page):
+            for email in self.one("Email/get", {"ids": ids[i:i + page], "properties": ["id", "size"]})["list"]:
+                sizes[email["id"]] = int(email["size"])
+        return sizes
+
     def destroy_emails(self, ids: list[str], batch: int = 500):
         for i in range(0, len(ids), batch):
             self.one("Email/set", {"destroy": ids[i:i + batch]})
 
-    def destroy_mailboxes(self, ids: list[str]):
+    def destroy_folders(self, ids: list[str]):
         if ids:
             self.one("Mailbox/set", {"destroy": ids, "onDestroyRemoveEmails": True})

@@ -21,9 +21,9 @@ class X11Desktop:
         self.xdotool_path = xdotool
         self.env = {**os.environ, "DISPLAY": display}
 
-    def xdotool(self, *args, timeout: float = 30, check: bool = True) -> str:
+    def xdotool(self, *args, timeout: float = 30, check: bool = True, stdin: str | None = None) -> str:
         result = subprocess.run([self.xdotool_path, *map(str, args)], env=self.env, capture_output=True, text=True,
-                                timeout=timeout)
+                                timeout=timeout, input=stdin)
         if check and result.returncode != 0:
             raise X11Error(f"xdotool {' '.join(map(str, args))} failed: {result.stderr.strip()}")
         return result.stdout
@@ -32,7 +32,7 @@ class X11Desktop:
         self.xdotool("key", *combo.split())
 
     def type_text(self, text: str, delay_ms: int):
-        self.xdotool("type", "--delay", delay_ms, "--", text, timeout=60 + len(text) * delay_ms / 1000)
+        self.xdotool("type", "--delay", delay_ms, "--file", "-", timeout=60 + len(text) * delay_ms / 1000, stdin=text)
 
     def move(self, x: int, y: int):
         self.xdotool("mousemove", "--sync", x, y)
@@ -110,6 +110,18 @@ class X11Desktop:
         self.xdotool("windowsize", wid, width, height)
         self.xdotool("windowmove", wid, x, y)
 
+    def foreground_matches(self, match: dict, pid: int | None, wid) -> bool:
+        focus = self.xdotool("getwindowfocus", check=False).strip()
+        if not focus.isdigit():
+            return False
+        if focus == str(wid):
+            return True
+        if pid and self.xdotool("getwindowpid", focus, check=False).strip() == str(pid):
+            return True
+        if match.get("class"):
+            return focus in self.xdotool("search", "--class", match["class"], check=False).split()
+        return False
+
     def focus_window(self, wid):
         activated = subprocess.run([self.xdotool_path, "windowactivate", "--sync", str(wid)], env=self.env,
                                    capture_output=True, timeout=5).returncode == 0
@@ -134,8 +146,11 @@ class X11Desktop:
         except ProcessLookupError:
             pass
 
-    def matching_pids(self, patterns: list[str]) -> list[int]:
+    def matching_pids(self, patterns: list[str], env: dict | None = None) -> list[int]:
+        """Own processes whose command line matches a pattern and, with `env`, whose environment has those values
+        (so the app of the benchmark profile is found, never the same app running with the user's own profile)."""
         own_uid = os.getuid()
+        wanted_env = [f"{k}={v}".encode() for k, v in (env or {}).items()]
         pids = []
         for entry in Path("/proc").iterdir():
             if not entry.name.isdigit() or int(entry.name) == os.getpid():
@@ -144,17 +159,20 @@ class X11Desktop:
                 if entry.stat().st_uid != own_uid:
                     continue
                 cmdline = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+                if not any(re.search(p, cmdline) for p in patterns):
+                    continue
+                if wanted_env and not all(w in (entry / "environ").read_bytes().split(b"\0") for w in wanted_env):
+                    continue
             except OSError:
                 continue
-            if any(re.search(p, cmdline) for p in patterns):
-                pids.append(int(entry.name))
+            pids.append(int(entry.name))
         return pids
 
-    def processes_running(self, patterns: list[str]) -> bool:
-        return bool(self.matching_pids(patterns))
+    def processes_running(self, patterns: list[str], env: dict | None = None) -> bool:
+        return bool(self.matching_pids(patterns, env))
 
-    def kill_by_name(self, patterns: list[str]):
-        for pid in self.matching_pids(patterns):
+    def kill_by_name(self, patterns: list[str], env: dict | None = None):
+        for pid in self.matching_pids(patterns, env):
             try:
                 os.kill(pid, signal.SIGKILL)
             except ProcessLookupError:

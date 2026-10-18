@@ -34,12 +34,19 @@ class PlantedTerm:
 
 @dataclass
 class CorpusSpec:
+    """Named profiles: `inbox-30k` (default, the first videos: 30,000 messages in the Inbox, exactly 1 % of them with
+    one attachment of exactly 1,000,000 bytes, the other standard folders empty) and `multi-folder` (T2–T7: ten years
+    of mail in several folders, 15 % with 1–3 attachments of 20 KB–5 MB). Config keys override the profile."""
+
+    profile: str = "inbox-30k"
     seed: int = 20261018
     owner_name: str = "Robin Sample"
     owner_address: str = "robin.sample@example.com"
     end_date: datetime = datetime(2026, 9, 30, 17, 0, tzinfo=timezone.utc)
     folders: list = field(default_factory=list)
     attachment_ratio: float = 0.15
+    attachment_messages: int | None = None
+    attachment_size: int = 1_000_000
     inline_image_ratio: float = 0.03
     html_ratio: float = 0.7
     attachment_min: int = 20_000
@@ -48,8 +55,22 @@ class CorpusSpec:
     large_share: float = 0.10
     planted: list = field(default_factory=list)
 
+    profiles = {
+        "inbox-30k": {"attachment_messages": 300, "attachment_size": 1_000_000, "inline_image_ratio": 0.0},
+        "multi-folder": {},
+    }
+
     @classmethod
-    def default_folders(cls) -> list[FolderSpec]:
+    def default_folders(cls, profile: str) -> list[FolderSpec]:
+        if profile == "inbox-30k":
+            return [
+                FolderSpec("Inbox", 30000, "inbox", 1095, 0, 0.9, 0.02),
+                FolderSpec("Sent", 0, "sent"),
+                FolderSpec("Drafts", 0, "drafts"),
+                FolderSpec("Archive", 0, "archive"),
+                FolderSpec("Junk", 0, "junk"),
+                FolderSpec("Trash", 0, "trash"),
+            ]
         return [
             FolderSpec("Inbox", 3000, "inbox", 90, 0, 0.8, 0.03),
             FolderSpec("Archive", 20000, "archive", 3650, 90, 0.98, 0.02),
@@ -65,24 +86,32 @@ class CorpusSpec:
     def from_dict(cls, d: dict | None) -> "CorpusSpec":
         d = dict(d or {})
         spec = cls()
+        spec.profile = str(d.get("profile", spec.profile))
+        if spec.profile not in cls.profiles:
+            raise ValueError(f"Unknown corpus profile '{spec.profile}'. Known: {', '.join(cls.profiles)}")
+        values = {**cls.profiles[spec.profile], **d}
         for key in ("seed", "owner_name", "owner_address", "attachment_ratio", "inline_image_ratio", "html_ratio",
-                    "attachment_min", "attachment_max", "large_from", "large_share"):
-            if key in d:
-                setattr(spec, key, type(getattr(spec, key))(d[key]))
-        if "end_date" in d:
-            spec.end_date = datetime.fromisoformat(str(d["end_date"])).astimezone(timezone.utc)
-        spec.folders = [FolderSpec(**f) for f in d["folders"]] if "folders" in d else cls.default_folders()
-        spec.planted = [PlantedTerm(**p) for p in d["planted"]] if "planted" in d else [
+                    "attachment_min", "attachment_max", "large_from", "large_share", "attachment_size"):
+            if key in values:
+                setattr(spec, key, type(getattr(spec, key))(values[key]))
+        if values.get("attachment_messages") is not None:
+            spec.attachment_messages = int(values["attachment_messages"])
+        if "end_date" in values:
+            spec.end_date = datetime.fromisoformat(str(values["end_date"])).astimezone(timezone.utc)
+        spec.folders = [FolderSpec(**f) for f in values["folders"]] if "folders" in values else \
+            cls.default_folders(spec.profile)
+        spec.planted = [PlantedTerm(**p) for p in values["planted"]] if "planted" in values else [
             PlantedTerm("kumquat", 250, "body"), PlantedTerm("Zanzibar", 40, "subject")]
         return spec
 
     def to_dict(self) -> dict:
         return {
-            "seed": self.seed, "owner_name": self.owner_name, "owner_address": self.owner_address,
-            "end_date": self.end_date.isoformat(), "attachment_ratio": self.attachment_ratio,
-            "inline_image_ratio": self.inline_image_ratio, "html_ratio": self.html_ratio,
-            "attachment_min": self.attachment_min, "attachment_max": self.attachment_max,
-            "large_from": self.large_from, "large_share": self.large_share,
+            "profile": self.profile, "seed": self.seed, "owner_name": self.owner_name,
+            "owner_address": self.owner_address, "end_date": self.end_date.isoformat(),
+            "attachment_ratio": self.attachment_ratio, "attachment_messages": self.attachment_messages,
+            "attachment_size": self.attachment_size, "inline_image_ratio": self.inline_image_ratio,
+            "html_ratio": self.html_ratio, "attachment_min": self.attachment_min,
+            "attachment_max": self.attachment_max, "large_from": self.large_from, "large_share": self.large_share,
             "folders": [vars(f) for f in self.folders], "planted": [vars(p) for p in self.planted],
         }
 
@@ -125,6 +154,7 @@ class CorpusGenerator:
         self.sent_slots: list[dict] = []
         self.answered: set[tuple] = set()
         self.planted_at: dict[tuple, list[PlantedTerm]] = {}
+        self.with_attachment: set[tuple] = set()
         self.layout()
 
     def rng(self, *parts) -> random.Random:
@@ -144,6 +174,7 @@ class CorpusGenerator:
             if folder.role == "sent":
                 self.sent_layout(folder)
         self.plant_layout()
+        self.attachment_layout()
 
     def thread_layout(self, folder: FolderSpec) -> list[tuple]:
         r = self.rng(folder.name, "threads")
@@ -192,6 +223,15 @@ class CorpusGenerator:
                 raise ValueError(f"Can't plant '{term.term}' {term.count} times in {len(everything)} messages")
             for key in self.rng("plant", term.term).sample(everything, term.count):
                 self.planted_at.setdefault(key, []).append(term)
+
+    def attachment_layout(self):
+        count = self.spec.attachment_messages
+        if count is None:
+            return
+        everything = [(f.name, i) for f in self.spec.folders for i in range(f.count)]
+        if count > len(everything):
+            raise ValueError(f"Can't give {count} of {len(everything)} messages an attachment")
+        self.with_attachment = set(self.rng("attachments").sample(everything, count))
 
     def message_id(self, folder: str, index: int) -> str:
         digest = hashlib.sha1(f"{self.spec.seed}:{folder}:{index}".encode()).hexdigest()
@@ -286,7 +326,10 @@ class CorpusGenerator:
 
         files = SyntheticFiles(r)
         attachments = []
-        if r.random() < self.spec.attachment_ratio:
+        if self.spec.attachment_messages is not None:
+            if (folder, index) in self.with_attachment:
+                attachments.append(files.exact_pdf(self.spec.attachment_size, f"{env.date:%Y-%m-%d}-{index:05d}-1"))
+        elif r.random() < self.spec.attachment_ratio:
             for n in range(r.choices((1, 2, 3), weights=(75, 20, 5))[0]):
                 kind = r.choices(("pdf", "jpeg", "png", "docx", "xlsx"), weights=(35, 25, 10, 15, 15))[0]
                 label = f"{env.date:%Y-%m-%d}-{index:05d}-{n + 1}"
@@ -331,7 +374,10 @@ class CorpusGenerator:
                 if term in terms:
                     per_folder[folder] = per_folder.get(folder, 0) + 1
             planted[term.term] = {"count": term.count, "field": term.field, "per_folder": per_folder}
-        return {"folders": folders, "planted": planted, "total": sum(f.count for f in self.spec.folders)}
+        attachments = len(self.with_attachment) if self.spec.attachment_messages is not None else None
+        return {"folders": folders, "planted": planted, "total": sum(f.count for f in self.spec.folders),
+                "profile": self.spec.profile, "attachment_messages": attachments,
+                "attachment_size": self.spec.attachment_size if attachments is not None else None}
 
     def manifest(self, messages_path: Path | None = None, progress=None) -> dict:
         digest = hashlib.sha256()

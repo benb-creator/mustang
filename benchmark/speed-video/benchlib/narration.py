@@ -11,7 +11,7 @@ class NarrationError(Exception):
 class Condition:
     """`when` grammar: expr = term ("or" term)*; term = factor ("and" factor)*;
     factor = "not" factor | "(" expr ")" | "missing(" name ")" | operand op operand.
-    A comparison that involves a missing value is false."""
+    A comparison that involves a missing value or a text value is false (as in the voice-over's validate.py)."""
 
     token_pattern = re.compile(r"\s*(missing\(|\(|\)|<=|>=|==|!=|<|>|and\b|or\b|not\b|-?\d+(?:\.\d+)?|"
                                r"[A-Za-z_][A-Za-z0-9_.]*)")
@@ -100,13 +100,44 @@ class Condition:
             return values.get(node[1]) is None
         _, op, left, right = node
         a, b = (n[1] if n[0] == "num" else values.get(n[1]) for n in (left, right))
-        if a is None or b is None:
+        if a is None or b is None or isinstance(a, str) or isinstance(b, str):
             return False
-        if isinstance(a, str) or isinstance(b, str):
-            if op not in ("==", "!="):
-                return False
-            return (str(a) == str(b)) == (op == "==")
         return {"<": a < b, "<=": a <= b, ">": a > b, ">=": a >= b, "==": a == b, "!=": a != b}[op]
+
+
+class SpokenDuration:
+    """Duration with unit, as spoken and shown at the hold (`time.*`); the same rules as the voice-over's
+    validate.py: below 10 s one decimal, below 59.5 s whole seconds, below 10 min minutes and seconds, below
+    59.5 min whole minutes, then hours and minutes."""
+
+    units = {"en": {"second": ("second", "seconds"), "minute": ("minute", "minutes"), "hour": ("hour", "hours"),
+                    "point": "."},
+             "de": {"second": ("Sekunde", "Sekunden"), "minute": ("Minute", "Minuten"), "hour": ("Stunde", "Stunden"),
+                    "point": ","}}
+
+    @classmethod
+    def unit(cls, language: str, name: str, count: int) -> str:
+        singular, plural = cls.units[language][name]
+        return singular if count == 1 else plural
+
+    @classmethod
+    def text(cls, seconds: float, language: str) -> str:
+        language = language if language in cls.units else "en"
+        if seconds < 9.95:
+            return f"{seconds:.1f}".replace(".", cls.units[language]["point"]) + " " + cls.unit(language, "second", 2)
+        if seconds < 59.5:
+            whole = round(seconds)
+            return f"{whole} {cls.unit(language, 'second', whole)}"
+        if seconds < 599.5:
+            minutes, rest = divmod(round(seconds), 60)
+            out = f"{minutes} {cls.unit(language, 'minute', minutes)}"
+            return out + (f" {rest}" if rest else "")
+        if seconds < 3570:
+            minutes = round(seconds / 60)
+            return f"{minutes} {cls.unit(language, 'minute', minutes)}"
+        hours, minutes = divmod(round(seconds / 60), 60)
+        out = f"{hours} {cls.unit(language, 'hour', hours)}"
+        return out + (f" {minutes} {cls.unit(language, 'minute', minutes)}" if minutes else "")
 
 
 class NarrationValues:
@@ -132,6 +163,11 @@ class NarrationValues:
         if seconds is not None:
             self.text[name] = self.seconds_text(seconds)
 
+    def set_duration(self, name: str, seconds: float | None):
+        self.raw[name] = seconds
+        if seconds is not None:
+            self.text[name] = SpokenDuration.text(seconds, self.language)
+
     def set_ratio(self, name: str, ratio: float | None):
         self.raw[name] = ratio
         if ratio is not None:
@@ -154,7 +190,22 @@ class NarrationValues:
         return re.sub(r"\{\{\s*([^}]*?)\s*\}\}", lookup, text)
 
     def missing_names(self, text: str) -> list[str]:
-        return [n for n in re.findall(r"\{\{\s*([^}]*?)\s*\}\}", text) if n not in self.text]
+        return [n for n in re.findall(r"\{\{\s*([^}]*?)\s*\}\}", text) if n not in self.text
+                and not n.startswith(("#if", "/if", "else"))]
+
+
+class MethodTemplate:
+    """Method texts: {{name}} placeholders and {{#if cond}}…{{else}}…{{/if}} blocks (not nested); conditions use the
+    raw values, placeholders the formatted texts. The reference is the voice-over's validate.py `MethodTemplate`."""
+
+    block = re.compile(r"\{\{#if (.+?)\}\}(.*?)(?:\{\{else\}\}(.*?))?\{\{/if\}\}", re.S)
+
+    @classmethod
+    def render(cls, text: str, values: NarrationValues, missing: str = "–") -> tuple[str, list[str]]:
+        def choose(match):
+            return match.group(2) if Condition(match.group(1)).evaluate(values.raw) else (match.group(3) or "")
+        chosen = cls.block.sub(choose, text)
+        return values.substitute(chosen, missing), sorted(set(values.missing_names(chosen)))
 
 
 class Narration:
@@ -187,8 +238,12 @@ class Narration:
                 condition = candidate.get("when")
                 if condition is None or Condition(condition).evaluate(values.raw):
                     resolved = copy.deepcopy(candidate)
+                    resolved["missing"] = {}
                     for field in self.text_fields:
                         if resolved.get(field):
+                            missing = values.missing_names(resolved[field])
+                            if missing:
+                                resolved["missing"][field] = missing
                             resolved[field] = values.substitute(resolved[field])
                     supers = resolved.get("supers") or []
                     resolved["supers"] = [values.substitute(s) for s in ([supers] if isinstance(supers, str) else supers)]
