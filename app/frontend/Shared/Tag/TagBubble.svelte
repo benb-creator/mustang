@@ -24,7 +24,7 @@
 <style>
   .tag {
     min-height: 16px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     background-color: var(--color);
     color: white;
     border: 1px solid transparent;

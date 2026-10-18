@@ -22,7 +22,7 @@
   /* Like the new event buttons in the calendar list, but in the size of a menu icon */
   .new-event-menuitem :global(.menuitem .icon) {
     padding: 2px;
-    border-radius: 1000px;
+    border-radius: var(--border-radius);
     background-color: var(--calendar-color);
     color: lch(from var(--calendar-color) calc((49.44 - l) * infinity) 0 0);
   }

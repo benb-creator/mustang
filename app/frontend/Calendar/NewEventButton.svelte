@@ -45,7 +45,7 @@
     border-right: 1px solid var(--border);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
-    border-radius: 30px;
+    border-radius: var(--border-radius);
     margin: 4px;
   }
   .new-event-button :global(.add-button) {

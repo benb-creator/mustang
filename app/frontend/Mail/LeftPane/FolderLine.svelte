@@ -73,7 +73,7 @@
   .count {
     justify-content: center;
     align-items: center;
-    border-radius: 20px;
+    border-radius: var(--border-radius);
     /*border: 1px solid var(--border); -- too high */
     max-height: 20px;
     min-width: 12px;

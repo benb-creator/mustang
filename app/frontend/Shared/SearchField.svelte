@@ -67,7 +67,7 @@
     border: 1px solid var(--border);
     padding-inline-start: 8px;
     padding-inline-end: 4px;
-    border-radius: 100px;
+    border-radius: var(--border-radius);
     background-color: field;
     color: fieldtext;
   }
@@ -86,7 +86,7 @@
     height: 24px;
     border: none;
     margin-inline-start: 4px;
-    border-radius: 100px;
+    border-radius: var(--border-radius);
     background-color: inherit;
     color: inherit;
   }

@@ -31,7 +31,7 @@
   .date {
     background-color: var(--headerbar-bg);
     color: var(--headerbar-fg);
-    border-radius: 30px;
+    border-radius: var(--border-radius);
     font-weight: bold;
     align-self: start;
     padding-inline-start: 6px;

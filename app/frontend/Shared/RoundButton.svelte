@@ -84,7 +84,7 @@
 <style>
   button {
     border: 1px solid transparent;
-    border-radius: 1000px;
+    border-radius: var(--border-radius);
     padding: var(--padding);
 
     flex-direction: row;

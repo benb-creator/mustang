@@ -115,7 +115,7 @@
     background-color: var(--button-bg);
     color: var(--button-fg);
     border: 1px solid var(--button-border);
-    border-radius: 1000px;
+    border-radius: var(--border-radius);
     padding: 6px 8px;
   }
   .plain {

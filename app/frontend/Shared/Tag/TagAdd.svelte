@@ -54,7 +54,7 @@
   input[type="text"] {
     background-color: var(--color);
     color: white;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     padding: 0 8px;
     max-width: 5em;
   }

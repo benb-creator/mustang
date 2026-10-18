@@ -149,7 +149,7 @@
   color: var(--main-fg);
   padding: 0px 12px !important;
   box-shadow: -1px 0px 5px 0.5px rgb(0, 0, 0, 3%);
-  border-radius: 100px;
+  border-radius: var(--border-radius);
   align-items: center;
 }
 .person-autocomplete :global(input::placeholder) {
