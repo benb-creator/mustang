@@ -2,7 +2,7 @@
   {#each [null, ...appGlobal.workspaces.each] as workspace}
     <Clickable onClick={event => onWorkspaceSelected(workspace, event)}>
       <hbox class="workspace"
-        style="--workspace-color: {workspace?.color ?? "black"}"
+        style="--workspace-color: {workspace?.color ?? "var(--fg-faint)"}"
         class:selected={workspace == $selectedWorkspace}
         >
         <!--
@@ -38,33 +38,38 @@
 
 <style>
   .workspace-selector {
-    margin-block-start: -4px;
-    padding: 12px 16px 16px 16px;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-    background-color: var(--appbar-bg);
-    color: var(--appbar-fg);
+    padding: 4px;
+    min-width: 180px;
+    border: 1px solid var(--border);
+    border-radius: var(--popup-radius);
+    background-color: var(--popup-bg);
+    color: var(--fg);
   }
   .workspace {
-    padding: 0px 8px;
+    align-items: center;
+    min-height: 32px;
+    padding: 0px 10px;
+    border-radius: var(--border-radius);
   }
   /*.workspace {
     background-color: var(--workspace-color);
     color: lch(from var(--workspace-color) calc((49.44 - l) * infinity) 0 0);
   }*/
   .workspace label {
-    margin-inline-start: 12px;
+    margin-inline-start: 10px;
   }
   .workspace .button {
     background-color: var(--workspace-color);
-    margin: 3px 0px;
-    min-width: 18px;
-    min-height: 18px;
-    border-radius: 18px;
+    min-width: 10px;
+    min-height: 10px;
+    border-radius: 10px;
     align-self: center;
   }
   .workspace:hover {
     background-color: var(--hover-bg);
     color: var(--hover-fg);
+  }
+  .workspace.selected {
+    font-weight: 600;
   }
 </style>

@@ -17,31 +17,24 @@
   .sub-app-button {
     align-items: center;
     padding: 0px;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
   }
   .icon {
-    padding: 2px;
+    padding: 3px;
+    color: var(--appbar-muted-fg);
   }
   .icon :global(.cls-1) {
-    stroke: white;
+    stroke: var(--appbar-fg);
   }
   .sub-app-button:hover {
-    background-color: rgba(255, 255, 255, 25%);
+    background-color: rgba(255, 255, 255, 8%);
   }
   .sub-app-button.selected {
-    background-color: rgba(255, 255, 255, 95%);
-  }
-  .icon {
-    color: rgba(255, 255, 255, 80%);
+    background-color: rgba(255, 255, 255, 13%);
+    box-shadow: inset 0px -2px 0px 0px var(--icon-primary);
   }
   .sub-app-button.selected .icon {
-    color: #494558 /* var(--appbar-bg) */;
-  }
-  .sub-app-button.selected .icon :global(.cls-1) {
-    stroke: #494558 /* var(--appbar-bg) */;
-  }
-  .sub-app-button.selected .icon :global(.date-calendar-icon) {
-    fill: #494558 /* var(--appbar-bg) */;
+    color: var(--appbar-fg);
   }
 
   :global(.sub-app-bar[app="webapps"]) .icon {

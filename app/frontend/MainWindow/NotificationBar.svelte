@@ -69,7 +69,7 @@
   .notification-bar {
     align-items: center;
     color: #160C27;
-    box-shadow: -1px 0px 5px 0.5px rgb(0, 0, 0, 10%);
+    border-block-end: 1px solid rgba(0, 0, 0, 12%);
     z-index: 3;
   }
   .notification-bar[severity="meltdown"] {

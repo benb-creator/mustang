@@ -196,7 +196,7 @@
 
 <style>
   .main-window:not(.mobile) {
-    border: 1px solid gray;
+    border: 1px solid var(--windowheader-bg);
     min-width: 640px;
   }
   .sidebar {

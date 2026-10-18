@@ -13,6 +13,7 @@
   <hbox class="search-box">
     <SearchField bind:searchTerm={$globalSearchTerm} />
   </hbox>
+  <vbox flex class="free" />
   {#if !webMail}
     <hbox class="right">
       <Button label={$t`Minimize`}
@@ -83,32 +84,46 @@
   .window-header {
     background-color: var(--windowheader-bg);
     color: var(--windowheader-fg);
+    height: 40px;
+    align-items: stretch;
+    box-shadow: inset 0px -2px 0px 0px var(--workspace-color);
   }
   .app-logo {
     padding: 8px;
-    padding-inline-start: 12px;
-    width: 48px;
+    padding-inline-start: 14px;
+    width: 42px;
     align-items: start;
     justify-content: center;
     app-region: drag;
   }
+  .workspace {
+    align-items: center;
+  }
   .app-title {
-    font-size: 18px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
     align-items: center;
     margin-inline-start: 4px;
     app-region: drag;
   }
   .right {
-    padding-inline-end: 8px;
+    align-items: stretch;
   }
   .right :global(button) {
-    color: white;
-    padding-inline-start: 8px;
-    padding-inline-end: 8px;
+    color: var(--windowheader-fg);
+    width: 46px;
+    border-radius: 0px;
+    opacity: 85%;
   }
-  .right :global(.maximize) {
-    padding-inline-start: 10px;
-    padding-inline-end: 10px;
+  .right :global(button:hover) {
+    background-color: rgba(255, 255, 255, 10%) !important;
+    color: var(--windowheader-fg) !important;
+    opacity: 100%;
+  }
+  .right :global(button.close:hover) {
+    background-color: #C42B1C !important;
+    color: white !important;
   }
   .right :global(.minimize svg) {
     margin-block-start: 8px; /* Find better icon */
@@ -117,33 +132,41 @@
     app-region: drag;
   }
 
-  .window-header :global(.search) {
-    margin: 6px 12px;
-    outline: 1px solid rgb(255, 255, 255, 7%);
-    border: none;
-  }
-  .window-header :global(.search:not(.has-search)) {
-    background-color: var(--windowheader-bg);
-    /*background-color: rgb(255, 255, 255, 10%);
-    background-blend-mode: multiply;*/
-  }
-  .window-header :global(.search :has(input:focus)) {
-    background-color: var(--inverted-bg);
-  }
-  .window-header :global(.search:not(.has-search) input) {
-    background-color: transparent;
-    color: var(--inverted-fg);
-  }
-
   .search-box {
-    --gradient-direction: 135deg;
-    background-image: linear-gradient(var(--gradient-direction), var(--windowheader-bg) 10%, var(--workspace-color) 85%);
+    align-items: center;
+    width: 40%;
+    max-width: 560px;
+    min-width: 200px;
   }
-  :global([dir="rtl"]) .search-box {
-    --gradient-direction: 225deg;
+  .window-header :global(.search) {
+    flex: 1 0 0;
+    border: none;
+    background-color: rgba(255, 255, 255, 10%);
+    color: var(--windowheader-fg);
+    transition: background-color 80ms ease-out;
   }
-  .right {
-    background-color: var(--workspace-color);
+  .window-header :global(.search:hover) {
+    background-color: rgba(255, 255, 255, 15%);
+  }
+  .window-header :global(.search svg) {
+    color: rgba(255, 255, 255, 65%);
+  }
+  .window-header :global(.search input::placeholder) {
+    color: rgba(255, 255, 255, 60%);
+  }
+  .window-header :global(.search:has(input:focus)),
+  .window-header :global(.search.has-search) {
+    background-color: var(--bg);
+    color: var(--fg);
+    box-shadow: none;
+  }
+  .window-header :global(.search:has(input:focus) svg),
+  .window-header :global(.search.has-search svg) {
+    color: var(--fg-muted);
+  }
+  .window-header :global(.search:has(input:focus) input::placeholder),
+  .window-header :global(.search.has-search input::placeholder) {
+    color: var(--input-placeholder);
   }
 
   /* Styles for Mac */

@@ -16,52 +16,57 @@
 <style>
   .app-button {
     align-items: center;
+    position: relative;
+    margin: 2px 4px;
+    border-radius: var(--popup-radius);
+    color: var(--appbar-muted-fg);
+    transition: background-color 80ms ease-out;
   }
   .app-button.padding {
-    padding: 10px 0px 6px 0px;
+    padding: 8px 0px 6px 0px;
   }
-  .label :global(.label){
-    color: var(--appbar-fg);
+  .label :global(.label) {
+    color: inherit;
+  }
+  .icon {
+    opacity: 80%;
   }
   .icon :global(.cls-1) {
     stroke: var(--appbar-fg);
   }
   .app-button:hover {
-    background-color: rgba(255, 255, 255, 25%);
+    background-color: rgba(255, 255, 255, 8%);
+    color: var(--appbar-fg);
   }
-  .app-button:hover .label {
-    color: black;
+  .app-button:hover .icon,
+  .app-button.selected .icon {
+    opacity: 100%;
   }
   .app-button.selected {
-    background-color: rgba(255, 255, 255, 95%);
+    background-color: rgba(255, 255, 255, 13%);
+    color: var(--appbar-fg);
   }
-  .app-button.selected .label :global(> .label) {
-    color: black;
-  }
-  .icon {
-    color: rgba(255, 255, 255, 80%);
-  }
-  .app-button.selected .icon {
-    color: #494558 /* var(--appbar-bg) */;
-  }
-  .app-button.selected .icon :global(.cls-1) {
-    stroke: #494558 /* var(--appbar-bg) */;
-  }
-  .app-button.selected .icon :global(.date-calendar-icon) {
-    fill: #494558 /* var(--appbar-bg) */;
+  .app-button.selected::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: -4px;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-start-end-radius: 2px;
+    border-end-end-radius: 2px;
+    background-color: var(--icon-primary);
   }
   .label {
-    color: #999999;
     overflow: hidden;
     overflow-wrap: anywhere;
     text-overflow: clip;
     white-space: nowrap;
     max-width: 100%;
-    margin-block-start: 4px;
-    margin-inline-start: 4px;
-    margin-inline-end: 4px;
-  }
-  .selected .label {
-    color: black;
+    margin-block-start: 3px;
+    margin-inline-start: 2px;
+    margin-inline-end: 2px;
+    font-size: 11px;
+    font-weight: 500;
   }
 </style>

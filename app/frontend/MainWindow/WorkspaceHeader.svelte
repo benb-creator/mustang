@@ -43,10 +43,12 @@
 
 <style>
   .workspace {
-    font-size: 18px;
+    font-size: 15px;
+    font-weight: 600;
     align-items: center;
+    align-self: stretch;
     padding-inline-start: 8px;
-    padding-inline-end: 6px;
+    padding-inline-end: 8px;
   }
   .workspace :global(button) {
     background-color: inherit;
@@ -54,16 +56,15 @@
     margin-inline-end: 2px;
   }
   .workspace:hover {
-    background-color: var(--hover-bg);
-    color: var(--hover-fg);
+    background-color: rgba(255, 255, 255, 10%);
   }
 
   .dot {
     background-color: var(--workspace-color);
-    margin-inline-end: 12px;
-    min-width: 11px;
-    min-height: 11px;
-    border-radius: 11px;
+    margin-inline-end: 8px;
+    min-width: 10px;
+    min-height: 10px;
+    border-radius: 10px;
     align-self: center;
   }
 
@@ -75,7 +76,7 @@
   }
   @keyframes flashColor {
     0% {
-      background-color: var(--hover-bg);
+      background-color: rgba(255, 255, 255, 20%);
     }
     100% {
       background-color: var(--windowheader-bg);

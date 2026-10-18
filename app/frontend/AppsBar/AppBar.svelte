@@ -49,31 +49,19 @@
     width: 64px;
     background-color: var(--appbar-bg);
     color: var(--appbar-fg);
-    box-shadow: 1px 0px 3px 0px rgba(22, 12, 39, 20%); /* #160C27 */
-    padding-block-start: 8px;
+    padding-block-start: 6px;
     z-index: 4;
-  }
-  .app-bar :global(.app-button),
-  .middle {
-    border-right: 1px dotted var(--border);
-  }
-  @media (prefers-color-scheme: light) {
-    .app-bar :global(.app-button),
-    .middle {
-      border-right: 1px dotted grey;
-    }
   }
   .above-setup {
     position: fixed;
-    width: 63px;
+    width: 64px;
     bottom: 68px;
     margin: 0 auto;
   }
   .app-bar :global(.app-button.settings) {
     position: fixed;
-    width: 63px;
-    bottom: 10px;
-    margin: 0 auto;
+    width: 56px;
+    bottom: 8px;
   }
   .app-bar :global(.app-button.settings:not(.selected) .label .label) {
     display: none;
