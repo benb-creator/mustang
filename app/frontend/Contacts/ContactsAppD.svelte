@@ -45,8 +45,7 @@
 
 <style>
   .left-pane {
-    border-right: 1px dotted var(--border);
-    box-shadow: 2px 0px 6px 0px rgba(0, 0, 0, 10%); /* Also on PersonDetails */
+    border-inline-end: 1px solid var(--border);
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
   }

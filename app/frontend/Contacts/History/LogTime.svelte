@@ -31,8 +31,9 @@
   .date {
     background-color: var(--headerbar-bg);
     color: var(--headerbar-fg);
-    border-radius: 30px;
-    font-weight: bold;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
     align-self: start;
     padding-inline-start: 6px;
     padding-inline-end: 6px;

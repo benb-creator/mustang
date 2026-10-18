@@ -1,5 +1,21 @@
-<hbox class="persons-toolbar">
-  <vbox class="dropdown">
+<vbox class="persons-toolbar">
+  <hbox class="buttons">
+    <Button
+      label={$t`New contact`}
+      icon={NewContactIcon}
+      iconSize="16px"
+      classes="create filled"
+      onClick={addPerson}
+      />
+    <RoundButton
+      label={$t`Sync from server`}
+      icon={SyncIcon}
+      iconSize="16px" padding="7px" classes="sync"
+      onClick={sync}
+      disabled={!$selectedAddressbook?.canSync}
+      />
+  </hbox>
+  <hbox class="dropdown">
     <AccountDropDown
       bind:selectedAccount={selectedAddressbook}
       accounts={appGlobal.addressbooks}
@@ -7,24 +23,8 @@
       filterByWorkspace={true}
       icon={AddressbookIcon}
       />
-  </vbox>
-  <hbox flex />
-  <hbox class="buttons">
-    <RoundButton
-      label={$t`Sync from server`}
-      icon={SyncIcon}
-      iconSize="12px" padding="4px" classes="sync small" border={false}
-      onClick={sync}
-      disabled={!$selectedAddressbook?.canSync}
-      />
-    <RoundButton
-      label={$t`New contact`}
-      icon={NewContactIcon}
-      iconSize="22px" padding="9px" classes="large create"
-      onClick={addPerson}
-      />
   </hbox>
-</hbox>
+</vbox>
 {#if $newPerson}
   <hbox class="new-person" class:selected={$selectedPerson == $newPerson}>
     <PersonLine person={$newPerson} {pictureSize}>
@@ -41,6 +41,7 @@
   import PersonLine from "./Person/PersonLine.svelte";
   import AccountDropDown from "../Shared/AccountDropDown.svelte";
   import RoundButton from "../Shared/RoundButton.svelte";
+  import Button from "../Shared/Button.svelte";
   import NewContactIcon from "lucide-svelte/icons/plus";
   import SyncIcon from "lucide-svelte/icons/refresh-cw";
   import AddressbookIcon from "lucide-svelte/icons/book-user";
@@ -80,28 +81,53 @@
 
 <style>
   .persons-toolbar {
-    margin: 10px 12px 10px 16px;
-    align-items: end;
-  }
-  .dropdown {
-    margin-block: auto; /* v-center */
-    margin-inline-start: 4px;
-  }
-  .dropdown :global(.icon) {
-    margin-inline-end: 4px;
-  }
-  .dropdown :global(.icon svg) {
-    width: 20px;
-    height: 20px;
+    margin-block-end: 8px;
   }
   .buttons {
-    align-items: end;
+    height: var(--pane-header-height);
+    box-sizing: border-box;
+    align-items: center;
+    gap: 6px;
+    padding-inline: 12px 8px;
   }
-  .buttons :global(.button) {
-    margin-left: 6px;
+  .buttons :global(.create) {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: start;
+    white-space: nowrap;
   }
   .buttons :global(.button.disabled) {
-    opacity: 10%;
+    opacity: 30%;
+  }
+  .dropdown {
+    margin-inline: 12px;
+  }
+  .dropdown :global(.account-selector) {
+    flex: 1 1 0;
+    height: 32px;
+    box-sizing: border-box;
+    padding-inline: 8px;
+    border: 1px solid var(--button-border);
+    border-radius: var(--border-radius);
+    background-color: var(--button-bg);
+  }
+  .dropdown :global(.account-selector:hover) {
+    border-color: var(--border-strong);
+  }
+  .dropdown :global(.icon) {
+    margin-block-end: 0px !important;
+    margin-inline-end: 6px;
+  }
+  .dropdown :global(.icon svg) {
+    width: 18px;
+    height: 18px;
+  }
+  .dropdown :global(select) {
+    flex: 1 1 0;
+    max-width: none;
+    height: 100%;
+    font-size: 14px;
+    font-weight: 500;
   }
   .new-person {
     margin-block-end: 10px;

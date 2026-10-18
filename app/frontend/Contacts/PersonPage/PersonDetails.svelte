@@ -24,8 +24,7 @@
 
 <style>
   .person-page {
-    padding: 8px;
-    box-shadow: 2px 0px 6px 0px rgba(0, 0, 0, 10%) inset;
+    padding: 8px 16px;
 
     /** for media query */
     container-type: inline-size;

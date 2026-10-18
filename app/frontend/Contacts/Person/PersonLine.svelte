@@ -36,9 +36,13 @@
     background-color: var(--hover-bg);
     color: var(--hover-fg);
   }
+  .person {
+    align-items: center;
+    min-height: 34px;
+  }
   .person :global(.avatar),
   .person :global(svg) {
-    margin: 2px 14px;
+    margin: 4px 10px 4px 16px;
   }
 
   /* account color bar */
@@ -47,19 +51,20 @@
   }
   .person::before {
     position: absolute;
-    left: 8px;
-    top: 15%;
+    inset-inline-start: 6px;
+    top: 9px;
+    bottom: 9px;
     content: "";
-    height: 70%;
-    border-left: 3px solid var(--account-color);
-    border-radius: 10px;
+    width: 3px;
+    background-color: var(--account-color);
+    border-radius: 2px;
   }
 
   .main {
     justify-content: center;
     margin-block-start: 0px;
     padding: 1px 6px 0px 0px;
-    max-width: calc(100% - 42px - 2 * 6px); /* HACK Fix long names overdrawing into avatar column */
+    max-width: calc(100% - 46px - 2 * 6px); /* HACK Fix long names overdrawing into avatar column */
   }
   :global(.mobile) .main {
     min-height: 44px;

@@ -58,7 +58,7 @@
     padding: 8px 8px 6px 8px;
   }
   .header h3 {
-    font-weight: normal;
+    font-weight: 600;
   }
   h3 {
     margin-inline-start: 10px;
@@ -80,8 +80,8 @@
   .content {
     background-color: var(--main-bg);
     color: var(--main-fg);
-    padding: 8px 16px 10px 20px;
-    border-radius: 5px;
+    padding: 4px 16px 10px 34px;
+    border-radius: var(--border-radius);
   }
   :global(.mobile) .group {
     border: none;
@@ -94,10 +94,10 @@
     border: 1px solid var(--border);
   }
   .group :global(button.add.top) {
-    color: grey;
+    color: var(--fg-muted);
   }
   .group :global(button.add.text) {
-    color: grey;
+    color: var(--fg-muted);
     font-size: 16px;
     flex: 1 0 0;
   }

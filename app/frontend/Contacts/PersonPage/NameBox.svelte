@@ -172,7 +172,7 @@
     margin-block-start: 4px;
     padding: 3px;
     border: 1px solid var(--border);
-    border-radius: 1000px;
+    border-radius: var(--border-radius);
     background-color: var(--main-bg);
   }
   .no-avatar {
@@ -189,8 +189,8 @@
   }
   .name,
   .name :global(input) {
-    font-size: 18px;
-    font-weight: bold;
+    font-size: 22px;
+    font-weight: 600;
     margin-block-end: 8px;
     color: inherit;
   }
@@ -208,7 +208,7 @@
     width: 100%;
   }
   .job-company {
-    color: grey;
+    color: var(--fg-muted);
   }
   .job-company :global(.actions),
   .job-company :global(.value) {

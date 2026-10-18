@@ -36,7 +36,6 @@
   }
   .body {
     max-height: 2.4em;
-    font-weight: 300;
     line-height: 1.2em;
   }
 </style>

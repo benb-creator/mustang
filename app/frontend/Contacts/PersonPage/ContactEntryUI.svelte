@@ -148,8 +148,7 @@
   .purpose,
   .protocol {
     margin-inline-end: 20px;
-    color: grey;
-    font-style: italic;
+    color: var(--fg-muted);
   }
   :global(.mobile) .purpose.edit,
   :global(.mobile) .protocol.edit,
@@ -173,7 +172,7 @@
     visibility: hidden;
   }
   .actions :global(button) {
-    color: #9894A0;
+    color: var(--fg-muted);
   }
   .copied {
     margin-inline-end: 8px;
