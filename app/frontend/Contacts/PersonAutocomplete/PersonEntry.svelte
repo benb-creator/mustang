@@ -69,13 +69,14 @@
 
 <style>
   .person {
-    background-color: var(--main-bg);
-    color: var(--main-fg);
-    border-radius: 100px;
-    box-shadow: -1px 0px 5px 0.5px rgb(0, 0, 0, 7%);
+    background-color: var(--offset-bg);
+    color: var(--fg);
+    border-radius: var(--border-radius);
+    box-shadow: inset 0px 0px 0px 1px var(--border);
     align-items: center;
-    padding-inline-end: 12px;
-    height: 24px;
+    padding-inline-end: 10px;
+    height: 26px;
+    overflow: hidden;
   }
   .person:not(.selected):hover {
     background-color: var(--hover-bg);
@@ -90,7 +91,7 @@
     margin-inline-end: 6px;
   }
   .no-pic {
-    padding-inline-start: 14px;
+    padding-inline-start: 10px;
   }
   .name {
     align-items: center;

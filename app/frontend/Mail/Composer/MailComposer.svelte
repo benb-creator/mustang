@@ -18,28 +18,16 @@
         {#if !appGlobal.isMobile}
           <CloseButton {mail} on:close={onClose} />
         {/if}
-        <RoundButton
-          classes="send"
-          label={sendDisabledTooltip ?? $t`Send`}
-          icon={SendIcon}
-          iconSize="20px"
-          padding="6px"
-          filled
-          disabled={!!sendDisabledTooltip}
-          onClick={onSend}
-          tabindex={2}
-          />
-        <!--
         <Button
           label={$t`Send`}
           tooltip={sendDisabledTooltip ?? $t`Send`}
           icon={SendIcon}
-          iconSize="18px"
+          iconSize="16px"
           onClick={onSend}
-          classes="filled"
+          classes="send filled"
           disabled={!!sendDisabledTooltip}
+          tabindex={2}
           />
-        -->
       </hbox>
     </hbox>
     <grid class="recipients">
@@ -211,7 +199,6 @@
   import Paper from "../../Shared/Paper.svelte";
   import Spinner from "../../Shared/Spinner.svelte";
   import Popup from "../../Shared/Popup.svelte";
-  import RoundButton from "../../Shared/RoundButton.svelte";
   import Button from "../../Shared/Button.svelte";
   import Scroll from "../../Shared/Scroll.svelte";
   import SendIcon from "lucide-svelte/icons/send";
@@ -404,13 +391,18 @@
 
 <style>
   .mail-composer-window {
-    padding: 8px 16px 0px 16px;
-    background-color: var(--leftpane-bg);
-    color: var(--leftpane-fg);
+    padding: 0px 16px 0px 16px;
+    background-color: var(--main-bg);
+    color: var(--main-fg);
+  }
+  .window-title-bar {
+    height: var(--pane-header-height);
+    min-height: var(--pane-header-height);
+    align-items: center;
   }
   .cc.buttons {
     align-items: start;
-    border-bottom: 1px solid rgb(0, 0, 0, 7%);
+    border-bottom: 1px solid var(--border);
     margin-block-start: 4px;
   }
   .cc.buttons > :global(button){
@@ -421,14 +413,22 @@
     background-color: inherit;
     color: inherit;
   }
+  .cc.buttons > :global(button) {
+    color: var(--fg-muted);
+  }
   .cc.buttons > :global(button.selected) {
-    background-color: rgb(0, 0, 0, 5%);
+    background-color: var(--offset-bg);
+    color: var(--fg);
   }
   .close.buttons.mobile {
     margin-inline-end: 8px;
   }
   .close.buttons {
     gap: 8px;
+    align-items: center;
+  }
+  .close.buttons :global(.send) {
+    padding-inline: 16px;
   }
   .close.buttons :global(svg) {
     stroke-width: 1.5px;
@@ -440,7 +440,7 @@
     /* background-color: #FFFFFF55; */
   }
   .label {
-    color: #B3B3B3;
+    color: var(--fg-muted);
   }
   .recipients .label {
     align-items: top;
@@ -466,13 +466,14 @@
     margin-block-end: 8px;
     margin-inline-start: 18px;
     margin-inline-end: 24px;
-    font-weight: bold;
+    font-weight: 600;
+  }
+  .subject input {
+    font-size: 18px;
+    padding-block: 4px;
   }
   .subject input {
     width: 100%;
-  }
-  .buttons :global(.send.disabled) {
-    opacity: 30%;
   }
   .emojis {
     width: 400px;

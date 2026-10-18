@@ -184,11 +184,11 @@
     gap: 4px;
   }
   .buttons  :global(.button:not(.selected)) {
-    color: #595065;
+    color: var(--fg-muted);
   }
   .buttons.encrypt :global(.button) {
     background-color: var(--trustColor);
     color: var(--trustColorFG);
-    border-radius: 1000px;
+    border-radius: var(--border-radius);
   }
 </style>

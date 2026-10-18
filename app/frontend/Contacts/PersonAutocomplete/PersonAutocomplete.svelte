@@ -134,7 +134,7 @@
 
 <style>
 .person-autocomplete {
-  height: 24px;
+  height: 26px;
   margin-block-end: -1px;
 }
 
@@ -147,17 +147,20 @@
 .person-autocomplete :global(input) {
   background-color: var(--main-bg);
   color: var(--main-fg);
-  padding: 0px 12px !important;
-  box-shadow: -1px 0px 5px 0.5px rgb(0, 0, 0, 3%);
-  border-radius: 100px;
+  padding: 0px 10px !important;
+  box-shadow: inset 0px 0px 0px 1px var(--border);
+  border-radius: var(--border-radius);
   align-items: center;
 }
+.person-autocomplete :global(input:focus) {
+  box-shadow: inset 0px 0px 0px 1px var(--input-focus), 0px 0px 0px 1px var(--input-focus);
+}
 .person-autocomplete :global(input::placeholder) {
-  color: #7D7886;
+  color: var(--input-placeholder);
 }
 .person-autocomplete :global(.autocomplete-list) {
-  border-bottom-left-radius: 5px;
-  border-bottom-right-radius: 5px;
+  border-radius: var(--popup-radius);
+  box-shadow: var(--popup-shadow);
 }
 .person-autocomplete :global(.autocomplete-list-item-create) {
   color: rgb(from var(--main-fg) r g b / 50%);
