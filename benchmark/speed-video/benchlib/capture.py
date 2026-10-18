@@ -185,9 +185,12 @@ class FFmpegCapture:
         self.desktop.set_affinity(self.process, self.cpus)
         live_w, live_h = self.live_size
         self.live = LiveMonitor(self.process.stdout, live_w, live_h, self.live_pixel_threshold, self.live_min_changed)
-        if not self.live.first_frame.wait(first_frame_timeout_s):
-            self.stop()
-            raise CaptureError(f"ffmpeg delivered no frames within {first_frame_timeout_s} s; see {self.log_path}")
+        deadline = time.monotonic() + first_frame_timeout_s
+        while not self.live.first_frame.wait(0.1):
+            if self.process.poll() is not None or time.monotonic() > deadline:
+                self.stop()
+                log_tail = Path(self.log_path).read_text(errors="replace")[-600:] if self.log_path else ""
+                raise CaptureError(f"ffmpeg delivered no frames (see {self.log_path}): {log_tail}")
         return self.live
 
     def stop(self, timeout_s: float = 120):

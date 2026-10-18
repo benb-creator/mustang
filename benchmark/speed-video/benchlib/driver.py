@@ -138,7 +138,7 @@ class AppProcess:
             raise DriverError(f"{self.app_id}: window not found: {self.window_error}")
         return self.window
 
-    def close(self):
+    def close(self) -> bool:
         close = self.spec.get("close") or {"key": "ctrl+q"}
         timeout = float(close.get("timeout_s", 60))
         try:
@@ -152,15 +152,15 @@ class AppProcess:
         except Exception as ex:
             if self.log:
                 self.log.write("close_error", error=str(ex))
-        self.wait_exit(timeout)
+        return self.wait_exit(timeout)
 
-    def wait_exit(self, timeout: float):
+    def wait_exit(self, timeout: float) -> bool:
         names = self.spec.get("process_names") or []
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             own_exited = self.process is None or self.process.poll() is not None
             if own_exited and not (names and self.desktop.processes_running(names)):
-                return
+                return True
             time.sleep(0.2)
         if self.process is not None and self.process.poll() is None:
             self.desktop.kill_tree(self.process)
@@ -168,6 +168,7 @@ class AppProcess:
             self.desktop.kill_by_name(names)
         if self.log:
             self.log.write("killed_after_timeout", app=self.app_id)
+        return False
 
 
 class ScenarioDriver:
@@ -266,7 +267,12 @@ class ScenarioDriver:
         elif kind == "wait_window":
             self.app.ensure_window(float(action.options.get("timeout_s", 120)))
         elif kind == "focus":
-            self.desktop.focus_window(self.app.ensure_window())
+            match = {k: v for k, v in action.options.items() if k in ("name", "class", "classname", "process")}
+            if match:
+                window = self.desktop.find_window(match, None, float(action.options.get("timeout_s", 60)))
+            else:
+                window = self.app.ensure_window()
+            self.desktop.focus_window(window)
         elif kind == "wait_settled":
             since = EventLog.now()
             quiet = float(action.options.get("quiet_s", self.live_quiet_s))

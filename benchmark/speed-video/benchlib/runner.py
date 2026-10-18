@@ -155,7 +155,7 @@ class RunExecutor:
                 recording.stop()
             if marker:
                 marker.close()
-            app.close()
+            meta["closed_cleanly"] = app.close()
             log.write("closed")
             log.close()
             meta["finished"] = datetime.now(timezone.utc).isoformat()

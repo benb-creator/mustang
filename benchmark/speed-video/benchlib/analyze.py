@@ -144,13 +144,15 @@ class Aggregator:
     def side(self, comparison: str, task: str, app_id: str) -> dict:
         app = self.config.app(app_id)
         scenario = self.scenarios.get(task).for_app(app_id)
-        runs, failures, warmups = [], [], []
+        runs, failures, warmups, forced_close = [], [], [], []
         for run_dir in self.run_dirs(comparison, task, app_id):
             path = run_dir / "analysis.json"
             meta = json.loads((run_dir / "meta.json").read_text())
             if meta.get("warmup"):
                 warmups.append(meta["run"])
                 continue
+            if meta.get("closed_cleanly") is False:
+                forced_close.append(meta["run"])
             if not path.exists():
                 failures.append({"run": meta["run"], "reason": meta.get("error") or "not analyzed"})
                 continue
@@ -165,7 +167,7 @@ class Aggregator:
                 "actions": scenario.user_action_count, "action_list": scenario.action_list,
                 "runs": [{"run": r["run"], "order": r["order"], "total_s": r["total_s"],
                           "steps": {s["name"]: s["duration_s"] for s in r["steps"]}} for r in runs],
-                "warmups_discarded": warmups, "failed_runs": failures}
+                "warmups_discarded": warmups, "failed_runs": failures, "runs_app_killed_at_close": forced_close}
         if runs:
             totals = [r["total_s"] for r in runs]
             chosen = self.median_run(runs)
@@ -257,6 +259,9 @@ class ReportWriter:
                     if s["failed_runs"]:
                         lines.append("  - failed runs (excluded): " + "; ".join(
                             f"{f['run']} ({f['reason']})" for f in s["failed_runs"]))
+                    if s.get("runs_app_killed_at_close"):
+                        lines.append("  - app didn't quit by itself after these runs and was killed (check for "
+                                     "unexpected dialogs): " + ", ".join(s["runs_app_killed_at_close"]))
                     if s["warmups_discarded"]:
                         lines.append("  - warm-up runs discarded: " + ", ".join(s["warmups_discarded"]))
                 lines.append("")

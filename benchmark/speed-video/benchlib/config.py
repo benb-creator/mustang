@@ -92,5 +92,5 @@ class Config:
         if isinstance(value, list):
             return [self.expand(v, app_id, extra) for v in value]
         if isinstance(value, dict):
-            return {k: self.expand(v, app_id, extra) for k, v in value.items()}
+            return {self.expand(k, app_id, extra): self.expand(v, app_id, extra) for k, v in value.items()}
         return value

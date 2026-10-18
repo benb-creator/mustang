@@ -40,8 +40,9 @@ Linux (C1, C2):
   marker strip.
 - Python 3.10+ with `pip install -r requirements.txt` (numpy, Pillow, PyYAML, python-xlib).
 - ffmpeg ≥ 7 with `x11grab`, `libx264`, `libvpx-vp9`, `libopus`, `drawtext` (freetype), `loudnorm`, `ebur128`;
-  the static builds from https://github.com/BtbN/FFmpeg-Builds have all of them. `xdotool`, `taskset`
-  (util-linux), the DejaVu fonts.
+  the static builds from https://github.com/BtbN/FFmpeg-Builds have all of them (their `x11grab` loads
+  `libxcb-xfixes` and `libxcb-shape` at run time to draw the pointer; desktop systems have them). `xdotool`,
+  `taskset` (util-linux), the DejaVu fonts.
 - Parula from the `.deb` package (no auto-updater; the AppImage updates itself). Thunderbird from the official
   tarball, extracted to `tools/thunderbird/`, with `tools/thunderbird/distribution/policies.json` =
   `{"policies": {"DisableAppUpdate": true}}`.

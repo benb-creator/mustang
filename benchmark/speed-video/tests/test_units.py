@@ -280,6 +280,14 @@ apps:
     assert Action.parse({"key": "End"}).describe() == "key End"
 
 
+def test_config_expands_keys_and_values(tmp_path):
+    from benchlib.config import Config
+    config = Config({"workdir": str(tmp_path / "w"), "apps": {"a": {"profile": {"files": {"{profile}/x.js": "{workdir}"}}}}},
+                    tmp_path)
+    files = config.expand(config.app("a"), "a")["profile"]["files"]
+    assert files == {str(tmp_path / "w" / "profiles" / "a" / "x.js"): str(tmp_path / "w")}
+
+
 # --- corpus determinism and validity -----------------------------------------------------------------------------
 
 SMALL = {"seed": 99, "folders": [

@@ -81,7 +81,12 @@ class X11Desktop:
             if ids:
                 return self.largest_window(ids)
             time.sleep(0.05)
-        raise X11Error(f"No window matching {match} appeared within {timeout_s:.0f} s")
+        raise X11Error(f"No window matching {match} appeared within {timeout_s:.0f} s; visible windows: "
+                       f"{self.visible_window_names()}")
+
+    def visible_window_names(self) -> list[str]:
+        ids = self.xdotool("search", "--onlyvisible", "--name", ".", check=False).split()
+        return [self.xdotool("getwindowname", wid, check=False).strip() for wid in ids]
 
     def largest_window(self, ids: list[str]) -> str:
         def area(wid):

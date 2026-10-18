@@ -270,7 +270,8 @@ class SnapshotBuilder:
         log_path = self.config.workdir / "snapshots" / f"sync-{app_id}.jsonl"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log = EventLog(log_path)
-        app = AppProcess(app_id, spec, self.pipeline.desktop, executor.layout.app_region, log)
+        app = AppProcess(app_id, spec, self.pipeline.desktop, executor.layout.app_region, log,
+                         log_path.with_suffix(".output.log"))
         if manual:
             app.launch(True)
             input(f"{app_id}: set up the account and let it sync completely, then press Enter (the app will be "
@@ -289,7 +290,8 @@ class SnapshotBuilder:
                 driver.do_actions(step.actions, "setup")
                 driver.live.wait_settled(EventLog.now(), 2.0, 600, step.name, expect_change=False)
             time.sleep(sync_wait_s)
-            driver.live.wait_settled(EventLog.now(), 10.0, 3600, "sync", expect_change=False)
+            driver.live.wait_settled(EventLog.now(), 10.0, max(600.0, 2 * sync_wait_s), "sync",
+                                     expect_change=False)
         finally:
             capture.stop()
             app.close()
@@ -307,7 +309,7 @@ class SnapshotBuilder:
         try:
             app.launch(True)
             time.sleep(sync_wait_s)
-            live.wait_settled(EventLog.now(), 10.0, 3600, "resync", expect_change=False)
+            live.wait_settled(EventLog.now(), 10.0, max(600.0, 2 * sync_wait_s), "resync", expect_change=False)
         finally:
             capture.stop()
             app.close()

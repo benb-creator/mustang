@@ -61,8 +61,17 @@ class WindowsDesktop:
         self.monitor_index = monitor_index
         self.user32 = ctypes.WinDLL("user32", use_last_error=True)
         self.kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        self.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+        if hasattr(self.user32, "SetProcessDpiAwarenessContext"):
+            self.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+        else:
+            self.user32.SetProcessDPIAware()
         self.user32.SendInput.argtypes = (wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int)
+        self.kernel32.OpenProcess.restype = wintypes.HANDLE
+        self.kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        self.kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        self.kernel32.SetProcessAffinityMask.argtypes = (wintypes.HANDLE, ctypes.c_size_t)
+        self.kernel32.QueryFullProcessImageNameW.argtypes = (wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR,
+                                                             ctypes.POINTER(wintypes.DWORD))
 
     def send(self, *inputs: INPUT):
         array = (INPUT * len(inputs))(*inputs)
@@ -297,6 +306,14 @@ class WindowsMarkerWindow:
                         ("hCursor", wintypes.HANDLE), ("hbrBackground", wintypes.HBRUSH),
                         ("lpszMenuName", wintypes.LPCWSTR), ("lpszClassName", wintypes.LPCWSTR)]
 
+        gdi32.CreateSolidBrush.restype = wintypes.HBRUSH
+        user32.BeginPaint.restype = wintypes.HDC
+        user32.CreateWindowExW.restype = wintypes.HWND
+        user32.CreateWindowExW.argtypes = (wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD,
+                                           ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.HWND,
+                                           wintypes.HMENU, wintypes.HINSTANCE, wintypes.LPVOID)
+        kernel32 = ctypes.WinDLL("kernel32")
+        kernel32.GetModuleHandleW.restype = wintypes.HMODULE
         white = gdi32.CreateSolidBrush(0x00FFFFFF)
         black = gdi32.CreateSolidBrush(0x00000000)
         cell = self.code.cell_px
@@ -314,7 +331,7 @@ class WindowsMarkerWindow:
 
         self.wndproc = WNDPROC(wndproc)
         wc = WNDCLASSW(lpfnWndProc=self.wndproc, lpszClassName="BenchSyncMarker",
-                       hInstance=ctypes.WinDLL("kernel32").GetModuleHandleW(None))
+                       hInstance=kernel32.GetModuleHandleW(None))
         user32.RegisterClassW(ctypes.byref(wc))
         WS_POPUP, WS_EX_TOPMOST, WS_EX_TOOLWINDOW, WS_EX_NOACTIVATE = 0x80000000, 0x8, 0x80, 0x08000000
         self.hwnd = user32.CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, "BenchSyncMarker", "",
