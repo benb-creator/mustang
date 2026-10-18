@@ -61,9 +61,9 @@ export async function saveWorkspaces() {
 }
 
 let defaultWorkspaces = [
-  new Workspace(gt`Work`, "lightblue", WorkIcon),
-  new Workspace(gt`Private`, "lightgreen", PrivateIcon),
-  new Workspace(gt`Other`, "lightyellow", OtherIcon),
+  new Workspace(gt`Work`, "#2F7FD1", WorkIcon),
+  new Workspace(gt`Private`, "#3A9E4A", PrivateIcon),
+  new Workspace(gt`Other`, "#E0A100", OtherIcon),
 ];
 
 export let defaultWorkspaceIcon = OtherIcon;
@@ -75,7 +75,7 @@ export let accountColors = [
   "#E56D0B", // orange
   "#8CCA3B", // light green
   "#19417C", // blue
-  "#DEB6C5", // pink
+  "#D2457A", // pink
   "#2E7815", // dark green
   "#B20000", // red
   "#32256A", // dark blue
