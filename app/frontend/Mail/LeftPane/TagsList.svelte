@@ -1,6 +1,6 @@
 <vbox class="tags">
   {#if showStaticLabel}
-    <hbox class="header font-smallest">{$t`Tags`}</hbox>
+    <hbox class="header section-label">{$t`Tags`}</hbox>
   {/if}
   <vbox class="list">
     <TagSelector tags={availableTags} {selectedTags} canAdd={false}
@@ -56,12 +56,11 @@
     padding: 4px 12px;
   }
   .header {
-    padding-inline-start: 10px !important;
-    color: grey;
+    padding: 12px 12px 0px 12px;
   }
   .list {
-    margin-block-start: 8px;
+    margin-block-start: 6px;
     margin-block-end: 2px;
-    margin-inline-start: 6px;
+    margin-inline-start: 8px;
   }
 </style>

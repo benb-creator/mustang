@@ -63,7 +63,6 @@
       <Clickable onClick={toggleShowSearchField}>
         <hbox flex class="no-search" />
       </Clickable>
-      <FolderMsgCount {folder} {searchMessages} />
     {/if}
   </hbox>
 {/if}
@@ -73,7 +72,6 @@
   import type { EMail } from '../../../logic/Mail/EMail';
   import { quickSearch } from '../Selected';
   import { appGlobal } from '../../../logic/app';
-  import FolderMsgCount from './FolderMsgCount.svelte';
   import SearchField from '../../Shared/SearchField.svelte';
   import GetMailButton from './GetMailButton.svelte';
   import RoundButton from '../../Shared/RoundButton.svelte';
@@ -128,12 +126,13 @@
   .folder-header {
     align-items: center;
     justify-content: center;
-    max-height: 32px;
-    padding-block-start: 2px;
-    padding-block-end: 2px;
-    padding-inline-start: 4px;
-    padding-inline-end: 4px;
+    height: 36px;
+    max-height: 36px;
+    box-sizing: border-box;
+    padding-inline-start: 8px;
+    padding-inline-end: 8px;
     overflow: hidden;
+    border-block-start: 1px solid var(--border);
   }
   :global(.mobile) .folder-header {
     height: 32px;
@@ -143,19 +142,24 @@
   .buttons {
     align-items: center;
   }
+  .buttons {
+    gap: 2px;
+  }
   .folder-header :global(button) {
     background-color: unset;
-    color: unset;
-    margin-inline-start: -2px;
+    color: var(--fg-muted);
+    width: 28px;
+    height: 28px;
+  }
+  .folder-header :global(button.selected) {
+    color: var(--selected-fg);
   }
   .folder-header :global(button:hover) {
     z-index: 1;
   }
   .folder-header :global(.get-mail button) {
-    height: 20px;
-    width: 20px;
     border: none;
-    margin-inline-end: 8px;
+    margin-inline-end: 6px;
   }
   :global(.mobile) .folder-header :global(.get-mail button) {
     height: 32px;
@@ -192,9 +196,10 @@
     opacity: 80%;
   }
   .star.starred :global(svg) {
-    fill: orange;
+    fill: var(--star-color);
+    stroke: var(--star-color);
   }
   .unread-dot.unread :global(svg) {
-    fill: green;
+    fill: currentColor;
   }
 </style>

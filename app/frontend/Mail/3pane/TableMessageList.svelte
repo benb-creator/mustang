@@ -39,9 +39,11 @@
 </script>
 
 <style>
-  .message-list :global(.fast-list) {
-    padding-block-start: 8px;
-    margin-inline-start: -2px;
+  .message-list :global(.row > *) {
+    min-height: 30px;
+    box-sizing: border-box;
+    align-items: center;
+    border-block-end: 1px solid var(--border);
   }
   .message-list :global(.header) {
     display: none;

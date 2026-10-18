@@ -1,19 +1,14 @@
-<vbox flex class="folder-pane">
-    <hbox class="top">
-      <vbox class="island">
-        <SearchSwitcher bind:active={activeTab} />
-      </vbox>
-      <hbox flex />
-      <hbox class="buttons">
-        {#if activeTab == SearchView.Folder}
-          <GetMailButton folder={selectedFolder ?? selectedAccount?.inbox} />
-        {/if}
-        {#if activeTab == SearchView.Folder || activeTab == SearchView.Person}
-          <WriteButton account={selectedAccount}
-            to={activeTab == SearchView.Person && $selectedPerson ? PersonUID.fromPerson($selectedPerson) : null } />
-        {/if}
-      </hbox>
-    </hbox>
+<vbox flex class="folder-pane nav-list">
+  <hbox class="pane-header">
+    <WriteButton account={selectedAccount}
+      to={activeTab == SearchView.Person && $selectedPerson ? PersonUID.fromPerson($selectedPerson) : null } />
+    {#if activeTab == SearchView.Folder}
+      <GetMailButton folder={selectedFolder ?? selectedAccount?.inbox} iconSize="16px" />
+    {/if}
+  </hbox>
+  <hbox class="switcher">
+    <SearchSwitcher bind:active={activeTab} />
+  </hbox>
 
   {#if activeTab == SearchView.Person}
     <PersonsList
@@ -127,42 +122,46 @@
 
 <style>
   .folder-pane {
-    box-shadow: 2px 0px 6px 0px rgba(0, 0, 0, 10%); /* Also on MessageList */
-    z-index: 2;
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
+    border-inline-end: 1px solid var(--border);
+    z-index: 2;
   }
-
+  .pane-header {
+    height: var(--pane-header-height);
+    min-height: var(--pane-header-height);
+    box-sizing: border-box;
+    align-items: center;
+    padding-inline: 12px 8px;
+    gap: 6px;
+  }
+  .pane-header :global(.create) {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: start;
+  }
+  .pane-header :global(.create .label) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .pane-header :global(.get-mail button) {
+    width: 32px;
+    height: 32px;
+  }
+  .switcher {
+    margin: 4px 12px 8px 12px;
+  }
+  .switcher :global(.island) {
+    flex: 1 1 0;
+  }
+  .switcher :global(.island button) {
+    flex: 1 1 0;
+  }
   .folder-pane :global(.persons) {
     margin-block-start: 8px;
   }
-  .folder-pane :global(.account-list) {
-    margin-block-start: -4px;
-  }
-  .folder-pane :global(.search) {
-    margin-block-start: -2px;
-  }
   .separator {
-    margin-block-start: 20px;
-  }
-  .top :global(.svelteui-Tab) {
-    padding: 8px 12px;
-    height: unset;
-  }
-  .buttons {
-    margin: 8px 8px 0 8px;
-    align-items: end;
-  }
-  .buttons :global(button) {
-    margin-inline-start: 6px;
-  }
-  .buttons :global(.icon) {
-    padding: 4px;
-  }
-  .buttons :global(.get-mail) {
-    height: 22px;
-  }
-  .island {
-    margin: 8px 12px;
+    margin-block-start: 12px;
   }
 </style>

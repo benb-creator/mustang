@@ -177,10 +177,11 @@
 
 <style>
   .message {
-    padding: 4px 12px 4px 8px !important;
+    padding: 5px 10px 5px 6px !important;
     justify-content: baseline;
     align-items: baseline;
     position: relative;
+    border-block-end: 1px solid var(--border);
   }
   :global(.mobile) .message {
     padding: 8px 12px 8px 12px !important;
@@ -189,45 +190,69 @@
   /* account color bar */
   .message::before {
     position: absolute;
-    top: 18%;
+    inset-inline-start: 2px;
+    top: 9px;
+    bottom: 9px;
     content: "";
-    height: 64%;
-    border-left: 3px solid var(--account-color);
-    border-radius: 10px;
+    width: 3px;
+    background-color: var(--account-color);
+    border-radius: 2px;
   }
 
   .top-row,
   .bottom-row {
     width: 100%;
     overflow: hidden;
-    padding-inline-start: 14px;
+    padding-inline-start: 4px;
   }
   .top-row {
-    height: 1.5em;
+    height: 1.45em;
+    align-items: center;
   }
   .bottom-row {
-    height: 1.3em;
+    height: 1.35em;
+    padding-inline-start: 28px;
   }
   .contact {
-    font-weight: 500;
-  }
-  .subject,
-  .date {
-    font-weight: 300;
-  }
-  .unread .contact,
-  .unread .subject,
-  .unread .date {
-    font-weight: 700;
-  }
-  .date {
-    min-width: 8em;
-    justify-content: end;
-    font-family: Helvetica, Arial, sans-serif;
-    padding-top: 2px; /** HACK Fix vertical alignment */
+    display: block;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   .subject {
-    line-height: 1.3;
+    color: var(--fg-muted);
+  }
+  .unread .contact {
+    font-weight: 700;
+  }
+  .unread .subject {
+    color: inherit;
+    font-weight: 600;
+  }
+  .date {
+    min-width: 5em;
+    justify-content: end;
+    color: var(--fg-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .unread .date {
+    color: var(--accent-text);
+    font-weight: 600;
+  }
+  :global(.row.selected) .subject,
+  :global(.row.selected) .date {
+    color: inherit;
+  }
+  .subject {
+    display: block;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   .attachments {
     align-self: center;
@@ -250,20 +275,30 @@
   */
   .button {
     width: 20px;
+    height: 20px;
     vertical-align: bottom;
+    align-items: center;
+    justify-content: center;
+  }
+  .unread-dot {
+    order: -1;
+    margin-inline-end: 4px;
   }
   .direction > :global(*) {
     margin-inline-end: 4px;
   }
 
   /* <copied from="TableMessageListItem.svelte"> */
+  .button {
+    border-radius: var(--border-radius);
+  }
   .button:hover {
-    background-color: var(--selected-hover-bg);
-    color: var(--selected-hover-fg);
+    background-color: var(--hover-strong-bg);
+    color: var(--hover-fg);
   }
   :global(.row.selected:hover) .button:hover {
-    background-color: var(--hover-bg);
-    color: var(--hover-fg);
+    background-color: rgba(255, 255, 255, 20%);
+    color: var(--selected-fg);
   }
   .button :global(button) {
     background-color: unset !important;
@@ -273,25 +308,23 @@
     align-items: center;
   }
   .direction :global(svg.outgoing) {
-    stroke-width: 1px;
+    stroke-width: 1.5px;
   }
   .direction :global(svg.important) {
-    color: crimson;
+    color: var(--danger-fg);
   }
-  @media (prefers-color-scheme: light) {
-    .direction :global(svg.outgoing) {
-      color: darkred;
-    }
-    .direction :global(svg.reply),
-    .direction :global(svg.forward),
-    .direction :global(svg.sending) {
-      color: grey;
-    }
+  .direction :global(svg.outgoing) {
+    color: var(--accent-text);
   }
   .direction :global(svg.reply),
   .direction :global(svg.forward),
   .direction :global(svg.sending) {
-    stroke-width: 1px;
+    color: var(--fg-muted);
+  }
+  .direction :global(svg.reply),
+  .direction :global(svg.forward),
+  .direction :global(svg.sending) {
+    stroke-width: 1.5px;
   }
   .direction :global(svg.sending) {
     animation: sending 1.5s linear infinite;
@@ -304,6 +337,7 @@
     80% { opacity: 100%; transform: translate(2px, -2px); animation-timing-function: ease-in; }
     100% { opacity: 0%; transform: translate(4px, -3px); }
   }
+  :global(.row.selected) .direction :global(svg.outgoing),
   :global(.row.selected) .direction :global(svg.reply),
   :global(.row.selected) .direction :global(svg.forward),
   :global(.row.selected) .direction :global(svg.sending),
@@ -311,7 +345,7 @@
     color: var(--selected-fg);
   }
   .star :global(svg) {
-    stroke-width: 1px;
+    stroke-width: 1.5px;
   }
   .buttons.hover :global(svg),
   .unread-dot :global(svg) {
@@ -328,10 +362,14 @@
     display: none;
   }
   .star.starred :global(svg) {
-    fill: orange;
+    fill: var(--star-color);
+    stroke: var(--star-color);
   }
   .unread-dot.unread :global(svg) {
-    fill: green;
+    fill: var(--unread-color);
+  }
+  :global(.row.selected) .unread-dot.unread :global(svg) {
+    fill: var(--selected-fg);
   }
   .tags :global(.tag) {
     margin: 0 2px;

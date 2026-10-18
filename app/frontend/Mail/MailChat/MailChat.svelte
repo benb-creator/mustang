@@ -7,7 +7,7 @@
         filterByWorkspace={true}
         />
       <hbox flex class="spacer" />
-      <WriteButton account={$selectedAccount} />
+      <WriteButton account={$selectedAccount} iconOnly />
     </hbox>
     <PersonsList {persons} bind:selected={selectedPerson} />
     <ViewSwitcher />

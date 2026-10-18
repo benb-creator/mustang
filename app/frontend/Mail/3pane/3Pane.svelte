@@ -66,4 +66,8 @@
   .message-display-pane {
     flex: 2 0 0;
   }
+  .message-list-pane {
+    border-inline-end: 1px solid var(--border);
+    border-block-end: 1px solid var(--border);
+  }
 </style>

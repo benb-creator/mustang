@@ -83,9 +83,8 @@
 <style>
   .account {
     align-items: center;
+    height: 30px;
     padding-inline-start: 12px;
-    padding-block-start: 2px;
-    padding-block-end: 2px;
   }
   .icon {
     height: 20px;
@@ -96,15 +95,14 @@
   }
   .icon :global(path),
   .icon :global(.cls-2) {
-    stroke: var(--leftpane-fg);
+    stroke: var(--leftbar-fg);
   }
   .logo {
     border-radius: 2px;
   }
   .label {
-    margin-inline-start: 6px;
-    font-weight: 300;
-    max-height: 1.3em;
+    margin-inline-start: 8px;
+    max-height: 1.5em;
     min-width: 0; /* avoid pushing out the buttons */
     overflow: hidden;
   }

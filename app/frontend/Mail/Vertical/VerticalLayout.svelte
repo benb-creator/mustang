@@ -57,7 +57,7 @@
     color: var(--main-fg);
   }
   .message-list-pane {
-    box-shadow: 1px 0px 6px 0px rgba(0, 0, 0, 8%); /* Also on MessageList */
+    border-inline-end: 1px solid var(--border);
     z-index: 2;
   }
 </style>

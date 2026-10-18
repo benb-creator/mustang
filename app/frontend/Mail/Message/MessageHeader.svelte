@@ -3,79 +3,83 @@
   on:swipeleft={onPreviousMessage}
   on:swiperight={onNextMessage}
   >
-  <hbox>
-    {#if $message.contact instanceof Person && $message.contact.picture}
-      <PersonPicture person={$message.contact} />
-    {/if}
-    <hbox class="from">
-      {#if $message.outgoing}
-        <value class="from" title={$message.from.emailAddress}>
-          {$t`me *=> myself as sender of the email`}
-        </value>
-      {:else}
-        <Recipient recipient={$message.from} />
-      {/if}
-      <EncryptionButtons {message} bind:isExpanded={isEncryptionExpanded} />
-    </hbox>
-    <hbox flex />
-    <vbox class="top-right">
-      <MessageToolbar {message} />
-      <hbox>
-        {#if $tags.hasItems}
-          <hbox class="tags">
-            <TagSelector tags={$tags} object={message} canAdd={false}>
-              <RoundButton
-                slot="tag-button"
-                let:tag
-                label={$t`Remove`}
-                onClick={() => onTagRemove(tag)}
-                icon={RemoveIcon}
-                classes="small remove"
-                iconSize="12px"
-                padding="0px"
-                border={false}
-                />
-            </TagSelector>
-          </hbox>
-        {/if}
-      </hbox>
-    </vbox>
-  </hbox>
-  {#if isEncryptionExpanded}
-    <EncryptionDetails {message} bind:isExpanded={isEncryptionExpanded} />
-  {/if}
-  <vbox class="recipients">
-    {#if $message.to.hasItems}
-      <hbox class="to font-small">
-        <hbox class="label">{$t`to`}</hbox>
-        <RecipientsList recipients={$message.to} />
-      </hbox>
-    {/if}
-    {#if $message.cc.hasItems}
-      <hbox class="cc font-small">
-        <hbox class="label">{$t`cc`}</hbox>
-        <RecipientsList recipients={$message.cc} />
-      </hbox>
-    {/if}
-    {#if $message.bcc.hasItems}
-      <hbox class="bcc font-small">
-        <hbox class="label">{$t`bcc`}</hbox>
-        <RecipientsList recipients={$message.bcc} />
-      </hbox>
-    {/if}
-  </vbox>
-  <hbox class="subject-line">
-    <value class="subject">{$message.subject}</value>
-    <hbox flex />
-    <value class="date font-small" title={$message.sent?.toLocaleString(getDateTimeLocale())}>
-      {getDateTimeString($message.sent)}
-    </value>
+  <hbox class="toolbar-row">
     {#if !$appGlobal.isSmall}
       <vbox class="display-mode">
         <DisplayModeSwitcher />
       </vbox>
     {/if}
+    <hbox flex />
+    <MessageToolbar {message} />
   </hbox>
+  <hbox class="subject-line">
+    <value class="subject">{$message.subject}</value>
+  </hbox>
+  <hbox class="correspondents">
+    {#if $message.contact instanceof Person && $message.contact.picture}
+      <vbox class="picture">
+        <PersonPicture person={$message.contact} size={40} />
+      </vbox>
+    {/if}
+    <vbox flex class="people">
+      <hbox class="from-line">
+        <hbox class="from">
+          {#if $message.outgoing}
+            <value class="from" title={$message.from.emailAddress}>
+              {$t`me *=> myself as sender of the email`}
+            </value>
+          {:else}
+            <Recipient recipient={$message.from} />
+          {/if}
+          <EncryptionButtons {message} bind:isExpanded={isEncryptionExpanded} />
+        </hbox>
+        <hbox flex />
+        <value class="date font-small" title={$message.sent?.toLocaleString(getDateTimeLocale())}>
+          {getDateTimeString($message.sent)}
+        </value>
+      </hbox>
+      <vbox class="recipients">
+        {#if $message.to.hasItems}
+          <hbox class="to font-small">
+            <hbox class="label">{$t`to`}</hbox>
+            <RecipientsList recipients={$message.to} />
+          </hbox>
+        {/if}
+        {#if $message.cc.hasItems}
+          <hbox class="cc font-small">
+            <hbox class="label">{$t`cc`}</hbox>
+            <RecipientsList recipients={$message.cc} />
+          </hbox>
+        {/if}
+        {#if $message.bcc.hasItems}
+          <hbox class="bcc font-small">
+            <hbox class="label">{$t`bcc`}</hbox>
+            <RecipientsList recipients={$message.bcc} />
+          </hbox>
+        {/if}
+      </vbox>
+    </vbox>
+  </hbox>
+  {#if isEncryptionExpanded}
+    <EncryptionDetails {message} bind:isExpanded={isEncryptionExpanded} />
+  {/if}
+  {#if $tags.hasItems}
+    <hbox class="tags">
+      <TagSelector tags={$tags} object={message} canAdd={false}>
+        <RoundButton
+          slot="tag-button"
+          let:tag
+          label={$t`Remove`}
+          onClick={() => onTagRemove(tag)}
+          icon={RemoveIcon}
+          classes="small remove"
+          iconSize="12px"
+          padding="0px"
+          border={false}
+          />
+      </TagSelector>
+    </hbox>
+  {/if}
   {#if message.to.isEmpty || message.from.emailAddress == kDummyPerson.emailAddress}
   {#await message.loadForDisplay()}
     <!-- Subject etc. are loaded by search,
@@ -172,73 +176,85 @@
 
 <style>
   .message-header {
-    min-height: 5em;
-    padding: 12px 20px 2px 20px;
-    box-shadow: 0px -1px 5px 0px rgba(0, 0, 0, 8%);
+    padding: 0px 20px 12px 20px;
+    border-block-end: 1px solid var(--border);
+    background-color: var(--main-bg);
+    color: var(--main-fg);
     z-index: 1;
   }
-  .top-right {
-    align-items: end;
+  .toolbar-row {
+    height: var(--pane-header-height);
+    min-height: var(--pane-header-height);
+    align-items: center;
+    margin-inline: -12px -12px;
   }
-  .tags {
-    margin-inline-end: 12px;
+  .toolbar-row :global(.buttons) {
+    margin-block-end: 0px;
+  }
+  .subject-line {
+    margin-block: 4px 12px;
   }
   .subject {
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .correspondents {
+    align-items: start;
+  }
+  .picture {
+    margin-inline-end: 12px;
+  }
+  .from-line {
+    align-items: baseline;
   }
   .from {
-    font-weight: bold;
+    font-weight: 600;
+    align-items: center;
   }
   .from :global(.domain) {
     font-weight: normal;
+    color: var(--fg-muted);
   }
   .outgoing .from {
     font-weight: normal;
-    color: grey;
+    color: var(--fg-muted);
   }
   .recipients {
-    justify-content: end;
+    margin-block-start: 2px;
   }
   .recipients .label {
     margin-block-start: 2px;
     margin-inline-end: 6px;
+    color: var(--fg-faint);
   }
-  .to {
-    color: grey;
-  }
-  .cc, .bcc {
-    color: grey;
+  .to,
+  .cc,
+  .bcc {
+    color: var(--fg-muted);
   }
   .outgoing .to {
-    font-weight: bold;
+    font-weight: 600;
     color: inherit;
   }
   .date {
-    align-self: center;
-    margin-inline-end: 16px;
-    font-weight: 300;
+    margin-inline-start: 16px;
+    color: var(--fg-muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
-  .subject-line {
-    flex-wrap: wrap;
-    justify-content: end;
+  .tags {
     margin-block-start: 8px;
-  }
-  .display-mode {
-    justify-content: end;
   }
   .message-header :global(.error) {
     margin-inline: -4px -12px;
   }
   @media (max-width: 600px)  {
     .message-header {
-      min-height: 0;
-      padding: 8px 6px 2px 16px;
+      padding: 0px 8px 8px 16px;
     }
-    .display-mode {
-      display: none;
-    }
-    .date {
-      margin-inline-end: 6px;
+    .subject {
+      font-size: 17px;
     }
   }
 </style>

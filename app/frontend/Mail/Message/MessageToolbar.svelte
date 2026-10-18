@@ -15,7 +15,7 @@
   <hbox class="reply">
     <Button
       icon={ReplyIcon}
-      iconSize="22px"
+      iconSize="20px"
       iconOnly
       label={$t`Reply to author`}
       onClick={reply}
@@ -26,7 +26,7 @@
     <hbox class="reply-all">
       <Button
         icon={ReplyAllIcon}
-        iconSize="22px"
+        iconSize="20px"
         iconOnly
         label={$t`Reply to all`}
         onClick={replyAll}
@@ -37,7 +37,7 @@
   <hbox class="trash">
     <Button
       icon={TrashIcon}
-      iconSize="16px"
+      iconSize="18px"
       iconOnly
       label={$t`Delete this message`}
       onClick={deleteMessage}
@@ -48,7 +48,7 @@
   <hbox class="spam" class:notspam={$message.isSpam}>
     <Button
       icon={$message.isSpam ? NotSpamIcon : SpamIcon}
-      iconSize="16px"
+      iconSize="18px"
       iconOnly
       label={$message.isSpam ? $t`This email is *not* spam` : $t`Treat this email as spam: Move it to the Spam folder, and train the spam filter`}
       onClick={toggleSpam}
@@ -80,7 +80,7 @@
   <hbox class="move button" bind:this={popupAnchorE}>
     <Button
       icon={FolderActionsIcon}
-      iconSize="16px"
+      iconSize="18px"
       iconOnly
       label={$t`Move to folder, or add tag`}
       onClick={onPopupToggle}
@@ -169,19 +169,28 @@
 <style>
   .buttons {
     justify-content: end;
+    align-items: center;
     margin-block-end: 8px;
+    gap: 2px;
   }
-  .buttons > * {
-    margin-inline-start: 2px;
+  .buttons > :global(*) :global(button.plain) {
+    min-width: 32px;
+    height: 32px;
+    color: var(--fg-muted);
+  }
+  .buttons > :global(*) :global(button.plain:hover) {
+    color: var(--fg);
   }
   .buttons :global(svg) {
-    stroke-width: 1.3px;
+    stroke-width: 1.75px;
   }
   .star.starred :global(svg) {
-    fill: orange;
+    fill: var(--star-color);
+    stroke: var(--star-color);
   }
   .unread:not(.read) :global(svg) {
-    fill: green;
+    fill: var(--unread-color);
+    stroke: var(--unread-color);
   }
   hbox.draft {
     margin-right: 32px;

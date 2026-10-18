@@ -6,14 +6,10 @@
   title={tooltip}
   >
   <hbox class="icon">
-    <FolderIcon {folder} size={$appGlobal.isMobile ? "20px" : "14px"} />
+    <FolderIcon {folder} size={$appGlobal.isMobile ? "20px" : "16px"} />
   </hbox>
   <hbox class="label font-small">
-    {#if !folder.specialFolder || folder.specialFolder == SpecialFolder.Normal || folder.specialFolder == SpecialFolder.Search}
-      {$folder.name}
-    {:else}
-      {specialFolderNames[folder.specialFolder]}
-    {/if}
+    <FolderName {folder} />
   </hbox>
   <hbox flex />
   {#if $folder.countNewArrived && isNormalFolderOrInbox}
@@ -31,9 +27,10 @@
 </ContextMenu>
 
 <script lang="ts">
-  import { type Folder, SpecialFolder, specialFolderNames } from '../../../logic/Mail/Folder';
+  import { type Folder, SpecialFolder } from '../../../logic/Mail/Folder';
   import { onDropMail, onDragOverMail } from '../Message/drag';
   import FolderIcon from './FolderIcon.svelte';
+  import FolderName from './FolderName.svelte';
   import FolderMenu from './FolderMenu.svelte';
   import ContextMenu from '../../Shared/Menu/ContextMenu.svelte';
   import { catchErrors } from '../../Util/error';
@@ -51,18 +48,19 @@
 <style>
   .folder {
     align-items: center;
-    padding-block-start: 2px;
-    padding-block-end: 2px;
+    height: 30px;
     min-width: 0;
     background-color: inherit;
   }
+  :global(.mobile) .folder {
+    height: unset;
+  }
   .icon :global(.cls-2) {
-    stroke: black;
+    stroke: currentColor;
   }
   .label {
     padding-inline-start: 8px;
-    font-weight: 300;
-    height: 20px; /* avoid line break */
+    height: 21px; /* avoid line break */
     min-width: 0; /* avoid pushing out the buttons */
     overflow: hidden;
   }
@@ -73,15 +71,16 @@
   .count {
     justify-content: center;
     align-items: center;
-    border-radius: 20px;
-    /*border: 1px solid var(--border); -- too high */
-    max-height: 20px;
+    border-radius: var(--border-radius);
+    height: 18px;
     min-width: 12px;
-    padding-inline: 4px;
+    padding-inline: 5px;
     margin-inline-end: 8px;
-    background-color: #ff000099;
-    color: white;
-    font-weight: bold;
+    background-color: var(--accent);
+    color: var(--accent-fg);
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
   .folder:hover .count {
     display: none;

@@ -36,6 +36,7 @@
     align-items: center;
     padding-inline-start: 4px;
     padding-inline-end: 8px;
-    opacity: 70%;
+    color: var(--fg-muted);
+    font-variant-numeric: tabular-nums;
   }
 </style>

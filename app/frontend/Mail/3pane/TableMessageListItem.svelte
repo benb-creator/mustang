@@ -178,20 +178,28 @@
 <style>
   .direction:before {
     content: "";
-    top: 10%;
-    height: 80%;
-    border-left: 3px solid var(--account-color);
-    border-radius: 10px;
+    align-self: stretch;
+    margin-block: 6px;
+    border-inline-start: 3px solid var(--account-color);
+    border-radius: 2px;
     margin-inline-end: 2px;
-    opacity: 80%;
   }
   .correspondent,
   .subject,
   .date {
-    align-self: center;
+    align-items: center;
     white-space: nowrap;
-    font-weight: 300;
-    height: 100%;
+  }
+  .correspondent {
+    font-weight: 500;
+  }
+  .subject,
+  .date {
+    color: var(--fg-muted);
+  }
+  :global(.row.selected) .subject,
+  :global(.row.selected) .date {
+    color: inherit;
   }
   .subject {
     overflow: hidden;
@@ -202,12 +210,9 @@
   }
   .date {
     justify-content: start;
-    min-width: 8em;
-    font-size: 12px !important;
-    font-family: Helvetica, Arial, sans-serif;
-    height: 19px; /* make up for smaller font size, minus padding (below), when selected */
-    max-height: 19px;
-    padding-block-start: 2px; /* vertical center */
+    min-width: 7em;
+    font-size: 13px !important;
+    font-variant-numeric: tabular-nums;
   }
   .date,
   .buttons.hover {
@@ -219,7 +224,8 @@
   .correspondent.unread,
   .subject.unread,
   .date.unread {
-    font-weight: bold;
+    font-weight: 700;
+    color: inherit;
   }
   .buttons.hover {
     justify-content: start;
@@ -244,13 +250,16 @@
   }
 
   /* <copied to="VerticalMessageListItem.svelte"> */
+  .button {
+    border-radius: var(--border-radius);
+  }
   .button:hover {
-    background-color: var(--selected-hover-bg);
-    color: var(--selected-hover-fg);
+    background-color: var(--hover-strong-bg);
+    color: var(--hover-fg);
   }
   :global(.row.selected:hover) .button:hover {
-    background-color: var(--hover-bg);
-    color: var(--hover-fg);
+    background-color: rgba(255, 255, 255, 20%);
+    color: var(--selected-fg);
   }
   .button :global(button) {
     background-color: unset !important;
@@ -260,12 +269,12 @@
     align-items: center;
   }
   .direction :global(svg.outgoing) {
-    stroke-width: 1px;
+    stroke-width: 1.5px;
   }
   .direction :global(svg.reply),
   .direction :global(svg.forward),
   .direction :global(svg.sending) {
-    stroke-width: 1px;
+    stroke-width: 1.5px;
   }
   .direction :global(svg.sending) {
     animation: sending 1.5s linear infinite;
@@ -279,18 +288,17 @@
     100% { opacity: 0%; transform: translate(4px, -3px); }
   }
   .direction :global(svg.important) {
-    color: crimson;
+    color: var(--danger-fg);
   }
-  @media (prefers-color-scheme: light) {
-    .direction :global(svg.outgoing) {
-      color: darkred;
-    }
-    .direction :global(svg.reply),
-    .direction :global(svg.forward),
-    .direction :global(svg.sending) {
-      color: grey;
-    }
+  .direction :global(svg.outgoing) {
+    color: var(--accent-text);
   }
+  .direction :global(svg.reply),
+  .direction :global(svg.forward),
+  .direction :global(svg.sending) {
+    color: var(--fg-muted);
+  }
+  :global(.row.selected) .direction :global(svg.outgoing),
   :global(.row.selected) .direction :global(svg.reply),
   :global(.row.selected) .direction :global(svg.forward),
   :global(.row.selected) .direction :global(svg.sending),
@@ -298,7 +306,7 @@
     color: var(--selected-fg);
   }
   .star :global(svg) {
-    stroke-width: 1px;
+    stroke-width: 1.5px;
   }
   .direction {
     padding-inline-start: 8px;
@@ -325,10 +333,14 @@
     display: none;
   }
   .star.starred :global(svg) {
-    fill: orange;
+    fill: var(--star-color);
+    stroke: var(--star-color);
   }
   .unread-dot.unread :global(svg) {
-    fill: green;
+    fill: var(--unread-color);
+  }
+  :global(.row.selected) .unread-dot.unread :global(svg) {
+    fill: var(--selected-fg);
   }
   .tags :global(.tag) {
     margin: 0 2px;

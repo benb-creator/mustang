@@ -38,26 +38,19 @@
 
 <style>
   .message-with-thread {
-    background-color: var(--leftbar-bg);
+    background-color: var(--main-bg);
   }
   /* On mobile, the thread bar lies across the top of the message */
   .message-with-thread.mobile {
     flex-direction: column;
   }
   .message-display {
-    background-color: var(--leftbar-bg);
-    color: var(--leftbar-fg);
+    background-color: var(--main-bg);
+    color: var(--main-fg);
     min-width: 0;
   }
-  .body {
-    margin-inline-start: 8px;
-    margin-block-end: 2px;
-  }
-  @media (max-width: 600px)  {
-    .body {
-      margin-inline-start: 4px;
-      margin-inline-end: 1px;
-      margin-block-end: 1px;
-    }
+  .body :global(.paper) {
+    border: none;
+    border-radius: 0px;
   }
 </style>

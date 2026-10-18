@@ -1,12 +1,15 @@
 <!-- Appears above the msg list -->
-{#if account && !$account?.isLoggedIn || searchMessages || appGlobal.isMobile}
-  <hbox class="folder-header font-normal">
-    {#if searchMessages}
-      {$t`Search results`}
-    {:else if appGlobal.isMobile && folder}
-      <hbox class="folder-name font-normal">
-        {folder.name}
-      </hbox>
+{#if folder || searchMessages}
+  <hbox class="folder-header">
+    <hbox class="title">
+      {#if searchMessages}
+        {$t`Search results`}
+      {:else if folder}
+        <FolderName {folder} />
+      {/if}
+    </hbox>
+    {#if $account?.isLoggedIn}
+      <FolderMsgCount {folder} {searchMessages} />
     {/if}
     <hbox flex />
     {#if account && !$account?.isLoggedIn}
@@ -16,18 +19,14 @@
         onClick={login}
         iconSize="16px" />
     {/if}
-    <hbox flex />
-    {#if $account?.isLoggedIn}
-      <FolderMsgCount {folder} {searchMessages} />
-    {/if}
   </hbox>
 {/if}
 
 <script lang="ts">
   import type { Folder } from '../../../logic/Mail/Folder';
   import type { EMail } from '../../../logic/Mail/EMail';
-  import { appGlobal } from '../../../logic/app';
   import FolderMsgCount from './FolderMsgCount.svelte';
+  import FolderName from './FolderName.svelte';
   import Button from '../../Shared/Button.svelte';
   import DisconnectedIcon from "lucide-svelte/icons/unplug";
   import { t } from '../../../l10n/l10n';
@@ -45,19 +44,28 @@
 
 <style>
   .folder-header {
+    height: var(--pane-header-height);
+    min-height: var(--pane-header-height);
+    box-sizing: border-box;
     align-items: center;
-    justify-content: start;
-    padding-block: 2px;
-    padding-inline: 16px;
-    color: var(--leftbar-fg);
-    background-color: var(--leftbar-bg);
-    box-shadow: 2px 0px 6px 0px rgba(0, 0, 0, 10%);
+    padding-inline: 16px 8px;
+    gap: 8px;
+    border-block-end: 1px solid var(--border);
   }
-  .folder-header :global(button) {
-    margin-inline-end: 12px;
+  .title {
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
-  .folder-name {
-    opacity: 70%;
-    font-weight: bold;
+  .folder-header :global(.msg-count) {
+    padding-block-start: 2px;
+    white-space: nowrap;
+  }
+  :global(.mobile) .folder-header {
+    height: 40px;
+    min-height: 40px;
   }
 </style>
