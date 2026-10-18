@@ -8,6 +8,7 @@ import { createCollectedAddressbook } from '../Contacts/AccountsList/Addressbook
 import { createPersonalCalendar } from '../Calendar/AccountsList/Calendars';
 import { readSavedSearches } from '../Mail/Virtual/SavedSearchFolder';
 import { loadTagsList } from '../Abstract/Tag';
+import { textBlocks } from '../Mail/TextBlock/TextBlocks';
 import { getComputerOn } from '../util/backend-wrapper';
 import { logError } from '../../frontend/Util/error';
 
@@ -23,6 +24,7 @@ export async function getStartObjects(): Promise<void> {
   appGlobal.calendars.add(await createPersonalCalendar());
 
   await loadTagsList(); // before the accounts: their filter rules reference the tags
+  await textBlocks.load();
   await login();
 
   readSavedSearches();

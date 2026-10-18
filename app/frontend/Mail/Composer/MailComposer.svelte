@@ -114,6 +114,15 @@
         />
       <hbox slot="end" bind:this={smlAddAnchor}>
         <Button
+          label={$t`Text blocks`}
+          shortCutInfo={$t`::keyword`}
+          icon={TextBlockIcon}
+          iconOnly
+          selected={showTextBlocks}
+          onClick={() => showTextBlocks = !showTextBlocks}
+          bind:buttonEl={textBlocksAnchor}
+          />
+        <Button
           label={$t`Actions`}
           icon={SMLIcon}
           iconOnly
@@ -151,7 +160,8 @@
             <vbox flex class="editor" spellcheck={$spellcheckEnabled.value}>
               <!-- The html in the mail passed in MUST already be sanitized HTML.
               Using `rawHTMLDangerous` avoids that we're sanitizing on every keypress. -->
-              <HTMLEditor bind:html={mail.rawHTMLDangerous} bind:editor tabindex={1} />
+              <HTMLEditor bind:html={mail.rawHTMLDangerous} bind:editor tabindex={1} {extraExtensions} />
+              <TextBlockSuggestions {editor} />
             </vbox>
           </Scroll>
         </Paper>
@@ -174,6 +184,14 @@
     <SMLAddKinds bind:sml={mail.sml} identity={fromIdentity}
       on:close={() => showSMLAdd = false} />
   </vbox>
+</Popup>
+<Popup
+  bind:popupOpen={showTextBlocks}
+  popupAnchor={textBlocksAnchor}
+  boundaryElSel=".mail-composer-window"
+  placement="bottom-end"
+  autoClose>
+  <TextBlocksPopup {editor} on:close={() => showTextBlocks = false} />
 </Popup>
 {#if $appGlobal.isMobile}
   <ComposerBarM message={mail} />
@@ -206,6 +224,9 @@
   import EncryptionDetails from "./EncryptionDetails.svelte";
   import GraphicSelector from "../../Chat/Emoji/GraphicSelector.svelte";
   import SMLComposer from "./SMLComposer.svelte";
+  import { TextBlockShortcut } from "./TextBlocks/TextBlockShortcut";
+  import TextBlocksPopup from "./TextBlocks/TextBlocksPopup.svelte";
+  import TextBlockSuggestions from "./TextBlocks/TextBlockSuggestions.svelte";
   import SMLAddKinds from "../SML/SMLAddKinds.svelte";
   import ComposerBarM from "./ComposerBarM.svelte";
   import Paper from "../../Shared/Paper.svelte";
@@ -219,6 +240,7 @@
   import EmojiIcon from "lucide-svelte/icons/smile";
   import SMLIcon from "lucide-svelte/icons/list-checks";
   import SpellCheckIcon from "lucide-svelte/icons/square-check-big";
+  import TextBlockIcon from "lucide-svelte/icons/notepad-text";
   import { t, gt } from "../../../l10n/l10n";
   import { tick } from "svelte";
   import type { Editor } from '@tiptap/core';
@@ -226,6 +248,9 @@
   export let mail: EMail;
 
   let editor: Editor;
+  let extraExtensions = [
+    TextBlockShortcut.configure({ getMail: () => mail }),
+  ];
   $: to = mail.to;
   let fromIdentity: MailIdentity;
   let spellcheckEnabled = getLocalStorage("mail.send.spellcheck.enabled", false);
@@ -385,6 +410,8 @@
     goBack();
   }
 
+  let showTextBlocks = false;
+  let textBlocksAnchor: HTMLButtonElement;
   let showSMLAdd = false;
   let testSML = false;
   let smlAddAnchor: HTMLElement;

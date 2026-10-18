@@ -10,6 +10,7 @@ import { readTopicAccounts } from './Topic/TopicAccounts';
 import { readSavedSearches } from './Mail/Virtual/SavedSearchFolder';
 import { loadWorkspaces } from './Abstract/Workspace';
 import { loadTagsList } from './Abstract/Tag';
+import { textBlocks } from './Mail/TextBlock/TextBlocks';
 import { type Account, getAllAccounts, setMainAccounts } from './Abstract/Account';
 import { getComputerOn } from './util/backend-wrapper';
 import JPCWebSocket from '../../lib/jpc-ws';
@@ -72,6 +73,7 @@ export async function getStartObjects(): Promise<void> {
   appGlobal.remoteApp = await jpc.getRemoteStartObject();
   await loadWorkspaces();
   await loadTagsList(); // before the accounts: their filter rules reference the tags
+  await textBlocks.load();
   appGlobal.emailAccounts.addAll(await readMailAccounts());
   appGlobal.chatAccounts.addAll(await readChatAccounts());
   appGlobal.meetAccounts.addAll(await readMeetAccounts());
