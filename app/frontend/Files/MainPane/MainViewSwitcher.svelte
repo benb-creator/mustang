@@ -20,7 +20,7 @@
 </hbox>
 
 <script lang="ts">
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import IslandSwitcher from "../../Shared/IslandSwitcher.svelte";
   import Button from "../../Shared/Button.svelte";
   import TableIcon from "lucide-svelte/icons/table-of-contents";

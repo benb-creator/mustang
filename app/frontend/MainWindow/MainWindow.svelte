@@ -63,7 +63,7 @@
   // #endif
   import { notifications } from "../../logic/util/Notification";
   import { selectedAccount } from "../Mail/Selected";
-  import { getLocalStorage } from "../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../Util/LocalStorage";
   import { loadMustangApps, disableAppsBasedOnFeaturesXML } from "../AppsBar/loadMustangApps";
   import { mailMustangApp } from "../Mail/MailMustangApp";
   import { meetMustangApp } from "../Meet/MeetMustangApp";

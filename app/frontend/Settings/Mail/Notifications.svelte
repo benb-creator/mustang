@@ -20,7 +20,7 @@
 </hbox>
 
 <script lang="ts">
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import NotificationKinds from "./NotificationKinds.svelte";
   import HeaderGroupBox from "../../Shared/HeaderGroupBox.svelte";
   import { t } from "../../../l10n/l10n";

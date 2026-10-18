@@ -37,7 +37,7 @@
   import XIcon from "lucide-svelte/icons/x";
   import OpenIcon from "lucide-svelte/icons/door-open";
   import { appGlobal } from "../../../logic/app";
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import { onKeyEnter } from "../../Util/util";
   import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
   import { catchErrors } from "../../Util/error";

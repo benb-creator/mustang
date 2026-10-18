@@ -50,7 +50,7 @@
   import SortDownIcon from "lucide-svelte/icons/arrow-down";
   import SortUpIcon from "lucide-svelte/icons/arrow-up";
   import SizeUpIcon from "lucide-svelte/icons/arrow-up-wide-narrow";
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import { t } from "../../../l10n/l10n";
   import type { Collection } from "svelte-collections";
 

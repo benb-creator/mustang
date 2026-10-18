@@ -185,6 +185,14 @@ export function URLPart(literals: TemplateStringsArray, ...values: any[]) {
 }
 // </copied>
 
+// <copied from="../../frontend/Util/LocalStorage.ts">
+/** HACK: Reads directly from `localStorage`.
+ * Assumes that `getLocalStorage()` in the frontend saves the value there, in this format. */
+export function getUserPreference<T>(key: string, defaultValue?: T): T {
+  return JSON.parse(sanitize.nonemptystring(localStorage.getItem(key), null)) ?? defaultValue;
+}
+// </copied>
+
 /** TODO Implement this correctly */
 export function fileExtensionForMIMEType(mimetype: string) {
   if (typeof (mimetype) == "string" && mimetype != "application/octet-stream") {

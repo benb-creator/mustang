@@ -26,7 +26,7 @@
 
 <script lang="ts">
   import { rootTopic } from "../../../logic/Topic/TopicAccounts";
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import IslandSwitcher from "../../Shared/IslandSwitcher.svelte";
   import Button from "../../Shared/Button.svelte";
   import Scroll from "../../Shared/Scroll.svelte";

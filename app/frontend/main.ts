@@ -2,7 +2,7 @@ import './app.css';
 import { mount } from 'svelte';
 import MainWindow from './MainWindow/MainWindow.svelte';
 import { appName, appVersion, production } from '../logic/build';
-import { getLocalStorage } from '../logic/util/LocalStorage';
+import { getLocalStorage } from './Util/LocalStorage';
 import { sanitize } from '../../lib/util/sanitizeDatatypes';
 import { assert } from '../logic/util/util';
 import { catchErrors } from './Util/error';

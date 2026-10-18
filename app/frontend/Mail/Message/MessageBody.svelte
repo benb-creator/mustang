@@ -31,7 +31,7 @@
 
 <script lang="ts">
   import type { EMail } from "../../../logic/Mail/EMail";
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import HTMLDisplay from "./HTMLDisplay.svelte";
   import PlaintextDisplay from "./PlaintextDisplay.svelte";
   import ChatDisplay from "./ChatDisplay.svelte";

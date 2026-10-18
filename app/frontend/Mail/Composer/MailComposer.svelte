@@ -189,7 +189,7 @@
   import { MailIdentity } from "../../../logic/Mail/MailIdentity";
   import { WriteMailMustangApp, mailMustangApp } from "../MailMustangApp";
   import { SpecialFolder } from "../../../logic/Mail/Folder";
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import { goBack } from "../../AppsBar/selectedApp";
   import { appGlobal } from "../../../logic/app";
   import { UserError, assert } from "../../../logic/util/util";

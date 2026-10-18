@@ -1,8 +1,7 @@
 import { OAuth2UI } from "./OAuth2UI";
 import { OpenIDConnect } from "../OpenIDConnect";
-import { getLocalStorage } from "../../util/LocalStorage";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
-import { assert } from "../../util/util";
+import { assert, getUserPreference } from "../../util/util";
 import type { OAuth2 } from "../OAuth2";
 
 /**
@@ -16,12 +15,9 @@ export class OAuth2Redirect extends OAuth2UI {
   declare oAuth2: OAuth2;
   /** You must call this before calling `oAuth2.login(true)` */
   static load(oAuth2: OAuth2) {
-    // let storeIDToken = getLocalStorage("oauth2.webmail.idToken");
-    let storeEMailAddress = getLocalStorage("oauth2.webmail.emailAddress");
-
-    let emailAddress = sanitize.string(storeEMailAddress.value as string, null);
+    let emailAddress = sanitize.string(getUserPreference<string>("oauth2.webmail.emailAddress"), null);
     oAuth2.account.username = emailAddress ?? "unknown"; // `OAuth2.getRefreshTokenFromStorage()` needs this to be set
-    // oAuth2.idToken = sanitize.string(storeIDToken.value as string, null);
+    // oAuth2.idToken = sanitize.string(getUserPreference<string>("oauth2.webmail.idToken"), null);
     console.log("OAuth2Redirect.load", "account username", oAuth2.account.username, "token hostname", new URL(oAuth2.tokenURL).host);
   }
 
@@ -36,7 +32,6 @@ export class OAuth2Redirect extends OAuth2UI {
   async login(): Promise<string> {
     console.log("OAuth2Redirect.login", "account username", this.oAuth2.account.username, "token hostname", new URL(this.oAuth2.tokenURL).host);
     this.checkLoop();
-    let storePKCE = getLocalStorage("oauth2.webmail.pkce");
 
     // If we're just coming back from successful OAuth2 authentication, then we're the return page and
     // the OAuth2 server will set the authCode as URL query param
@@ -44,8 +39,8 @@ export class OAuth2Redirect extends OAuth2UI {
     let authCode = query.get("code");
     if (authCode) {
       this.oAuth2.authDoneURL = OAuth2Redirect.appRedirectURL();
-      this.oAuth2.codeVerifierPKCE = sanitize.string(storePKCE.value as string, null);
-      storePKCE.value = "";
+      this.oAuth2.codeVerifierPKCE = sanitize.string(getUserPreference<string>("oauth2.webmail.pkce"), null);
+      OAuth2Redirect.storeValue("oauth2.webmail.pkce", "");
       this.oAuth2.idTokenCallback = idToken => this.processIDToken(idToken);
       OAuth2Redirect.removeURLSearchParams();
       // setTimeout(() => this.confirmLoginSucceeded(), 10000); Safer. But doesn't run at all.
@@ -57,7 +52,7 @@ export class OAuth2Redirect extends OAuth2UI {
     let authPageURL = await this.oAuth2.getAuthURL(OAuth2Redirect.appRedirectURL());
     window.location.assign(authPageURL);
     if (this.oAuth2.codeVerifierPKCE) {
-      storePKCE.value = this.oAuth2.codeVerifierPKCE;
+      OAuth2Redirect.storeValue("oauth2.webmail.pkce", this.oAuth2.codeVerifierPKCE);
     }
     throw new WaitForRedirect("Waiting for login and redirect");
     // and we're gone! Our page will be replaced with the login page on the auth server.
@@ -66,21 +61,28 @@ export class OAuth2Redirect extends OAuth2UI {
     // Continued in logic/WebMail/login.ts
   }
   protected checkLoop() {
-    assert(getLocalStorage("oauth2.redirect.loopCounter", 0).value++ < 2,
+    let loopCounter = getUserPreference("oauth2.redirect.loopCounter", 0);
+    OAuth2Redirect.storeValue("oauth2.redirect.loopCounter", loopCounter + 1);
+    assert(loopCounter < 2,
       "OAuth2 login succeeded, but didn't pass the right data to the webmail app");
   }
   protected confirmLoginSucceeded() {
-    getLocalStorage("oauth2.redirect.loopCounter", 0).value = 0;
+    OAuth2Redirect.storeValue("oauth2.redirect.loopCounter", 0);
   }
   protected processIDToken(idToken: string) {
-    let storeEMailAddress = getLocalStorage("oauth2.webmail.emailAddress");
-    let storeIDToken = getLocalStorage("oauth2.webmail.idToken");
-    storeIDToken.value = idToken;
+    OAuth2Redirect.storeValue("oauth2.webmail.idToken", idToken);
     let idParams = OpenIDConnect.decodeIDToken(idToken, this.oAuth2);
     console.log("ID Token contents", idParams);
-    storeEMailAddress.value = idParams.emailAddress;
+    OAuth2Redirect.storeValue("oauth2.webmail.emailAddress", idParams.emailAddress);
     this.oAuth2.account.username = idParams.emailAddress; // Required by `OAuth2.storeRefreshToken()`
   }
+  // <copied from="../../../frontend/Util/LocalStorage.ts">
+  /** HACK: Writes directly to `localStorage`, in the format of `getLocalStorage()` in the frontend,
+   * which `getUserPreference()` reads. */
+  protected static storeValue(key: string, value: any) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+  // </copied>
   protected static removeURLSearchParams() {
     const url = new URL(window.location.href);
     url.search = '';

@@ -23,7 +23,7 @@
   import Clickable from "../../Shared/Clickable.svelte";
   import TodayIcon from "lucide-svelte/icons/home";
   import { getDateTimeLocale } from "../../../l10n/l10n";
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
 
   export let day: Date
   export let column: number;

@@ -42,7 +42,7 @@
   import TitleBarRight from "./TitleBarRight.svelte";
   import ShowEvent from "./DisplayEvent/ShowEvent.svelte";
   import Splitter from "../Shared/Splitter.svelte";
-  import { getLocalStorage } from "../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../Util/LocalStorage";
 
   $: if (!$selectedCalendar) { $selectedCalendar = appGlobal.calendars.first; }
 

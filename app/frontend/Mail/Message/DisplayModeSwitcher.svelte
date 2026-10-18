@@ -44,7 +44,7 @@
 </IslandSwitcher>
 
 <script lang="ts">
-  import { getLocalStorage } from "../../../logic/util/LocalStorage";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import { selectedMessage } from "../Selected";
   import { DisplayMode } from "./MessageBody.svelte";
   import IslandSwitcher from "../../Shared/IslandSwitcher.svelte";
