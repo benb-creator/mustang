@@ -1,6 +1,6 @@
 import { SearchNotes } from "../SearchNotes";
 import { getDatabase } from "./SQLDatabase";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";
 import { Topic } from "../Topic";

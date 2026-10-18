@@ -3,7 +3,7 @@ import { AccountType, SQLAccount, type AccountDBRow } from "../../Mail/SQL/Accou
 import { getDatabase } from "./SQLDatabase";
 import { SQLMeetStorage } from "./SQLMeetStorage";
 import { newMeetAccountForProtocol } from "../AccountsList/MeetAccounts";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";
 

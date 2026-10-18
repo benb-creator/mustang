@@ -21,7 +21,7 @@ import { OAuth2 } from "../../Auth/OAuth2";
 import { getOAuth2BuiltIn } from "../../Auth/OAuth2Util";
 import JXON from "../../../../lib/util/JXON";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
-import { logError } from "../../../frontend/Util/error";
+import { logError } from "../../util/error";
 import { ensureArray, assert } from "../../util/util";
 import { ArrayColl } from "svelte-collections";
 

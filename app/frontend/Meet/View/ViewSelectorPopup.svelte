@@ -94,7 +94,7 @@
 </vbox>
 
 <script lang="ts">
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
   import Button from "../../Shared/Button.svelte";
   import ViewGallery2VerticalIcon from "lucide-svelte/icons/rows-2";
   import ViewGallery2HorizontalIcon from "lucide-svelte/icons/columns-2";

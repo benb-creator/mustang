@@ -2,7 +2,7 @@ import { SearchChat } from "../SearchChat";
 import { ChatMessage } from "../ChatMessage";
 import { SQLChatMessage } from "./SQLChatMessage";
 import { getDatabase } from "./SQLDatabase";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";
 

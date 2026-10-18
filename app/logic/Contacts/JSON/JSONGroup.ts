@@ -1,7 +1,7 @@
 import { Group } from "../../Abstract/Group";
 import { Person } from "../../Abstract/Person";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { assert } from "../../util/util";
 import { appGlobal } from "../../app";
 

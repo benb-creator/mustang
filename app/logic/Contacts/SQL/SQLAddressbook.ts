@@ -3,7 +3,7 @@ import { AccountType, SQLAccount, type AccountDBRow } from "../../Mail/SQL/Accou
 import { getDatabase } from "./SQLDatabase";
 import { newAddressbookForProtocol } from "../AccountsList/Addressbooks";
 import { SQLAddressbookStorage } from "./SQLAddressbookStorage";
-import { logError } from "../../../frontend/Util/error";
+import { logError } from "../../util/error";
 import { exMessage } from "../../util/util";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";

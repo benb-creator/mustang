@@ -3,7 +3,7 @@ import type { PersonUID } from "../../Abstract/PersonUID";
 import { Attachment , ContentDisposition } from "../../Abstract/Attachment";
 import { getICal } from "../../Calendar/ICal/ICalGenerator";
 import { appGlobal } from "../../app";
-import { getLocalStorage } from "../../../frontend/Util/LocalStorage";
+import { getLocalStorage } from "../../util/LocalStorage";
 import { fixNewlines } from "../../util/convertHTML";
 import type { ArrayColl } from "svelte-collections";
 import type { default as Mail, Attachment as NMAttachment, Address as NMAddress } from "nodemailer/lib/mailer";

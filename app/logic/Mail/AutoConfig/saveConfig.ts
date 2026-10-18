@@ -9,7 +9,7 @@ import { FileSharingAccount } from "../../Files/FileSharingAccount";
 import { ChatAccount } from "../../Chat/ChatAccount";
 import { MeetAccount } from "../../Meet/MeetAccount";
 import { appGlobal } from "../../app";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { NotReached, UserError, assert } from "../../util/util";
 import { gt } from "../../../l10n/l10n";

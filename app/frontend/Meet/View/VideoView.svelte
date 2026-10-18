@@ -18,7 +18,7 @@
   import Thumbnails from "./Thumbnails.svelte";
   import SpeakerOnly from "./SpeakerOnly.svelte";
   import Phone from "./Phone/Phone.svelte";
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
   import { Collection } from "svelte-collections";
 
   export let videos: Collection<VideoStream>;

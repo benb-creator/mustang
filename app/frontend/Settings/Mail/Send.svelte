@@ -111,7 +111,7 @@
 
 <script lang="ts">
   import HeaderGroupBox from "../../Shared/HeaderGroupBox.svelte";
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
   import { t } from "../../../l10n/l10n";
   import Paper from "../../Shared/Paper.svelte";
 

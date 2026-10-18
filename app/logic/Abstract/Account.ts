@@ -4,7 +4,7 @@ import { appGlobal } from "../app";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
 import { Observable, notifyChangedProperty } from "../util/Observable";
 import { RunOnce } from "../util/flow/RunOnce";
-import { logError } from "../../frontend/Util/error";
+import { logError } from "../util/error";
 import { SpecificError, assert } from "../util/util";
 import { ArrayColl, Collection } from "svelte-collections";
 

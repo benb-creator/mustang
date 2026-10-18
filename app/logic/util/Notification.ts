@@ -1,5 +1,5 @@
-import { Observable, notifyChangedProperty } from "../../logic/util/Observable";
-import { logError } from "../Util/error";
+import { Observable, notifyChangedProperty } from "./Observable";
+import { logError } from "./error";
 import { ArrayColl } from "svelte-collections";
 
 export class Notification extends Observable {

@@ -3,7 +3,7 @@ import type { EWSAccount } from "../../Mail/EWS/EWSAccount";
 import { MAPIAddressBookEntryID, MAPIEntryID, MAPIStoreEntryID } from "../../Mail/EWS/MAPIEntryID";
 import { PersonUID } from "../../Abstract/PersonUID";
 import { ensureArray } from "../../util/util";
-import { logError } from "../../../frontend/Util/error";
+import { logError } from "../../util/error";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 
 export class EWSCalendarShortcut {

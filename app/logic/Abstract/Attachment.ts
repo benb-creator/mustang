@@ -3,11 +3,10 @@ import { checkExecutableFile, executableMessage, ExecutableKind } from "../Files
 import { EMail } from "../Mail/EMail";
 import { appGlobal } from "../app";
 import { Observable, notifyChangedProperty } from "../util/Observable";
-import { saveBlobAsFile } from "../../frontend/Util/util";
 import { openOSAppForFile } from "../util/os-integration";
 import { RunOnce } from "../util/flow/RunOnce";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
-import { blobToBase64, UserError, type URLString, fileExtensionForMIMEType, assert } from "../util/util";
+import { blobToBase64, UserError, type URLString, fileExtensionForMIMEType, assert, saveBlobAsFile } from "../util/util";
 import { gt } from "../../l10n/l10n";
 import type { ArrayColl, Collection } from "svelte-collections";
 

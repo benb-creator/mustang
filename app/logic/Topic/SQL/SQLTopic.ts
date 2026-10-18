@@ -3,7 +3,7 @@ import { setRootTopic } from "../TopicAccounts";
 import { Topic, type ValueProperty } from "../Topic";
 import { Paragraph } from "../PageContent";
 import { getDatabase } from "./SQLDatabase";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { assert } from "../../util/util";
 import { ArrayColl } from "svelte-collections";

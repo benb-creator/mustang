@@ -4,7 +4,7 @@ import { newFileSharingAccountForProtocol } from "../AccountsList/FileSharingAcc
 import { getDatabase } from "./SQLDatabase";
 import { SQLDirectory } from "./SQLDirectory";
 import { SQLFileStorage } from "./SQLFileStorage";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { assert } from "../../util/util";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";

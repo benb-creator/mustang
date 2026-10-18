@@ -5,7 +5,7 @@ import { ChatPersonUID } from "../Chat/ChatPersonUID";
 import type { Attachment } from "./Attachment";
 import { convertHTMLToText, convertTextToHTML, sanitizeHTML, sanitizeHTMLExternal } from "../util/convertHTML";
 import { Observable, notifyChangedProperty } from "../util/Observable";
-import { backgroundError } from "../../frontend/Util/error";
+import { backgroundError } from "../util/error";
 import { AbstractFunction } from "../util/util";
 import { ArrayColl, MapColl } from "svelte-collections";
 

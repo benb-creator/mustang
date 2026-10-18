@@ -4,7 +4,7 @@ import { bringAppToFront } from "../AppsBar/selectedApp";
 import { appGlobal } from "../../logic/app";
 import { SystemNotification, NotificationKinds } from "../Shared/SystemNotification";
 import { getComputerOn } from "../../logic/util/backend-wrapper";
-import { getLocalStorage } from "../Util/LocalStorage";
+import { getLocalStorage } from "../../logic/util/LocalStorage";
 import { catchErrors, backgroundError } from "../Util/error";
 import { k1HourMS } from "../Util/date";
 import CalendarIcon from '../asset/icon/appBar/calendar.svg?raw';

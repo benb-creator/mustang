@@ -1,5 +1,5 @@
 import type { Calendar } from "../../logic/Calendar/Calendar";
-import { getLocalStorage } from "../Util/LocalStorage";
+import { getLocalStorage } from "../../logic/util/LocalStorage";
 import { ArrayColl, type Collection } from "svelte-collections";
 import type { Writable } from "svelte/store";
 

@@ -6,7 +6,7 @@ import { SQLSearchEMail } from "../SQL/SQLSearchEMail";
 import type { EMail } from "../EMail";
 import type { MailAccount } from "../MailAccount";
 import { appGlobal } from "../../app";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { ArrayColl, Collection, SetColl } from "svelte-collections";
 
 /** Runs the local database search and the server-side search of each account in

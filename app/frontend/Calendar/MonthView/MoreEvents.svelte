@@ -10,7 +10,7 @@
   import type { Event } from "../../../logic/Calendar/Event";
   import { selectedDate } from "../selected";
   import Clickable from "../../Shared/Clickable.svelte";
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
 
   export let day: Date;
   export let events: Event[];

@@ -32,9 +32,9 @@
 
 import { gLicense } from "./License";
 import { siteRoot } from "../build";
-import { k1MinuteMS, k1DayMS, k1WeekMS, k1MonthMS } from "../../frontend/Util/date";
+import { k1MinuteMS, k1DayMS, k1WeekMS, k1MonthMS } from "./date";
 import { appGlobal } from "../app";
-import { catchErrors, logError } from "../../frontend/Util/error";
+import { catchErrors, logError } from "./error";
 import { getUILocale, gt } from "../../l10n/l10n";
 import { SetColl } from "svelte-collections";
 import { openExternalURL } from "./os-integration";

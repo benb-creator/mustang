@@ -6,7 +6,7 @@ import { mailMustangApp } from "./MailMustangApp";
 import { openApp, bringAppToFront } from "../AppsBar/selectedApp";
 import { appGlobal } from "../../logic/app";
 import { SystemNotification, NotificationKinds } from "../Shared/SystemNotification";
-import { getLocalStorage } from "../Util/LocalStorage";
+import { getLocalStorage } from "../../logic/util/LocalStorage";
 import MailIcon from '../asset/icon/appBar/mail.svg?raw';
 import { logError, showError } from "../Util/error";
 import { CollectionObserver, type ArrayColl } from "svelte-collections";

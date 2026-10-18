@@ -1,7 +1,8 @@
-import { notifications, Notification, NotificationSeverity } from "../MainWindow/Notification";
+import { notifications, Notification, NotificationSeverity } from "../../logic/util/Notification";
 import { production } from "../../logic/build";
 import * as Sentry from "@sentry/svelte";
 
+// <copied to="../../logic/util/error.ts">
 export function showError(ex: Error) {
   console.error(errorMessage(ex), ex);
   if (shouldShow(ex)) {
@@ -85,3 +86,4 @@ export function catchFallback<T>(func: () => T, fallbackResult: T): T {
     return fallbackResult;
   }
 }
+// </copied>

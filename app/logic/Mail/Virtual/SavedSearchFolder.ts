@@ -4,7 +4,7 @@ import { newSearchEMail } from "../Store/setStorage";
 import type { AllAccounts } from "./AllAccounts";
 import type { EMail } from "../EMail";
 import { allAccountsAccount } from "../AccountsList/ShowAccounts";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { assert, NotReached } from "../../util/util";
 import { Collection, ArrayColl } from "svelte-collections";

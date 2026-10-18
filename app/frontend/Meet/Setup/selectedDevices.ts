@@ -1,4 +1,4 @@
-import { getLocalStorage } from "../../Util/LocalStorage";
+import { getLocalStorage } from "../../../logic/util/LocalStorage";
 
 export const cameraOnSetting = getLocalStorage("meet.device.cameraOn", false);
 export const micOnSetting = getLocalStorage("meet.device.micOn", false);

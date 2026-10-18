@@ -1,4 +1,4 @@
-import { Observable } from "../../logic/util/Observable";
+import { Observable } from "./Observable";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
 
 class ObservableLocalStorageSetting<T> extends Observable {

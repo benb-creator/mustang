@@ -9,7 +9,7 @@ import { createPersonalCalendar } from '../Calendar/AccountsList/Calendars';
 import { readSavedSearches } from '../Mail/Virtual/SavedSearchFolder';
 import { loadTagsList } from '../Abstract/Tag';
 import { getComputerOn } from '../util/backend-wrapper';
-import { logError } from '../../frontend/Util/error';
+import { logError } from '../util/error';
 
 // Before anything reads it, @see `startup.ts`
 appGlobal.me = new Person();

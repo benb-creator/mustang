@@ -54,12 +54,12 @@ const tabsObserver = {
   added(tabs: OAuth2Tab[]) {
     for (let tab of tabs) {
       // TODO simplify, using URLs? But remove correctly.
-      tab.mustangApp = mailMustangApp.login(tab);
+      mailMustangApp.login(tab);
     }
   },
   removed(tabs: OAuth2Tab[]) {
     for (let tab of tabs) {
-      mailMustangApp.subApps.remove(tab.mustangApp);
+      mailMustangApp.subApps.remove(mailMustangApp.subApps.find(app => app.windowParams.dialog == tab));
     }
     openApp(mailMustangApp, {});
   },

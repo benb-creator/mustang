@@ -7,7 +7,7 @@ import { getDatabase } from "./SQLDatabase";
 import { appGlobal } from "../../app";
 import { getFilesDir } from "../../util/backend-wrapper";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
-import { backgroundError } from "../../../frontend/Util/error";
+import { backgroundError } from "../../util/error";
 import { assert, fileExtensionForMIMEType } from "../../util/util";
 import { ArrayColl, Collection } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";

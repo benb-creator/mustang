@@ -2,7 +2,7 @@ import type { Event } from "../../logic/Calendar/Event";
 import type { Calendar } from "../../logic/Calendar/Calendar";
 import { selectedCalendar } from "./selected";
 import { openEvent } from "./open";
-import { getLocalStorage } from "../Util/LocalStorage";
+import { getLocalStorage } from "../../logic/util/LocalStorage";
 import { appGlobal } from "../../logic/app";
 import { gt } from "../../l10n/l10n";
 import { assert } from "../../logic/util/util";

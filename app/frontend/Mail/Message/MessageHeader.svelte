@@ -106,7 +106,7 @@
   import ErrorMessageInline from "../../Shared/ErrorMessageInline.svelte";
   import RoundButton from "../../Shared/RoundButton.svelte";
   import RemoveIcon from "lucide-svelte/icons/x";
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
   import { catchErrors, backgroundError } from "../../Util/error";
   import { getDateTimeString } from "../../Util/date";
   import { getDateTimeLocale, t } from "../../../l10n/l10n";

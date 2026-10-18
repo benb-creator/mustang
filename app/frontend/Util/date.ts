@@ -79,6 +79,7 @@ export function getTimeString(date: Date): string {
   return date.toLocaleString(getDateTimeLocale(), { hour: "numeric", minute: "numeric" });
 }
 
+// <copied to="../../logic/util/date.ts">
 /**
  * @param weekday day of the week
  * @param form How long the name should be
@@ -96,6 +97,7 @@ export function weekdayLabel(weekday: number, form: "long" | "short" | "narrow")
  * If we ever want to support Sunday being the first day of the week,
  * simply change this to `[0, 1, 2, 3, 4, 5, 6]` at runtime. */
 export const kAllWeekdays = [1, 2, 3, 4, 5, 6, 0];
+// </copied>
 
 /**
  * @param ianaTimezone IANA timezone, e.g. "Europe/Berlin"
@@ -103,9 +105,11 @@ export const kAllWeekdays = [1, 2, 3, 4, 5, 6, 0];
 export function getTimezoneDisplay(ianaTimezone: string): string {
   return ianaTimezone.split("/").pop();
 }
+// <copied to="../../logic/util/date.ts">
 export function myTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
+// </copied>
 export function isSameTimezone(ianaTimezone: string, time: Date) {
   if (!ianaTimezone) {
     return true;
@@ -164,6 +168,7 @@ export function getDurationString(durationInMS: number): string {
   }
 }
 
+// <copied to="../../logic/util/date.ts">
 /** 1 day, in seconds */
 export const k1MinuteS = 60;
 export const k1HourS = 3600;
@@ -176,3 +181,4 @@ export const k1HourMS = k1HourS * 1000;
 export const k1DayMS = k1DayS * 1000;
 export const k1WeekMS = k1WeekS * 1000;
 export const k1MonthMS = k1MonthS * 1000;
+// </copied>

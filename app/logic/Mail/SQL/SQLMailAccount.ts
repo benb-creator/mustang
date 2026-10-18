@@ -4,7 +4,7 @@ import { AccountType, SQLAccount, type AccountDBRow } from "./Account/SQLAccount
 import { newAccountForProtocol } from "../AccountsList/MailAccounts";
 import { SQLMailStorage } from "./SQLMailStorage";
 import type { SMTPAccount } from "../SMTP/SMTPAccount";
-import { backgroundError, logError } from "../../../frontend/Util/error";
+import { backgroundError, logError } from "../../util/error";
 import { exMessage } from "../../util/util";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";

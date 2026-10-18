@@ -5,7 +5,7 @@ import { OWAGetFolderRequest } from "../../Mail/OWA/Request/OWAGetFolderRequest"
 import { owaResolveNamesRequest } from "../../Contacts/OWA/Request/OWAPersonRequests";
 import { PersonUID } from "../../Abstract/PersonUID";
 import { ensureArray } from "../../util/util";
-import { logError } from "../../../frontend/Util/error";
+import { logError } from "../../util/error";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 
 export class OWACalendarShortcut {

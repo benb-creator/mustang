@@ -12,6 +12,7 @@ export function onKeyEnter(event: KeyboardEvent, onEnter: () => void | Promise<v
   return onEnter();
 }
 
+// <copied to="../../logic/util/util.ts">
 export async function saveBlobAsFile(blob: Blob, filename?: string) {
   const showSaveFilePicker = (window as any).showSaveFilePicker;
   if (typeof(showSaveFilePicker) != "function") { // Fallback
@@ -69,6 +70,7 @@ export function saveURLAsFile(url: URLString, filename: string) {
   a.click();
   a.href = '';
 }
+// </copied>
 
 /** Attention: You must call `URL.revokeObjectURL(), or we'll leak the entire blob. */
 export function stringToBlobURL(mimetype: string, content: string): URLString {
@@ -88,6 +90,7 @@ export async function stringToDataURL(mimetype: string, content: string): Promis
   });
 }
 
+// <copied to="../../logic/util/util.ts">
 export function stringFromDataURL(dataURL: URLString, mimetype: string): string | null {
   if (!dataURL || typeof (dataURL) != "string" ||
       dataURL.substring(0, "data:".length + mimetype.length).toLowerCase() != "data:text/html") {
@@ -123,6 +126,7 @@ export function URLPart(literals: TemplateStringsArray, ...values: any[]) {
     return literal + value;
   }).join("");
 }
+// </copied>
 
 /**
  * Gets the OS using the userAgent string.

@@ -6,7 +6,7 @@ import { getFilesDir } from "../../util/backend-wrapper";
 import { appGlobal } from "../../app";
 import { Lock, type Locked } from "../../util/flow/Lock";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
-import { logError } from "../../../frontend/Util/error";
+import { logError } from "../../util/error";
 import { assert } from "../../util/util";
 import { ArrayColl, MapColl, SetColl } from "svelte-collections";
 import { Buffer } from "buffer";

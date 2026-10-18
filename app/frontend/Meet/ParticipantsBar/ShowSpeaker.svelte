@@ -14,7 +14,7 @@
   import { MeetVideoView } from "../View/ViewSelectorPopup.svelte";
   import RoundButton from "../../Shared/RoundButton.svelte";
   import SpeakerIcon from "lucide-svelte/icons/user-search";
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
   import { t } from "../../../l10n/l10n";
 
   export let selected: MeetingParticipant;

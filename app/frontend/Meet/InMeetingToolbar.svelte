@@ -155,7 +155,7 @@
   import AddIcon from "lucide-svelte/icons/plus";
   import RemoveIcon from "lucide-svelte/icons/minus";
   import DialPadIcon from "lucide-svelte/icons/grip";
-  import { getLocalStorage } from "../Util/LocalStorage";
+  import { getLocalStorage } from "../../logic/util/LocalStorage";
   import { catchErrors, showError } from "../Util/error";
   import { t } from "../../l10n/l10n";
   import { onDestroy, tick } from "svelte";

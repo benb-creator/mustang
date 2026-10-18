@@ -27,7 +27,7 @@
 </hbox>
 
 <script lang="ts">
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
   import Button from "../../Shared/Button.svelte";
   import DarkIcon from "lucide-svelte/icons/moon";
   import LightIcon from "lucide-svelte/icons/sun";

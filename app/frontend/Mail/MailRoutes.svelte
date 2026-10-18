@@ -38,7 +38,7 @@
   import type { EMail } from "../../logic/Mail/EMail";
   import { selectedAccount, selectedFolder, selectedMessage, selectedMessages } from "./Selected";
   import { selectedWorkspace } from "../MainWindow/Selected";
-  import { getLocalStorage } from "../Util/LocalStorage";
+  import { getLocalStorage } from "../../logic/util/LocalStorage";
   import { appGlobal } from "../../logic/app";
   import MailApp from "./MailApp.svelte";
   import MailComposer from "./Composer/MailComposer.svelte";

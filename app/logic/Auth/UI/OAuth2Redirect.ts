@@ -1,6 +1,6 @@
 import { OAuth2UI } from "./OAuth2UI";
 import { OpenIDConnect } from "../OpenIDConnect";
-import { getLocalStorage } from "../../../frontend/Util/LocalStorage";
+import { getLocalStorage } from "../../util/LocalStorage";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { assert } from "../../util/util";
 import type { OAuth2 } from "../OAuth2";

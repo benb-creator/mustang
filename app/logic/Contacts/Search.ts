@@ -2,7 +2,7 @@ import type { Person } from "../Abstract/Person";
 import { PersonUID } from "../Abstract/PersonUID";
 import { appGlobal } from "../app";
 import { promiseErrors } from "../util/flow/promiseUtil";
-import { logError } from "../../frontend/Util/error";
+import { logError } from "../util/error";
 import { ArrayColl } from "svelte-collections";
 
 /** Search all address books and server-based query-only address books for

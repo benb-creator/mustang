@@ -41,7 +41,7 @@
 <script lang="ts">
   import { File } from "../../logic/Files/File";
   import { Directory } from "../../logic/Files/Directory";
-  import { getLocalStorage } from "../Util/LocalStorage";
+  import { getLocalStorage } from "../../logic/util/LocalStorage";
   import { selectedFile, selectedFolder, selectedLeftTab, viewFile, fileViewer, isRightSidebarExpanded } from "./selected";
   import LeftPane from "./LeftPane/LeftPane.svelte";
   import FilesList from "./FilesList/FilesList.svelte";

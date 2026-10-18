@@ -20,7 +20,7 @@
 </vbox>
 
 <script lang="ts">
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
   import Button from "../../Shared/Button.svelte";
   import XIcon from "lucide-svelte/icons/x";
   import { t } from "../../../l10n/l10n";

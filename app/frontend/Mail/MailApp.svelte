@@ -28,7 +28,7 @@
   import type { EMail } from "../../logic/Mail/EMail";
   import { selectedAccount, selectedFolder, selectedMessage, selectedMessages } from "./Selected";
   import { selectedWorkspace } from "../MainWindow/Selected";
-  import { getLocalStorage } from "../Util/LocalStorage";
+  import { getLocalStorage } from "../../logic/util/LocalStorage";
   import ThreePane from "./3pane/3Pane.svelte";
   import VerticalLayout from "./Vertical/VerticalLayout.svelte";
   import MailChat from "./MailChat/MailChat.svelte";

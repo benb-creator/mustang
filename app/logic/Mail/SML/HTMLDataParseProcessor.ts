@@ -2,7 +2,7 @@ import { EMailProcessor, EMailProcessorList, ProcessingStartOn } from "../EMailP
 import { HTMLDataProcessor } from "./HTMLDataProcessor";
 import type { EMail } from "../EMail";
 import { getDomainForEmailAddress } from "../../util/netUtil";
-import { logError } from "../../../frontend/Util/error";
+import { logError } from "../../util/error";
 import { assert } from "../../util/util";
 import type { Collection } from "svelte-collections";
 

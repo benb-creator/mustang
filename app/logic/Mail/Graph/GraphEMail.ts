@@ -7,7 +7,7 @@ import { EMailFlag, EMailFlagPidTag, EMailFlagTimePidTag, IconIndex, IconIndexPi
 import { getTagByName, type Tag } from "../../Abstract/Tag";
 import { PersonUID, findOrCreatePersonUID } from "../../Abstract/PersonUID";
 import type { TGraphEMail, TGraphPersonUID, TGraphEMailHeader, TGraphMailAttachment } from "./TGraphMail";
-import { getLocalStorage } from "../../../frontend/Util/LocalStorage";
+import { getLocalStorage } from "../../util/LocalStorage";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { arrayRemove, assert, NotReached } from "../../util/util";
 import { gt } from "../../../l10n/l10n";

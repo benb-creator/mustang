@@ -74,7 +74,7 @@
 <script lang="ts">
   import type { EMail } from "../../../logic/Mail/EMail";
   import { mailMustangApp } from "../MailMustangApp";
-  import { getLocalStorage } from "../../Util/LocalStorage";
+  import { getLocalStorage } from "../../../logic/util/LocalStorage";
   import type Print from "./MessagePrint.svelte";
   import MenuItem from "../../Shared/Menu/MenuItem.svelte";
   import ReplyIcon from "lucide-svelte/icons/reply";
