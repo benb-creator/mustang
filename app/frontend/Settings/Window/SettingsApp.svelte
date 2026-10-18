@@ -58,10 +58,11 @@
 
 <style>
   .right-page {
-    margin: 0px 32px 32px 32px;
+    margin: 0px 40px 40px 40px;
+    max-width: 960px;
   }
   .settings-title-bar {
-    margin: 16px 16px 0px 16px;
+    margin: 8px 8px 0px 16px;
   }
   .right-page :global(input) {
     font-size: 16px;

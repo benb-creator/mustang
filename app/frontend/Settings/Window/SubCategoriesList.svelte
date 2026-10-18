@@ -19,7 +19,9 @@
   .sub-categories {
     justify-content: start;
     flex-wrap: wrap;
-    padding-inline-start: 12px;
+  }
+  .sub-categories :global(.settings-category) {
+    padding-inline-start: 30px;
   }
   .sub-categories[app="webapps"] {
     margin-block-start: 128px;

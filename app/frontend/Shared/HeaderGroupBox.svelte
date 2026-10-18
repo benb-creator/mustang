@@ -18,15 +18,16 @@
 <style>
   .group {
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--popup-radius);
     margin-block-start: 24px;
+    overflow: hidden;
   }
   .header {
-    background-color: var(--headerbar-bg);
-    color: var(--headerbar-fg);
+    background-color: var(--leftbar-bg);
+    color: var(--leftbar-fg);
     border-bottom: 1px solid var(--border);
-    padding: 12px 20px;
-    font-weight: 500;
+    padding: 10px 20px;
+    font-weight: 600;
     align-items: center;
   }
   .content {

@@ -1,6 +1,6 @@
 {#if $accounts.hasItems || category.newAccountURL}
   <vbox class="accounts" app={category.id}>
-    <hbox class="header font-smallest">
+    <hbox class="header section-label">
       {$t`Accounts`}
       <hbox flex />
       {#if category.newAccountURL}
@@ -53,15 +53,21 @@
   .accounts {
     justify-content: start;
     flex-wrap: wrap;
-    margin: 0px 0px 0px 12px;
+  }
+  .accounts :global(.account) {
+    padding-inline-start: 30px;
+  }
+  .accounts :global(.sub-categories .settings-category) {
+    padding-inline-start: 42px;
   }
   .accounts[app="webapps"] {
     margin-block-start: 128px;
   }
   .header {
     align-items: center;
-    color: darkgray;
-    margin-inline-start: 22px;
+    min-height: 28px;
+    margin-block-start: 4px;
+    margin-inline-start: 34px;
     margin-inline-end: 12px;
   }
   .header :global(button) {

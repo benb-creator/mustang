@@ -41,22 +41,34 @@
 
 <style>
   .account {
+    position: relative;
     align-items: start;
-    padding: 0px 0px 2px 18px;
+    justify-content: center;
+    min-height: 32px;
+    box-sizing: border-box;
+    padding-inline-start: 18px;
   }
   .account:hover {
     background-color: var(--hover-bg);
     color: var(--hover-fg);
   }
   .selected {
-    background-color: var(--selected-bg);
-    color:  var(--selected-fg);
+    background-color: var(--nav-selected-bg);
+    color: var(--nav-selected-fg);
+  }
+  .selected::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0px;
+    top: 5px;
+    bottom: 5px;
+    width: 3px;
+    border-radius: 2px;
+    background-color: var(--accent);
   }
   .label {
-    color: var(--fg);
     white-space: nowrap;
     overflow: hidden;
-    margin-block-start: 4px;
     margin-inline-start: 4px;
     margin-inline-end: 4px;
   }
