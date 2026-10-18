@@ -16,55 +16,74 @@
 }
 
 :root {
-  --bg: white; /* #242424, rgba(255, 255, 255, 0.87) */
-  --fg: #160C27; /* #142862, #213547 */
+  --bg: white;
+  --fg: #160C27;
+  --fg-muted: #5C6070;
+  --fg-faint: #8A8E99;
   --inverted-bg: #160C27;
-  --inverted-fg: white; /* #142862, #213547 */
-  --selected-bg: #20AE9E; /* or #27C1AA */
-  --selected-fg: white;
+  --inverted-fg: white;
+  --accent: #0F8578;
+  --accent-hover: #0B6F64;
+  --accent-fg: white;
+  --accent-text: #0B7468;
+  --selected-bg: var(--accent);
+  --selected-fg: var(--accent-fg);
   --icon-primary: #27C1AA;
-  --hover-bg: #A9DAD4;
-  --hover-fg: #160C27;
-  --selected-hover-bg: #1C998B;
-  --selected-hover-fg: white;
+  --hover-bg: #EBEDF0;
+  --hover-fg: var(--fg);
+  /** Hover on a button within a hovered entry */
+  --hover-strong-bg: #DCDFE4;
+  --selected-hover-bg: var(--accent-hover);
+  --selected-hover-fg: var(--accent-fg);
+  /** Selected entry in a navigation list (accounts, folders, categories) */
+  --nav-selected-bg: #DFE2E7;
+  --nav-selected-fg: var(--fg);
   --main-bg: var(--bg);
   --main-fg: var(--fg);
   /** Encryption, Island Selected faint */
-  --offset-bg: #E6F2F1;
-  --offset-fg: #160C27;
-  --leftbar-bg: #F9F9FD; /* #F9F9FD, #F9F9F9, #716E7D */
-  --leftbar-fg: #160C27;
-  --headerbar-bg: #EEEEEE;
-  --headerbar-fg: #160C27;
+  --offset-bg: #EEF0F3;
+  --offset-fg: var(--fg);
+  --leftbar-bg: #F4F5F7;
+  --leftbar-fg: var(--fg);
+  --headerbar-bg: #EEF0F3;
+  --headerbar-fg: var(--fg);
   --windowheader-bg: #160C27;
   --windowheader-fg: white;
-  /* #142862, #213547 */
-  --appbar-bg: #494558;
+  --appbar-bg: #160C27;
   --appbar-fg: white;
-  --border: #E1E2E5; /* #3A3A3B */
-  --outstanding-bg: #888888;
+  --appbar-muted-fg: #B9B4C6;
+  --border: #E3E5E9;
+  --border-strong: #CDD1D8;
+  --outstanding-bg: #5C6070;
   --outstanding-fg: white;
   --input-bg: field;
   --input-fg: fieldtext;
-  --input-line: #DFDFDF;
-  --input-placeholder: #707070;
-  --input-focus: #20AE9E;
-  --link-fg: #747bff;
-  --link-hover-fg: #535bf2;
-  --button-bg: #F9F9FD;
-  --button-fg: black;
-  --button-border: #B2ADB8;
-  --button-secondary-line: #A1E4DA;
+  --input-line: #CDD1D8;
+  --input-placeholder: #7A7E89;
+  --input-focus: var(--accent);
+  --link-fg: #0B63CE;
+  --link-hover-fg: #084EA3;
+  --danger-fg: #C42B1C;
+  --star-color: #E8A200;
+  --unread-color: var(--accent);
+  --button-bg: white;
+  --button-fg: var(--fg);
+  --button-border: #CDD1D8;
+  --button-secondary-line: var(--accent);
+  --popup-bg: white;
+  --popup-shadow: 0px 8px 24px rgba(22, 12, 39, 14%), 0px 1px 3px rgba(22, 12, 39, 10%);
   --shadow-color: 22, 12, 39; /* #160C27 */
-  --border-radius: 5px;
-  --chat-bubble-incoming-bg: #fdfefe;
+  --border-radius: 4px;
+  --popup-radius: 6px;
+  --pane-header-height: 48px;
+  --chat-bubble-incoming-bg: white;
   --chat-bubble-incoming-fg: inherit;
-  --chat-bubble-outgoing-bg: #CDECE1;
+  --chat-bubble-outgoing-bg: #E4ECEA;
   --chat-bubble-outgoing-fg: inherit;
   /** Mail thread graph: Lines to msgs that were read, and to unread msgs */
-  --thread-line: #A8D5CD;
-  --thread-unread: #19916F;
-  --thread-node-bg: #E8E8F0;
+  --thread-line: #A9AEB8;
+  --thread-unread: var(--accent);
+  --thread-node-bg: #E6E8EC;
 
   color: var(--fg);
   background-color: var(--bg);
@@ -72,50 +91,60 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #141416;
-    --fg: #C1C1C2;
-    --inverted-bg: #C1C1C2;
-    --inverted-fg: #141416;
-    --selected-bg: #1F897E;
-    --selected-fg: white;
-    --hover-bg: #1E6A63;
-    --hover-fg: #C1C1C2;
-    --selected-hover-bg: #1C998B;
-    --selected-hover-fg: white;
-    --main-bg: #1B1B1B;
+    --bg: #1C1D21;
+    --fg: #E3E4E8;
+    --fg-muted: #A0A3AD;
+    --fg-faint: #757984;
+    --inverted-bg: #E3E4E8;
+    --inverted-fg: #1C1D21;
+    --accent: #137A6F;
+    --accent-hover: #189082;
+    --accent-fg: white;
+    --accent-text: #3CC4B3;
+    --hover-bg: #2A2C31;
+    --hover-fg: var(--fg);
+    --hover-strong-bg: #363940;
+    --nav-selected-bg: #32353B;
+    --nav-selected-fg: white;
+    --main-bg: var(--bg);
     --main-fg: var(--fg);
-    --offset-bg: #22312F;
-    --offset-fg: #C1C1C2;
-    --leftbar-bg: #1E1E1E;
-    --leftbar-fg: #C1C1C2;
-    --windowheader-bg: #202022;
-    --windowheader-fg: #C1C1C2;
-    --headerbar-bg: #202022;
-    --headerbar-fg: #C1C1C2;
-    --appbar-bg: #242626;
-    --appbar-fg: #FAFAFA;
-    --border: #333335;
-    --outstanding-bg: #666666;
-    --outstanding-fg: #C1C1C2;
+    --offset-bg: #26282D;
+    --offset-fg: var(--fg);
+    --leftbar-bg: #17181B;
+    --leftbar-fg: var(--fg);
+    --windowheader-bg: #0F1012;
+    --windowheader-fg: #E3E4E8;
+    --headerbar-bg: #26282D;
+    --headerbar-fg: var(--fg);
+    --appbar-bg: #0F1012;
+    --appbar-fg: #E3E4E8;
+    --appbar-muted-fg: #8E919B;
+    --border: #2C2E33;
+    --border-strong: #3E4148;
+    --outstanding-bg: #4A4D55;
+    --outstanding-fg: #E3E4E8;
     --input-bg: transparent;
     --input-fg: fieldtext;
-    --input-line: #3A3A3B;
-    --input-placeholder: #909090; /* or #AAAAAA */
-    --input-focus: #20AE9E;
-    --link-fg: #646cff;
-    --link-hover-fg: #535bf2;
-    --button-bg: transparent;
-    --button-fg: #CDCDCD;
-    --button-border: #CDCDCD;
-    --button-secondary-line: #a1e4da91;
-    --shadow-color: 107, 107, 108; /* #6B6B6C */
-    --chat-bubble-incoming-bg: #1d2628;
-    --chat-bubble-incoming-fg: #CCCCCC;
-    --chat-bubble-outgoing-bg: #1b5954;
-    --chat-bubble-outgoing-fg: #CCCCCC;
-    --thread-line: #3D6A61;
-    --thread-unread: #29B78E;
-    --thread-node-bg: #2C2C2E;
+    --input-line: #3E4148;
+    --input-placeholder: #858994;
+    --link-fg: #6CA6FF;
+    --link-hover-fg: #94BEFF;
+    --danger-fg: #FF6B5E;
+    --star-color: #F2B530;
+    --button-bg: #24262B;
+    --button-fg: var(--fg);
+    --button-border: #3E4148;
+    --button-secondary-line: #2BA897;
+    --popup-bg: #26282D;
+    --popup-shadow: 0px 8px 24px rgba(0, 0, 0, 45%), 0px 0px 0px 1px rgba(255, 255, 255, 6%);
+    --shadow-color: 0, 0, 0;
+    --chat-bubble-incoming-bg: #26282D;
+    --chat-bubble-incoming-fg: inherit;
+    --chat-bubble-outgoing-bg: #1E4A45;
+    --chat-bubble-outgoing-fg: inherit;
+    --thread-line: #4A4D55;
+    --thread-unread: #2BA897;
+    --thread-node-bg: #2C2E33;
 
     color: var(--fg);
     background-color: var(--bg);
@@ -130,23 +159,30 @@ body {
 
 /* <copied from="content-body.css"> */
 ::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+  height: 10px;
+  width: 10px;
 }
 ::-webkit-scrollbar:hover {
   background-color: #00000008;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #828282;
-  border-radius: 3px;
+  background-color: #B4B8C0;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #8A8E99;
 }
 @media (prefers-color-scheme: dark) {
   ::-webkit-scrollbar:hover {
     background-color: #FFFFFF05;
   }
   ::-webkit-scrollbar-thumb {
-    background-color: #5a5959;
-    border-radius: 3px;
+    background-color: #4A4D55;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #6A6E78;
   }
 }
 
@@ -259,6 +295,7 @@ input[type="text"] {
 input:focus {
   outline: none;
   border-bottom: 1px solid var(--input-focus);
+  box-shadow: 0px 1px 0px 0px var(--input-focus);
 }
 input::placeholder {
   color: var(--input-placeholder);
@@ -271,11 +308,7 @@ input[type="color"] {
 }
 input[type="radio"],
 input[type="checkbox"] {
-  accent-color: var(--fg);
-}
-input[type="radio"],
-input[type="checkbox"] {
-  accent-color: var(--fg);
+  accent-color: var(--accent);
 }
 input[type="date"],
 input[type="time"] {
@@ -290,18 +323,19 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 select {
   border: none;
-  background-color: var(--leftbar-bg);
-  color: var(--leftbar-fg);
+  background-color: transparent;
+  color: inherit;
   font-size: 14px;
   border-bottom: 1px solid var(--input-line);
 }
 select:focus {
   outline: none;
   border-bottom: 1px solid var(--input-focus);
+  box-shadow: 0px 1px 0px 0px var(--input-focus);
 }
 select option {
-  background-color: var(--leftbar-bg);
-  color: var(--leftbar-fg);
+  background-color: var(--popup-bg);
+  color: var(--fg);
 }
 select option:hover {
   /* not working, see <https://stackoverflow.com/a/15627759/7154362> */
@@ -353,7 +387,8 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 2px solid var(--selected-bg);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 /* Fastlist */
@@ -370,6 +405,35 @@ a:hover {
 .main-window:not(.mobile) .fast-list .row.selected:hover > * {
   background-color: var(--selected-hover-bg);
   color: var(--selected-hover-fg);
+}
+
+/* Navigation lists, e.g. accounts and folders */
+.nav-list {
+  --selected-bg: var(--nav-selected-bg);
+  --selected-fg: var(--nav-selected-fg);
+  --selected-hover-bg: var(--nav-selected-bg);
+  --selected-hover-fg: var(--nav-selected-fg);
+}
+.nav-list .fast-list .row > :first-child {
+  position: relative;
+}
+.nav-list .fast-list .row.selected > :first-child::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background-color: var(--accent);
+  z-index: 1;
+}
+
+/* Small headline above a group of entries, e.g. "Folders" */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-muted);
 }
 
 /* App background pattern, e.g. Contacts app */

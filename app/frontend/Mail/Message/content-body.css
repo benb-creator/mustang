@@ -33,15 +33,20 @@ body {
 
 /* <copied from="app.css"> */
 ::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+  height: 10px;
+  width: 10px;
 }
 ::-webkit-scrollbar:hover {
   background-color: #00000008;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #828282;
-  border-radius: 3px;
+  background-color: #B4B8C0;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #8A8E99;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -49,7 +54,9 @@ body {
     background-color: #FFFFFF05;
   }
   ::-webkit-scrollbar-thumb {
-    background-color: #5a5959;
-    border-radius: 3px;
+    background-color: #4A4D55;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #6A6E78;
   }
 }
