@@ -68,6 +68,6 @@
     grid-template-rows: subgrid;
     grid-template-columns: minmax(0, 1fr);
     position: relative;
-    border-left: 1px dotted var(--border);
+    border-inline-start: 1px solid var(--border);
   }
 </style>

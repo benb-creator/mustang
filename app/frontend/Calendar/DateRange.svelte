@@ -1,7 +1,7 @@
 <hbox class="date-range-header">
+  <Button classes="previous-button" label={$t`Previous ${dateInterval} days`} icon={ChevronLeftIcon} onClick={pagePrevious} iconSize="18px" plain iconOnly />
+  <Button classes="next-button" label={$t`Next ${dateInterval} days`} icon={ChevronRightIcon} onClick={pageNext} iconSize="18px" plain iconOnly />
   <hbox class="date-range">{@html htmlMonthYear(date, showDays)}</hbox>
-  <Button classes="previous-button" label={$t`Previous ${dateInterval} days`} icon={ChevronLeftIcon} onClick={pagePrevious} iconSize="16px" plain iconOnly />
-  <Button classes="next-button" label={$t`Next ${dateInterval} days`} icon={ChevronRightIcon} onClick={pageNext} iconSize="16px" plain iconOnly />
 </hbox>
 
 <script lang="ts">
@@ -60,13 +60,21 @@
 <style>
   .date-range-header {
     align-items: center;
-    align-self: end;
-    margin-block-end: 4px;
+    min-width: 0;
+  }
+  .date-range-header :global(button) {
+    width: 32px;
+    height: 32px;
   }
   .date-range {
     font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
     margin-inline-start: 8px;
     margin-inline-end: 8px;
-    min-width: 9em;
+  }
+  .date-range :global(.year) {
+    font-weight: 400;
+    color: var(--fg-muted);
   }
 </style>

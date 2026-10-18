@@ -43,33 +43,14 @@
   .day-cell {
     grid-row: 1 / -1;
     position: relative;
-    border-left: 1px dotted var(--border);
-    border-bottom: 1px dotted var(--border);
-  }
-  .day-cell.selected {
-    background-color: #E9F5F4;
-  }
-  .day-cell:hover:not(.selected) {
-    background-color: #F1F9F8;
+    border-inline-start: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
   .day-cell:hover {
-    background-image: linear-gradient(
-      color-mix(in srgb, var(--selected-calendar-color) 10%, transparent),
-      color-mix(in srgb, var(--selected-calendar-color) 10%, transparent));
-    color: white;
+    background-color: var(--leftbar-bg);
   }
-  @media (prefers-color-scheme: dark) {
-    .day-cell.selected {
-      background-color: #193D39;
-    }
-    .day-cell:hover:not(.selected) {
-      background-color: var(--hover-bg);
-      color: var(--hover-fg);
-    }
-    .day-cell.selected:hover {
-      background-color: var(--selected-hover-bg);
-      color: var(--selected-hover-fg);
-    }
+  .day-cell.selected {
+    background-color: var(--offset-bg);
   }
   .current-time-marker-range {
     position: absolute;
@@ -89,11 +70,11 @@
     margin-block-end: 8px;
     transform: rotate(270deg);
 
-    color: #8B8B8B;
+    color: var(--fg-faint);
     opacity: 50%;
-    letter-spacing: 0.378px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    font-weight: 300;
+    font-weight: 600;
   }
   @container (max-height: 400px)  {
     .month-name {

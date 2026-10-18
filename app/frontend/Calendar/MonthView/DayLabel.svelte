@@ -47,42 +47,44 @@
 <style>
   .day {
     grid-row: 1;
-    padding: 4px 8px;
-    border-left: 1px dotted var(--border);
-    background-color: var(--bg);
+    align-items: center;
+    padding: 4px 6px;
+    border-inline-start: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .date-number {
+    min-width: 24px;
+    height: 24px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 4px;
   }
   @container (max-height: 400px) {
     .day {
       padding: 2px 6px 0px 6px;
     }
   }
-  .today {
-    padding: 0px 8px;
-  }
   .today .date-number {
-    background-color: black;
-    color: white;
-    border-radius: 1000px;
-    padding: 4px 6px;
-  }
-  @media (prefers-color-scheme: dark) {
-    .today .date-number {
-      background-color: var(--selected-bg);
-    }
+    background-color: var(--accent);
+    color: var(--accent-fg);
+    border-radius: 12px;
+    font-weight: 700;
   }
   .month {
     font-size: 90%;
-    align-self: end;
-    margin-inline-start: 8px;
+    margin-inline-start: 4px;
+    color: var(--fg-muted);
   }
   .today-icon {
     display: none;
   }
   .day.today .today-icon {
     display: flex;
-    margin-inline-start: 8px;
+    margin-inline-start: 6px;
     justify-content: start;
     align-items: center;
+    color: var(--accent-text);
   }
   .today-icon :global(svg) {
     stroke-width: 1px;

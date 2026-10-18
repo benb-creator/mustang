@@ -57,16 +57,21 @@
   }
   select {
     background-color: transparent;
-    border: 1px solid var(--border);
+    border: 1px solid var(--button-border);
     transition: border-color 100ms;
-    height: 30px;
+    height: 32px;
+    font-weight: 500;
     -webkit-tap-highlight-color: transparent;
     text-align: left;
     padding-block: 2px;
     padding-inline-start: 12px;
     padding-inline-end: 36px;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     appearance: none;
+  }
+  select:hover {
+    border-color: var(--border-strong);
+    background-color: var(--hover-bg);
   }
   .icon {
     position: absolute;

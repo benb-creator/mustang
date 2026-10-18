@@ -1,12 +1,11 @@
 <hbox class="new-event-button">
   {#if haveMultipleCalendars}
     <ButtonMenu bind:isMenuOpen>
-      <RoundButton
-        classes="add-button create"
+      <Button
+        classes="add-button create filled"
         label={$t`New event`}
         icon={AddToCalendarIcon}
-        iconSize="22px"
-        padding="6px"
+        iconSize="16px"
         slot="control"
         onClick={() => isMenuOpen = !isMenuOpen}
         />
@@ -15,12 +14,11 @@
       {/each}
     </ButtonMenu>
   {:else}
-    <RoundButton
-      classes="add-button create"
+    <Button
+      classes="add-button create filled"
       label={$t`New event`}
       icon={AddToCalendarIcon}
-      iconSize="22px"
-      padding="6px"
+      iconSize="16px"
       onClick={() => createNewEvent($selectedCalendar, $selectedDate, false)}
       />
   {/if}
@@ -31,7 +29,7 @@
   import { selectedCalendar, selectedDate, shownCalendars } from "./selected";
   import ButtonMenu from "../Shared/Menu/ButtonMenu.svelte";
   import NewEventMenuItem from "./NewEventMenuItem.svelte";
-  import RoundButton from "../Shared/RoundButton.svelte";
+  import Button from "../Shared/Button.svelte";
   import AddToCalendarIcon from "lucide-svelte/icons/plus";
   import { t } from "../../l10n/l10n";
 
@@ -42,15 +40,11 @@
 <style>
   .new-event-button {
     align-items: center;
-    border-right: 1px solid var(--border);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    border-radius: 30px;
-    margin: 4px;
   }
   .new-event-button :global(.add-button) {
     align-items: center;
     justify-content: center;
     position: relative;
+    white-space: nowrap;
   }
 </style>

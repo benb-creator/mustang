@@ -333,13 +333,15 @@
 
 <style>
   .header {
-    height: 48px;
-    color: white;
+    height: var(--pane-header-height);
+    color: var(--fg);
     margin-block-end: 8px;
     flex: none;
+    border-block-end: 1px solid var(--border);
   }
   .title-background {
-    background: var(--header-color);
+    background-color: var(--main-bg);
+    box-shadow: inset 0px 3px 0px 0px var(--header-color);
     /* background image, in the account color
     background:
       linear-gradient(var(--header-color), var(--header-color)),
@@ -350,10 +352,16 @@
   }
   /*  background-image: url("../../asset/header-background.jpeg");*/
   .buttons :global(button) {
-    color: white;
+    color: var(--fg-muted);
+  }
+  .buttons :global(button:hover) {
+    color: var(--fg);
+  }
+  .buttons :global(button.filled) {
+    color: var(--accent-fg);
   }
   .buttons :global(button.save-or-close) {
-    border-color: white;
+    border-color: var(--button-border);
   }
   .buttons :global(.save-or-close path) {
     stroke-width: 3px;
@@ -368,9 +376,8 @@
     top: 10px;
   }
   .account-selector {
-    align-items: end;
+    align-items: center;
     margin-inline-start: 6px;
-    margin-block-end: 4px;
   }
   .account-icon-dummy {
     height: 24px;
@@ -399,8 +406,8 @@
   .buttons :global(button) {
     margin-inline-start: 8px;
   }
-  .buttons :global(button.delete) {
-    background-color: lightsalmon;
+  .buttons :global(button.delete:hover) {
+    color: var(--danger-fg);
   }
   .buttons :global(.menu .menuitem),
   .buttons :global(.menu .label) {

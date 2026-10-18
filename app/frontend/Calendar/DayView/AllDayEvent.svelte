@@ -38,10 +38,10 @@
     margin-inline-start: 1px;
     margin-inline-end: 3px;
     border-radius: 3px;
+    border-inline-start: 3px solid color-mix(in srgb, var(--account-color) 60%, black);
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    opacity: 85%;
 
     background-color: var(--account-color);
     color: lch(from var(--account-color) calc((49.44 - l) * infinity) 0 0);
@@ -49,12 +49,9 @@
   }
   @media (prefers-color-scheme: dark) {
     .event {
-      background-image:
-        linear-gradient(var(--account-color), var(--account-color)),
-        linear-gradient(#000000BB, #000000BB);
-      background-blend-mode: overlay;
-      background-color: unset;
-      color: unset;
+      background-color: color-mix(in srgb, var(--account-color) 40%, var(--bg));
+      border-inline-start-color: var(--account-color);
+      color: var(--fg);
       --stripe-color: rgb(from var(--account-color) r g b / 25%);
     }
   }
@@ -82,6 +79,15 @@
   }
   /* </copied> */
   .event:hover {
-    background-color: #20AF9E70;
+    filter: brightness(0.94);
+  }
+  @media (prefers-color-scheme: dark) {
+    .event:hover {
+      filter: brightness(1.25);
+    }
+  }
+  .event.selected {
+    outline: 2px solid var(--fg);
+    outline-offset: -2px;
   }
 </style>

@@ -36,8 +36,7 @@
 
     inset-inline: 0px;
     margin-block-start: -1px;
-    border-top: 2px solid red;
-    opacity: 70%;
+    border-top: 2px solid var(--danger-fg);
   }
   .current-time-marker::before {
     content: "";
@@ -45,6 +44,6 @@
     inset-inline-start: 0px;
     top: -6px;
     border-block: 5px solid transparent;
-    border-inline-start: 8px solid red;
+    border-inline-start: 8px solid var(--danger-fg);
   }
 </style>

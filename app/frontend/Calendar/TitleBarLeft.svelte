@@ -20,6 +20,7 @@
   .title-bar {
     align-items: center;
     justify-content: center;
-    margin: 4px;
+    gap: 8px;
+    margin-inline-end: 8px;
   }
 </style>

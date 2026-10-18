@@ -47,6 +47,7 @@
     padding-inline-start: 4px;
     margin-inline-end: 3px;
     border-radius: 3px;
+    border-inline-start: 3px solid color-mix(in srgb, var(--color) 60%, black);
     width: 100%;
     height: 100%;
     min-width: 0;
@@ -55,12 +56,9 @@
   }
   @media (prefers-color-scheme: dark) {
     .event {
-      background-image:
-        linear-gradient(var(--color), var(--color)),
-        linear-gradient(#000000AA, #000000AA);
-      background-blend-mode: overlay;
-      background-color: unset;
-      color: unset;
+      background-color: color-mix(in srgb, var(--color) 40%, var(--bg));
+      border-inline-start-color: var(--color);
+      color: var(--fg);
       --stripe-color: rgb(from var(--color) r g b / 25%);
     }
   }
@@ -89,7 +87,12 @@
   }
   /* </copied> */
   .event:hover {
-    background-color: #20AF9E70;
+    filter: brightness(0.94);
+  }
+  @media (prefers-color-scheme: dark) {
+    .event:hover {
+      filter: brightness(1.25);
+    }
   }
   .time {
     margin-inline-end: 4px;

@@ -50,12 +50,14 @@
 </script>
 
 <style>
-  .main {
-    margin: 0px 16px 16px 16px;
-  }
   .main :global(.range-header) {
-    height: 58px;
+    height: var(--pane-header-height);
+    min-height: var(--pane-header-height);
+    box-sizing: border-box;
     align-items: center;
+    gap: 8px;
+    padding-inline: 12px;
+    border-block-end: 1px solid var(--border);
   }
   .main.mobile {
     margin-inline-end: 0px;

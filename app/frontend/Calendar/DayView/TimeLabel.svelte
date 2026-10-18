@@ -10,9 +10,11 @@
 
 <style>
   .time {
-    margin: -0.8em 8px 0 0;
-    color: #AAABB4;
-    font-weight: 300;
+    margin-block: -0.7em 0px;
+    margin-inline: 8px 8px;
+    color: var(--fg-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
     justify-content: end;
   }
 </style>

@@ -1,12 +1,12 @@
 <hbox class="title-bar">
   <RoundButton
-    classes="sync-button"
+    classes="sync-button plain"
     label={$t`Sync all calendars`}
     icon={SyncIcon}
     onClick={sync}
     loadDelayMS={0}
-    iconSize="14px"
-    padding="6px"
+    iconSize="16px"
+    padding="7px"
     border={false}
     />
 </hbox>
@@ -32,6 +32,6 @@
   .title-bar {
     align-items: center;
     justify-content: center;
-    margin: 12px;
+    margin-inline-end: 4px;
   }
 </style>

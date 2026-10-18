@@ -45,17 +45,15 @@
     margin-block-end: 2px;
     margin-inline-end: 3px;
     border-radius: 3px;
+    border-inline-start: 3px solid color-mix(in srgb, var(--color) 60%, black);
     container-type: inline-size;
     --stripe-color: rgb(from var(--color) r g b / 50%);
   }
   @media (prefers-color-scheme: dark) {
     .event {
-      background-image:
-        linear-gradient(var(--color), var(--color)),
-        linear-gradient(#000000BB, #000000BB);
-      background-blend-mode: overlay;
-      background-color: unset;
-      color: unset;
+      background-color: color-mix(in srgb, var(--color) 40%, var(--bg));
+      border-inline-start-color: var(--color);
+      color: var(--fg);
       --stripe-color: rgb(from var(--color) r g b / 25%);
     }
   }
@@ -84,15 +82,20 @@
   }
   /* </copied> */
   .event:hover {
-    background-color: #20AF9E70;
+    filter: brightness(0.94);
+  }
+  @media (prefers-color-scheme: dark) {
+    .event:hover {
+      filter: brightness(1.25);
+    }
   }
   .time {
     font-weight: 600;
   }
   .time,
   .title {
-    margin-inline-start: 6px;
-    margin-block-start: 5px;
+    margin-inline-start: 5px;
+    margin-block-start: 4px;
   }
   .title {
     display: block;

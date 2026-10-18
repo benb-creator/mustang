@@ -55,11 +55,7 @@
   }
   @media (prefers-color-scheme: dark) {
     .event {
-      background-image:
-        linear-gradient(var(--color), var(--color)),
-        linear-gradient(#000000AA, #000000AA);
-      background-blend-mode: overlay;
-      background-color: unset;
+      background-color: color-mix(in srgb, var(--color) 40%, var(--bg));
       --stripe-color: rgb(from var(--color) r g b / 25%);
     }
   }
@@ -83,10 +79,12 @@
   }
   /* </copied> */
   .event:hover {
-    background-color: #20AF9E70;
+    filter: brightness(0.94);
   }
-  .event.all-day {
-    opacity: 85%;
+  @media (prefers-color-scheme: dark) {
+    .event:hover {
+      filter: brightness(1.25);
+    }
   }
   .time {
     font-weight: 600;

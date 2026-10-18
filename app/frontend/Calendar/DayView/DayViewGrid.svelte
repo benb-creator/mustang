@@ -11,7 +11,8 @@
       <grid class="headers">
         <hbox class="top-left header" /><!-- needed for grid -->
         {#each days as day, i}
-          <vbox class="day-header header" style="grid-column: {i + 2}">
+          <vbox class="day-header header" style="grid-column: {i + 2}"
+            class:today={day.getTime() == today.getTime()}>
             <slot name="day-header" {day}>
               <vbox class="date-day">
                 <hbox class="date">{day.toLocaleDateString(getDateTimeLocale(), { day: "numeric" })}</hbox>
@@ -177,22 +178,32 @@
   }
   .day-header {
     grid-row: 1;
-    border-top: 1px dotted var(--border);
-    border-left: 1px dotted var(--border);
+    border-inline-start: 1px solid var(--border);
     min-width: 0px; /* Long titles must not widen the column */
   }
   .date-day {
-    padding: 8px 16px;
+    padding: 8px 12px;
   }
   .day-header .date {
     font-size: 180%;
+    font-weight: 300;
+    line-height: 1.2;
     overflow-wrap: break-word;
+    font-variant-numeric: tabular-nums;
+  }
+  .day-header.today .date {
+    color: var(--accent-text);
+    font-weight: 600;
   }
   .weekday {
-    margin-block-start: -4px;
-    margin-block-end: 4px;
     max-height: 1.3em;
     overflow: hidden;
+    color: var(--fg-muted);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .day-header.today .weekday {
+    color: var(--accent-text);
   }
   .time-label {
     grid-column: 1;

@@ -2,7 +2,6 @@
   on:mousewheel={event => catchErrors(() => onScrollWheel(event))}>
   <hbox class="range-header">
     <slot name="top-left" />
-    <hbox flex />
     <DateRange bind:date={start} dateInterval={showDays} />
     <hbox flex />
     <slot name="top-right" />
@@ -94,24 +93,16 @@
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
     grid-template-rows: max-content;
     grid-auto-rows: minmax(0, 1fr);
-    border-right: 1px dotted var(--border);
     container-type: size;
   }
   .weekday {
-    border-top: 1px dotted var(--border);
-    border-left: 1px dotted var(--border);
-    border-bottom: 1px dotted var(--border);
-    padding: 4px 8px;
-    color: #8B8B8B;
-    opacity: 70%;
-    letter-spacing: 0.378px;
+    border-inline-start: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 8px;
+    color: var(--fg-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    font-weight: 300;
-  }
-  .month-view :global(.date-range) {
-    font-weight: bold;
-  }
-  .month-view :global(.date-range .year) {
-    font-weight: normal;
   }
 </style>

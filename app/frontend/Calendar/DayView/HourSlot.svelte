@@ -38,13 +38,9 @@
   .hour-slot {
     grid-column: 1;
     position: relative;
-    background-image: linear-gradient(to right, var(--border) 0%, rgba(255,255,255,0) 100%);
-    background-position: bottom;
-    background-size: 3px 1px;
-    background-repeat: repeat-x;
+    border-block-end: 1px solid var(--border);
   }
   .hour-slot:hover {
-    background-color: color-mix(in srgb, var(--selected-calendar-color) 10%, transparent);
-    color: white;
+    background-color: var(--leftbar-bg);
   }
 </style>

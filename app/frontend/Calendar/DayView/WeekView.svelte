@@ -1,10 +1,9 @@
 <vbox class="week-view" flex>
   <hbox class="range-header">
     <slot name="top-left" />
-    <hbox flex />
     <slot name="top-center">
+      <Button classes="today-button" label={$t`Today`} tooltip={$t`Go back to today`} onClick={goToToday} />
       <DateRange bind:date={start} dateInterval={showDays > 3 ? 7 : 1} {showDays} />
-      <Button classes="today-button" label={$t`Go back to today`} icon={TodayIcon} onClick={goToToday} iconSize="16px" plain iconOnly />
     </slot>
     <slot name="top-center" />
     <hbox flex />
@@ -24,7 +23,6 @@
   import NewEventMenu from "../NewEventMenu.svelte";
   import DateRange from "../DateRange.svelte";
   import Button from "../../Shared/Button.svelte";
-  import TodayIcon from "lucide-svelte/icons/home";
   import type { Collection } from "svelte-collections";
   import { t } from "../../../l10n/l10n";
 
@@ -47,9 +45,5 @@
 <style>
   .range-header {
     align-items: center;
-  }
-  .range-header :global(.today-button) {
-    align-self: end;
-    margin-block-end: 8px;
   }
 </style>

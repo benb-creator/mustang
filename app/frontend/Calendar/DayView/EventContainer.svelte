@@ -29,4 +29,11 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+  .event.selected {
+    z-index: 2;
+  }
+  .event.selected :global(.event) {
+    outline: 2px solid var(--fg);
+    outline-offset: -2px;
+  }
 </style>
