@@ -269,6 +269,8 @@
     padding: 24px 48px 20px 48px;
     background-color: var(--main-bg);
     color: var(--main-fg);
+    border-radius: var(--popup-radius);
+    box-shadow: var(--popup-shadow);
   }
   :global(.mobile) .page-box {
     padding: 12px 24px;
