@@ -20,10 +20,12 @@
 <style>
   .menuitem {
     align-items: center;
-    padding: 7px 14px;
+    padding: 6px 10px 4px 10px;
   }
   .label {
     white-space: nowrap;
-    opacity: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--fg-muted);
   }
 </style>

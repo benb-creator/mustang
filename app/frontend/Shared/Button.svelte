@@ -1,5 +1,5 @@
 <button on:click on:dblclick on:click={myOnClick} bind:this={buttonEl}
-  title={tooltipCalc} class="button {classes}" class:plain
+  title={tooltipCalc} class="button {classes}" class:plain class:icon-only={!hasLabel}
   disabled={isDisabled} class:disabled={isDisabled} class:selected
   {tabindex}
   >
@@ -110,31 +110,46 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 80ms ease-out, border-color 80ms ease-out;
   }
   button:not(.plain) {
     background-color: var(--button-bg);
     color: var(--button-fg);
     border: 1px solid var(--button-border);
-    border-radius: 1000px;
-    padding: 6px 8px;
+    border-radius: var(--border-radius);
+    min-height: 32px;
+    padding: 4px 12px;
+  }
+  button.icon-only:not(.plain) {
+    min-width: 32px;
+    padding: 4px 7px;
   }
   .plain {
     background-color: transparent;
-    border-radius: 3px;
+    color: inherit;
+    border-radius: var(--border-radius);
     border: none;
     min-width: 20px;
   }
   .disabled {
-    opacity: 50%;
+    opacity: 45%;
   }
   button:hover:not(.disabled) {
     background-color: var(--hover-bg);
     color: var(--hover-fg);
   }
+  button:not(.plain):hover:not(.disabled) {
+    border-color: var(--border-strong);
+  }
+  button:active:not(.disabled) {
+    filter: brightness(0.96);
+  }
   button.button.selected:not(.disabled) {
     background-color: var(--selected-bg);
     color: var(--selected-fg);
-    border: none;
+    border-color: transparent;
   }
   button.selected:hover:not(.disabled) {
     background-color: var(--selected-hover-bg);
@@ -145,19 +160,30 @@
     color: var(--selected-hover-fg);
   }
   button.secondary {
-    border-color: var(--button-secondard-line);
+    border-color: var(--button-secondary-line);
+    color: var(--accent-text);
   }
   button.filled {
-    background-color: var(--inverted-bg);
-    color: var(--inverted-fg);
+    background-color: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
   }
-  button {
-    font-size: 14px;
+  button.filled.disabled {
+    background-color: var(--offset-bg);
+    color: var(--fg-muted);
+    border-color: var(--border);
+    opacity: 100%;
+  }
+  button.filled:hover:not(.disabled) {
+    background-color: var(--accent-hover);
+    color: var(--accent-fg);
+    border-color: var(--accent-hover);
   }
   button.large {
+    min-height: 40px;
     padding: 8px 24px;
     font-size: 16px;
-    font-weight: bold;
+    font-weight: 600;
   }
   :global(.mobile) button {
     font-size: 16px;

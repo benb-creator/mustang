@@ -49,18 +49,16 @@
 
 <style>
   .menu {
-    background-color: var(--bg);
+    background-color: var(--popup-bg);
     color: var(--fg);
-    padding: 4px 0px;
+    padding: 4px;
+    min-width: 160px;
     outline: 0px;
     display: block;
     text-decoration: none;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
-    border-radius: 4px;
-    box-shadow:
-      rgba(0, 0, 0, 0.05) 0px 1px 3px,
-      rgba(0, 0, 0, 0.05) 0px 20px 25px -5px,
-      rgba(0, 0, 0, 0.04) 0px 10px 10px -5px;
+    border: 1px solid var(--border);
+    border-radius: var(--popup-radius);
   }
 </style>

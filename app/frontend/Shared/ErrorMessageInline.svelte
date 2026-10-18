@@ -26,14 +26,16 @@
 
 <style>
   .error {
-    background-color: #F8FFD2;
-    color: #DD0000;
-    border: 1px solid #FFC83A;
-    border-radius: 8px;
+    background-color: var(--offset-bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--danger-fg);
+    border-radius: var(--border-radius);
     padding: 8px 12px;
     margin: 8px;
   }
   .icon {
     margin-inline-end: 12px;
+    color: var(--danger-fg);
   }
 </style>

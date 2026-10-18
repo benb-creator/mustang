@@ -53,8 +53,8 @@
   }
   input[type="text"] {
     background-color: var(--color);
-    color: white;
-    border-radius: 8px;
+    color: lch(from var(--color) calc((49.44 - l) * infinity) 0 0);
+    border-radius: var(--border-radius);
     padding: 0 8px;
     max-width: 5em;
   }

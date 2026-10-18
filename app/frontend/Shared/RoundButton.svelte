@@ -84,7 +84,7 @@
 <style>
   button {
     border: 1px solid transparent;
-    border-radius: 1000px;
+    border-radius: var(--border-radius);
     padding: var(--padding);
 
     flex-direction: row;
@@ -94,33 +94,40 @@
 
     background-color: var(--button-bg);
     color: var(--button-fg);
+    transition: background-color 80ms ease-out, border-color 80ms ease-out;
   }
   button.border {
     border: 1px solid var(--button-border);
   }
-  .filled:not(:hover):not(.disabled) {
-    background-color: var(--inverted-bg);
-    color: var(--inverted-fg);
-    border: none;
-    padding: calc(var(--padding) + 1px);
+  .filled:not(.disabled) {
+    background-color: var(--accent);
+    color: var(--accent-fg);
+    border: 1px solid var(--accent);
     stroke-width: 2px;
   }
   :global(svg) {
-    stroke: currentColor;
-  }
-  .filled:not(:hover) :global(svg) {
     stroke: currentColor;
   }
   .icon {
     margin-inline-end: 0px;
   }
   .disabled {
-    opacity: 50%;
+    opacity: 45%;
   }
   button.button:hover:not(.disabled) {
     background-color: var(--hover-bg);
     color: var(--hover-fg);
-    border: 1px solid transparent;
+  }
+  button.button.border:hover:not(.disabled) {
+    border-color: var(--border-strong);
+  }
+  button.button.filled:hover:not(.disabled) {
+    background-color: var(--accent-hover);
+    color: var(--accent-fg);
+    border-color: var(--accent-hover);
+  }
+  button:active:not(.disabled) {
+    filter: brightness(0.96);
   }
   .selected:not(.disabled) {
     background-color: var(--selected-bg);
@@ -132,6 +139,7 @@
   }
   button.border.secondary {
     border-color: var(--button-secondary-line);
+    color: var(--accent-text);
   }
   button.plain {
     background-color: transparent;

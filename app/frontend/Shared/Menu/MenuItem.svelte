@@ -80,7 +80,9 @@
 <style>
   .menuitem {
     align-items: center;
-    padding: 7px 14px;
+    padding: 6px 12px 6px 10px;
+    border-radius: var(--border-radius);
+    color: inherit;
 
     /* button */
     display: flex;
@@ -107,14 +109,20 @@
   .icon {
     justify-content: center;
     align-items: center;
+    color: var(--fg-muted);
+  }
+  .menuitem:hover .icon,
+  .menuitem.selected .icon {
+    color: inherit;
   }
   .gap {
-    width: 8px;
+    width: 10px;
   }
   .label {
     white-space: nowrap;
   }
-  .menuitem.danger {
-    color: red;
+  .menuitem.danger,
+  .menuitem.danger .icon {
+    color: var(--danger-fg);
   }
 </style>

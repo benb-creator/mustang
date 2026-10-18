@@ -106,8 +106,8 @@
     z-index: 100;
     background-color: unset;
     padding: 0;
-    border-radius: 5px;
-    margin: 5px;
-    box-shadow: 2.281px 1.14px 9.123px 0px rgba(var(--shadow-color), 10%);
+    border-radius: var(--popup-radius);
+    margin: 4px;
+    box-shadow: var(--popup-shadow);
   }
 </style>

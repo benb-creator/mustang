@@ -64,37 +64,43 @@
 <style>
   .search {
     align-items: center;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     padding-inline-start: 8px;
     padding-inline-end: 4px;
-    border-radius: 100px;
+    border-radius: var(--border-radius);
     background-color: field;
     color: fieldtext;
   }
   .search:has(input:focus) {
     border-color: var(--input-focus);
+    box-shadow: 0px 0px 0px 1px var(--input-focus);
   }
   .search.has-search {
-    background-color: var(--inverted-bg);
-    color: var(--inverted-fg);
+    border-color: var(--accent);
   }
   .search :global(svg) {
-    color: #808080;
+    color: var(--fg-muted);
   }
   input[type="search"] {
-    width: 100%;
-    height: 24px;
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    height: 28px;
     border: none;
-    margin-inline-start: 4px;
-    border-radius: 100px;
-    background-color: inherit;
+    margin-inline-start: 6px;
+    background-color: transparent;
     color: inherit;
+    font-size: 14px;
+  }
+  input[type="search"]:focus {
+    border: none;
+    box-shadow: none;
   }
   :global(.mobile) input[type="search"] {
     height: 40px;
   }
   input::placeholder {
-    color: #808080;
+    color: var(--input-placeholder);
   }
   input::-webkit-search-cancel-button {
     display: none;

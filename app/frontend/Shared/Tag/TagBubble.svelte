@@ -24,9 +24,9 @@
 <style>
   .tag {
     min-height: 16px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     background-color: var(--color);
-    color: white;
+    color: lch(from var(--color) calc((49.44 - l) * infinity) 0 0);
     border: 1px solid transparent;
     padding-inline-start: 8px;
     padding-inline-end: 8px;
@@ -36,8 +36,9 @@
     visibility: hidden;
   }
   .tag.unselected {
-    background-color: color-mix(in srgb, var(--color) 30%, transparent);
-    color: var(--button-fg);
+    background-color: transparent;
+    border-color: var(--color);
+    color: var(--fg);
   }
   .tag.selected {
     border: 1px solid var(--button-border);

@@ -112,8 +112,8 @@
   input {
     cursor: pointer;
     appearance: none;
-    background: #fff;
-    border: 1px solid var(--button-border);
+    background: var(--button-bg);
+    border: 1px solid var(--border-strong);
     width: 20px;
     height: 20px;
     min-width: 20px;
@@ -125,12 +125,12 @@
   }
   input:checked {
     border: none;
-    background-color: var(--selected-bg);
+    background-color: var(--accent);
     color: #fff;
   }
   input.indetermined {
     border: none;
-    background-color: red;
+    background-color: var(--danger-fg);
   }
 
   .knob-wrapper {
@@ -139,7 +139,7 @@
     width: 24px;
     min-width: 24px;
     border-radius: 100px;
-    background-color: lightgray;
+    background-color: var(--border-strong);
   }
   .knob {
     position: absolute;
@@ -152,35 +152,24 @@
   }
   .on .knob {
     right: 0px;
-    background-color: var(--selected-bg);
-    color: var(--selected-fg);
-    box-shadow:
-      0 0 8px 2px rgba(32, 174, 158, 0.6),
-      0 0 20px 6px rgba(32, 174, 158, 0.25),
-      inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    background-color: var(--accent);
+    color: var(--accent-fg);
   }
   .off:not(.allowIndetermined) .knob {
     left: 0px;
     background-color: var(--bg);
     color: var(--fg);
-    box-shadow:
-      0 0 8px 2px rgba(135, 135, 135, 0.3);
+    box-shadow: 0px 0px 0px 1px var(--border-strong), 0px 1px 2px rgba(var(--shadow-color), 20%);
   }
   .indetermined .knob {
     left: 4px;
-    background-color: rgba(135, 135, 135, 0.3);
+    background-color: var(--fg-faint);
     color: white;
-    box-shadow:
-      0 0 8px 2px rgba(135, 135, 135, 0.15);
   }
   .off.allowIndetermined .knob {
     left: 0px;
-    background-color: red;
+    background-color: var(--danger-fg);
     color: white;
-    box-shadow:
-      0 0 8px 2px rgba(255, 0, 0, 0.3),
-      0 0 20px 6px rgba(255, 0, 0, 0.25),
-      inset 0 1px 2px rgba(255, 255, 255, 0.2);
   }
   :global(.mobile) .checkbox {
     min-height: 32px;

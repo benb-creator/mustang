@@ -45,6 +45,9 @@
 </script>
 
 <style>
+  .menuitem {
+    border-radius: var(--border-radius);
+  }
   .menuitem:hover:not(.disabled) {
     background-color: var(--hover-bg);
     color: var(--hover-fg);
