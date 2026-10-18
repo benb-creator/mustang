@@ -47,11 +47,10 @@
   }
   .icon :global(path),
   .icon :global(.cls-2) {
-    stroke: var(--leftpane-fg);
+    stroke: var(--leftbar-fg);
   }
   .label {
     margin-inline-start: 6px;
-    font-weight: 300;
   }
   .account:not(:hover) .buttons {
     display: none;

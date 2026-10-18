@@ -2,7 +2,7 @@
   <FastList items={recentFiles} bind:selectedItem columns="1fr">
     <svelte:fragment slot="header">
       <hbox class="header">
-        <hbox class="header-label font-smallest">{$t`Recent files`}</hbox>
+        <hbox class="header-label section-label">{$t`Recent files`}</hbox>
         <hbox flex />
         <slot name="top-right" />
       </hbox>
@@ -38,9 +38,6 @@
     align-items: end;
     margin-block-start: 8px;
     margin-inline-start: 4px;
-  }
-  .header-label {
-    color: grey;
   }
   .header :global(button) {
     margin-inline-start: 4px;

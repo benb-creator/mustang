@@ -109,7 +109,7 @@
 
 <style>
   .right-side-bar {
-    box-shadow: -2px 0px 3px 1px #e3e3e3;
+    border-inline-start: 1px solid var(--border);
   }
   .thin-right-side-bar {
     align-items: end;

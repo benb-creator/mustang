@@ -1,4 +1,4 @@
-<vbox flex class="left-pane">
+<vbox flex class="left-pane nav-list">
   <hbox class="top">
     <vbox class="island">
       <PaneViewSwitcher bind:active={activeTab} />

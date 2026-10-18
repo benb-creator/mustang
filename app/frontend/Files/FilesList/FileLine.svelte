@@ -87,8 +87,7 @@
     min-width: 5em;
   }
   .type, .size, .time {
-    color: #91939D;
+    color: var(--fg-muted);
     font-size: 90%;
-    font-weight: 300;
   }
 </style>

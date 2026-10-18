@@ -83,14 +83,13 @@
   }
   .icon :global(path),
   .icon :global(.cls-2) {
-    stroke: var(--leftpane-fg);
+    stroke: var(--leftbar-fg);
   }
   .logo {
     border-radius: 2px;
   }
   .label {
     margin-inline-start: 6px;
-    font-weight: 300;
   }
   .account:not(:hover) .buttons {
     display: none;
