@@ -72,7 +72,7 @@
     background-color: var(--main-bg);
     color: var(--main-fg);
     border-radius: var(--border-radius);
-    box-shadow: -1px 0px 5px 0.5px rgb(0, 0, 0, 7%);
+    box-shadow: inset 0 0 0 1px var(--border);
     align-items: center;
     padding-inline-end: 12px;
     height: 24px;

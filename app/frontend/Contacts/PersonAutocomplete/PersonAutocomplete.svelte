@@ -148,9 +148,12 @@
   background-color: var(--main-bg);
   color: var(--main-fg);
   padding: 0px 12px !important;
-  box-shadow: -1px 0px 5px 0.5px rgb(0, 0, 0, 3%);
+  box-shadow: inset 0 0 0 1px var(--border);
   border-radius: var(--border-radius);
   align-items: center;
+}
+.person-autocomplete :global(input:focus) {
+  box-shadow: inset 0 0 0 1px var(--input-focus);
 }
 .person-autocomplete :global(input::placeholder) {
   color: #7D7886;
