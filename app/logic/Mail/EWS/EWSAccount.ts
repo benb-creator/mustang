@@ -1080,7 +1080,7 @@ export class EWSAccount extends ExchangeMailAccount implements EWSSubscribable {
         }
       }
     } catch (ex) {
-      backgroundError(ex);
+      this.errorCallback(ex);
     }
     return accounts;
   }

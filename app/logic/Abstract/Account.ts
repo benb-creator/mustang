@@ -4,7 +4,7 @@ import { appGlobal } from "../app";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
 import { Observable, notifyChangedProperty } from "../util/Observable";
 import { RunOnce } from "../util/flow/RunOnce";
-import { backgroundError } from "../util/error";
+import { itemError } from "../util/error";
 import { SpecificError, assert } from "../util/util";
 import { ArrayColl, Collection } from "svelte-collections";
 
@@ -249,7 +249,7 @@ export class Account extends Observable {
     try {
       await this.logout();
     } catch (ex) {
-      backgroundError(ex); // e.g. server unreachable
+      this.errorCallback(ex); // e.g. server unreachable
     }
     for (let dependent of this.dependentAccounts()) {
       await dependent.deleteIt();
@@ -344,11 +344,11 @@ export function setMainAccounts(): void {
         if (main) {
           account.mainAccount = main;
         } else {
-          backgroundError(new Error(`Account ${account.name} (${account.protocol}) lost its main account: Account ID ${mainID} did not load`));
+          itemError(new Error(`Account ${account.name} (${account.protocol}) lost its main account: Account ID ${mainID} did not load`));
         }
       }
     } catch (ex) {
-      backgroundError(ex);
+      itemError(ex);
     }
   }
 }

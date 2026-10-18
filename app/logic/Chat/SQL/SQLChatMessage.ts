@@ -8,7 +8,7 @@ import { Group } from "../../Abstract/Group";
 import { Attachment, ContentDisposition } from "../../Abstract/Attachment";
 import { getDatabase } from "./SQLDatabase";
 import { appGlobal } from "../../app";
-import { backgroundError } from "../../util/error";
+import { itemError } from "../../util/error";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { assert } from "../../util/util";
 import { ArrayColl } from "svelte-collections";
@@ -233,7 +233,7 @@ export class SQLChatMessage {
         }
         msg.reactions.set(personUID, emoji);
       } catch (ex) {
-        backgroundError(ex);
+        itemError(ex);
       }
     }
   }

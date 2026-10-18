@@ -4,7 +4,7 @@ import { newFileSharingAccountForProtocol } from "../AccountsList/FileSharingAcc
 import { getDatabase } from "./SQLDatabase";
 import { SQLDirectory } from "./SQLDirectory";
 import { SQLFileStorage } from "./SQLFileStorage";
-import { backgroundError } from "../../util/error";
+import { itemError } from "../../util/error";
 import { assert } from "../../util/util";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";
@@ -74,7 +74,7 @@ export class SQLFileSharingAccount {
         await SQLDirectory.readAllHierarchy(acc);
         accounts.add(acc);
       } catch (ex) {
-        backgroundError(ex as Error);
+        itemError(ex as Error);
       }
     }
     return accounts;

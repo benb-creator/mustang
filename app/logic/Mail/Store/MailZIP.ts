@@ -6,7 +6,6 @@ import { getFilesDir } from "../../util/backend-wrapper";
 import { appGlobal } from "../../app";
 import { Lock, type Locked } from "../../util/flow/Lock";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
-import { backgroundError } from "../../util/error";
 import { assert } from "../../util/util";
 import { ArrayColl, MapColl, SetColl } from "svelte-collections";
 import { Buffer } from "buffer";
@@ -133,7 +132,7 @@ export class MailZIP implements MailContentStorage {
         zip = await appGlobal.remoteApp.newAdmZIP(filename);
       } catch (ex) {
         if (ex.message?.includes("Invalid or unsupported zip format")) {
-          backgroundError(ex);
+          folder.account.errorCallback(ex);
           console.error("Corrupt ZIP file", filename);
           // Delete and re-create it
           await appGlobal.remoteApp.fs.rm(filename, { force: true });

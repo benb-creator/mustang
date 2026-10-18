@@ -1,5 +1,6 @@
 import { notifications, Notification, NotificationSeverity } from "./Notification";
 import { production } from "../build";
+import { ArrayColl } from "svelte-collections";
 
 export function showError(ex: Error) {
   console.error(errorMessage(ex), ex);
@@ -16,6 +17,16 @@ export function backgroundError(ex: Error) {
   if (shouldShow(ex)) {
     notifications.add(new Notification(errorMessage(ex), NotificationSeverity.Warning, ex));
   }
+}
+
+/** @see `itemError()` */
+export const itemErrors = new ArrayColl<Error>();
+
+/** For an error in a single item of a loop, when there is no account at hand, e.g. an account that failed to load.
+ * Call it in the `catch` within the loop, so that the loop continues with the other items. @see `Account.itemError()` */
+export function itemError(ex: Error) {
+  itemErrors.add(ex);
+  backgroundError(ex);
 }
 
 function shouldShow(ex: Error): boolean {

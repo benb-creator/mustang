@@ -2,14 +2,14 @@ import { SearchChat } from "../SearchChat";
 import { ChatMessage } from "../ChatMessage";
 import { SQLChatMessage } from "./SQLChatMessage";
 import { getDatabase } from "./SQLDatabase";
-import { backgroundError } from "../../util/error";
+import { itemError } from "../../util/error";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";
 
 export class SQLSearchChat extends SearchChat {
   /** Start a database search based on the critera set on this object */
   async startSearch(limit?: number): Promise<ArrayColl<ChatMessage>> {
-    let parseError = backgroundError;
+    let parseError = itemError;
 
     // Search matching chat messages directly in the SQL database
     let query = sql`

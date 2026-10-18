@@ -11,6 +11,7 @@ export class OAuth2Tab extends OAuth2UI {
   startURL: URLString;
   protected doneFunc: (authCode: string) => void;
   protected failFunc: (ex: Error) => void;
+  mustangApp: any; // LoginDialogMustangApp
 
   /**
    * Does an interactive login

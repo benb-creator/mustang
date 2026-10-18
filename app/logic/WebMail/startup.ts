@@ -9,7 +9,6 @@ import { createPersonalCalendar } from '../Calendar/AccountsList/Calendars';
 import { readSavedSearches } from '../Mail/Virtual/SavedSearchFolder';
 import { loadTagsList } from '../Abstract/Tag';
 import { getComputerOn } from '../util/backend-wrapper';
-import { backgroundError } from '../util/error';
 
 // Before anything reads it, @see `startup.ts`
 appGlobal.me = new Person();
@@ -33,10 +32,12 @@ export async function getStartObjects(): Promise<void> {
  *
  * @param startupErrorCallback Called for login errors.
  *   May be called multiple times, e.g. once per account.
+ * @param backgroundErrorCallback Called for the errors of an account later on.
+ *   @see `Account.errorCallback`
  */
-export async function loginOnStartup(startupErrorCallback: (ex: Error) => void): Promise<void> {
+export async function loginOnStartup(startupErrorCallback: (ex: Error) => void, backgroundErrorCallback: (ex: Error) => void): Promise<void> {
   for (let account of appGlobal.chatAccounts) {
-    account.errorCallback = (ex) => backgroundErrorInAccount(ex, account);
+    account.errorCallback = (ex) => backgroundErrorInAccount(ex, account, backgroundErrorCallback);
     if (!account.isDependentAccount) {
       account.loginAndStartup(false)
         .catch(startupErrorCallback);
@@ -44,7 +45,7 @@ export async function loginOnStartup(startupErrorCallback: (ex: Error) => void):
   }
 
   for (let account of appGlobal.emailAccounts) {
-    account.errorCallback = (ex) => backgroundErrorInAccount(ex, account);
+    account.errorCallback = (ex) => backgroundErrorInAccount(ex, account, backgroundErrorCallback);
     account.loginAndStartup(false)
       .catch(startupErrorCallback);
   }
@@ -87,8 +88,8 @@ export function checkWakeUp(): void {
   window.addEventListener("online", checkAccounts); // network is back up
 }
 
-function backgroundErrorInAccount(ex: Error, account: Account) {
+function backgroundErrorInAccount(ex: Error, account: Account, errorCallback: (ex: Error) => void) {
   account.errors.add(ex);
   console.error(ex);
-  backgroundError(ex);
+  errorCallback(ex);
 }

@@ -14,6 +14,7 @@ import { UserError } from "../../../logic/util/util";
 
 beforeEach(() => {
   notifications.clear();
+  logic.itemErrors.clear();
   vi.mocked(Sentry.captureException).mockClear();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
@@ -55,6 +56,16 @@ test("User errors are shown, but not logged to the server", () => {
 
   expect(notifications.length).toBe(1);
   expect(Sentry.captureException).not.toHaveBeenCalled();
+});
+
+test("An item error without account is logged to the server, but not shown in production", () => {
+  let ex = new Error("Failed to load account");
+
+  logic.itemError(ex);
+
+  expect(logic.itemErrors.contents).toEqual([ex]);
+  expect(notifications.isEmpty).toBe(true);
+  expect(Sentry.captureException).toHaveBeenCalledWith(ex);
 });
 
 test("logError() logs to the server without showing the error", () => {

@@ -3,7 +3,7 @@ import { AccountType, SQLAccount, type AccountDBRow } from "../../Mail/SQL/Accou
 import { getDatabase } from "./SQLDatabase";
 import { newChatAccountForProtocol } from "../AccountsList/ChatAccounts";
 import { SQLChatStorage } from "./SQLChatStorage";
-import { backgroundError } from "../../util/error";
+import { itemError } from "../../util/error";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";
 
@@ -71,7 +71,7 @@ export class SQLChatAccount {
         await SQLChatAccount.read(row, account);
         accounts.add(account);
       } catch (ex) {
-        backgroundError(ex);
+        itemError(ex);
       }
     }
     return accounts;

@@ -2,7 +2,7 @@ import type { Person } from "../Abstract/Person";
 import { PersonUID } from "../Abstract/PersonUID";
 import { appGlobal } from "../app";
 import { promiseErrors } from "../util/flow/promiseUtil";
-import { backgroundError } from "../util/error";
+import { itemError } from "../util/error";
 import { ArrayColl } from "svelte-collections";
 
 /** Search all address books and server-based query-only address books for
@@ -26,7 +26,7 @@ export async function searchContacts(searchStr: string, skip: (person: PersonUID
     await ab.quickSearchAsync(searchStr.toLowerCase(), results);
     persons = persons.concat(results.contents);
   }));
-  promiseErrors(results).forEach(ex => backgroundError(ex));
+  promiseErrors(results).forEach(ex => itemError(ex));
   let emailAddresses: PersonUID[] = [];
   for (let person of persons) {
     for (let c of person.emailAddresses.sortBy(c => c.preference)) {

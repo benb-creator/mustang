@@ -5,6 +5,7 @@ import * as Sentry from "@sentry/svelte";
 
 export const showError = logic.showError;
 export const backgroundError = logic.backgroundError;
+export const itemError = logic.itemError;
 export const catchErrors = logic.catchErrors;
 export const catchFallback = logic.catchFallback;
 
@@ -54,3 +55,15 @@ const logNotificationErrors = {
 };
 notifications.registerObserver(logNotificationErrors);
 (notifications as any)._logNotificationErrors = logNotificationErrors; // HACK to keep it alive: `registerObserver()` holds it only weakly
+
+const logItemErrors = {
+  added(added: Error[]) {
+    for (let ex of added) {
+      logErrorToServer(ex);
+    }
+  },
+  removed() {
+  },
+};
+logic.itemErrors.registerObserver(logItemErrors);
+(logic.itemErrors as any)._logItemErrors = logItemErrors; // HACK to keep it alive: `registerObserver()` holds it only weakly
