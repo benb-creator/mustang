@@ -49,8 +49,7 @@
     await attachment.openOSFolder();
   }
   async function saveFile() {
-    await attachment.load();
-    await saveBlobAsFile(attachment.content);
+    await saveBlobAsFile(await attachment.getContent());
   }
   async function deleteIt() {
     await attachment.deleteFile();

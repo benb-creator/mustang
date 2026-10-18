@@ -121,6 +121,11 @@ export class Attachment extends Observable {
     await this.message.loadAttachments?.();
   }
 
+  async getContent(): Promise<File> {
+    await this.load();
+    return this.content;
+  }
+
   async readLocalFile() {
     assert(this.filepathLocal, "Need local file first");
     let array = await appGlobal.remoteApp.readFile(this.filepathLocal);

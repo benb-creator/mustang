@@ -10,8 +10,8 @@ class ObservableLocalStorageSetting<T> extends Observable {
     this.defaultValue = defaultValue;
   }
   // <copied to="../../logic/util/util.ts">
-  // HACK: `getUserPreference()` and `setUserPreference()` in logic/ access `localStorage` directly.
-  // They assume that this class saves the value there, under the same key, in this format.
+  // HACK: `getUserPreference()` in logic/ reads `localStorage` directly.
+  // It assumes that this class saves the value there, under the same key, in this format.
   get value(): T {
     return JSON.parse(sanitize.nonemptystring(localStorage.getItem(this.key), null)) ?? this.defaultValue;
   }

@@ -27,7 +27,7 @@ import type { PersonUID } from "../../Abstract/PersonUID";
 import { OWAAuth } from "../../Auth/OWAAuth";
 import { type Attachment, ContentDisposition } from "../../Abstract/Attachment";
 import { LoginError } from "../../Abstract/Account";
-import { logError } from "../../util/error";
+import { backgroundError } from "../../util/error";
 import { ensureLicensed } from "../../util/LicenseClient";
 import { appGlobal } from "../../app";
 import { Throttle } from "../../util/flow/Throttle";
@@ -655,7 +655,7 @@ export class OWAAccount extends ExchangeMailAccount {
         }
       }
     } catch (ex) {
-      logError(ex);
+      backgroundError(ex);
     }
     return accounts;
   }

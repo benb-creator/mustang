@@ -70,13 +70,14 @@
     if (!attachment.content) {
       await attachment.read(); // restore the bytes from disk if we have them
     }
-    if (!attachment.content) {
+    let content = await attachment.getContent();
+    if (!content) {
       return; // not downloaded yet
     }
     if (canOpenFileInternally(attachment.mimeType)) {
-      await openFileInternallyFromFile(attachment.content);
+      await openFileInternallyFromFile(content);
     } else {
-      await saveBlobAsFile(attachment.content); // offer to save the blob to disk
+      await saveBlobAsFile(content); // offer to save the blob to disk
     }
   }
 
