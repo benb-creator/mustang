@@ -83,7 +83,12 @@
   }
   /* </copied> */
   .event:hover {
-    background-color: #20AF9E70;
+    filter: brightness(90%);
+  }
+  @media (prefers-color-scheme: dark) {
+    .event:hover {
+      filter: brightness(130%);
+    }
   }
   .event.all-day {
     opacity: 85%;

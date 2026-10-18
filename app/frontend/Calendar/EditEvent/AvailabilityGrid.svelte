@@ -132,7 +132,7 @@
     margin-block-start: 4px;
     padding-block-start: 8px;
     padding-inline-start: 8px;
-    border: 1px dotted var(--border);
+    border: 1px solid var(--border);
     border-radius: 3px;
   }
   .range-header {

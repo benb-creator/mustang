@@ -94,16 +94,15 @@
     grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
     grid-template-rows: max-content;
     grid-auto-rows: minmax(0, 1fr);
-    border-right: 1px dotted var(--border);
+    border-right: 1px solid var(--border);
     container-type: size;
   }
   .weekday {
-    border-top: 1px dotted var(--border);
-    border-left: 1px dotted var(--border);
-    border-bottom: 1px dotted var(--border);
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
     padding: 4px 8px;
-    color: #8B8B8B;
-    opacity: 70%;
+    color: #737780;
     letter-spacing: 0.378px;
     text-transform: uppercase;
     font-weight: 300;

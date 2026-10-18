@@ -48,7 +48,7 @@
   .day {
     grid-row: 1;
     padding: 4px 8px;
-    border-left: 1px dotted var(--border);
+    border-left: 1px solid var(--border);
     background-color: var(--bg);
   }
   @container (max-height: 400px) {
@@ -60,15 +60,10 @@
     padding: 0px 8px;
   }
   .today .date-number {
-    background-color: black;
-    color: white;
+    background-color: var(--selected-bg);
+    color: var(--selected-fg);
     border-radius: 1000px;
     padding: 4px 6px;
-  }
-  @media (prefers-color-scheme: dark) {
-    .today .date-number {
-      background-color: var(--selected-bg);
-    }
   }
   .month {
     font-size: 90%;

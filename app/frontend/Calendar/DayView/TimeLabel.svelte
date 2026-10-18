@@ -11,7 +11,7 @@
 <style>
   .time {
     margin: -0.8em 8px 0 0;
-    color: #AAABB4;
+    color: #737780;
     font-weight: 300;
     justify-content: end;
   }

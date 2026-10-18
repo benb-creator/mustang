@@ -43,33 +43,18 @@
   .day-cell {
     grid-row: 1 / -1;
     position: relative;
-    border-left: 1px dotted var(--border);
-    border-bottom: 1px dotted var(--border);
+    border-left: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
   .day-cell.selected {
-    background-color: #E9F5F4;
-  }
-  .day-cell:hover:not(.selected) {
-    background-color: #F1F9F8;
+    box-shadow: inset 0 0 0 2px var(--selected-bg);
   }
   .day-cell:hover {
+    background-color: var(--hover-bg);
     background-image: linear-gradient(
       color-mix(in srgb, var(--selected-calendar-color) 10%, transparent),
       color-mix(in srgb, var(--selected-calendar-color) 10%, transparent));
-    color: white;
-  }
-  @media (prefers-color-scheme: dark) {
-    .day-cell.selected {
-      background-color: #193D39;
-    }
-    .day-cell:hover:not(.selected) {
-      background-color: var(--hover-bg);
-      color: var(--hover-fg);
-    }
-    .day-cell.selected:hover {
-      background-color: var(--selected-hover-bg);
-      color: var(--selected-hover-fg);
-    }
+    color: var(--hover-fg);
   }
   .current-time-marker-range {
     position: absolute;

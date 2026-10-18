@@ -29,10 +29,10 @@
     grid-template-columns: subgrid;
     align-content: start;
     overflow-y: auto;
-    border-bottom: 1px dotted var(--border);
+    border-bottom: 1px solid var(--border);
     background-color: var(--bg);
   }
   .day {
-    border-left: 1px dotted var(--border);
+    border-left: 1px solid var(--border);
   }
 </style>
