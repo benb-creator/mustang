@@ -76,9 +76,9 @@
   --border-radius: 4px;
   --popup-radius: 6px;
   --pane-header-height: 48px;
-  --chat-bubble-incoming-bg: white;
+  --chat-bubble-incoming-bg: #F0F2F5;
   --chat-bubble-incoming-fg: inherit;
-  --chat-bubble-outgoing-bg: #E4ECEA;
+  --chat-bubble-outgoing-bg: #E1E7EF;
   --chat-bubble-outgoing-fg: inherit;
   /** Mail thread graph: Lines to msgs that were read, and to unread msgs */
   --thread-line: #A9AEB8;
@@ -140,7 +140,7 @@
     --shadow-color: 0, 0, 0;
     --chat-bubble-incoming-bg: #26282D;
     --chat-bubble-incoming-fg: inherit;
-    --chat-bubble-outgoing-bg: #1E4A45;
+    --chat-bubble-outgoing-bg: #2B3440;
     --chat-bubble-outgoing-fg: inherit;
     --thread-line: #4A4D55;
     --thread-unread: #2BA897;

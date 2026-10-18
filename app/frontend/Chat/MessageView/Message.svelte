@@ -135,21 +135,19 @@
   /** Speech bubble */
   .message .bubble {
     position: relative; /* arrows are relative to this */
-    border-bottom-right-radius: 12px;
-    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
     padding: 7px 15px;
   }
   .incoming .bubble {
     background-color: var(--chat-bubble-incoming-bg);
     color: var(--chat-bubble-incoming-fg);
-    border-top-right-radius: 12px;
-    box-shadow: 1px 1px 2px 0px rgba(0, 0, 0, 7%);
+    border-top-right-radius: 8px;
   }
   .outgoing .bubble {
     background-color: var(--chat-bubble-outgoing-bg);
     color: var(--chat-bubble-outgoing-fg);
-    border-top-left-radius: 12px;
-    box-shadow: 1px 1px 2px 0px rgba(0, 0, 0, 15%);
+    border-top-left-radius: 8px;
   }
   .message.followup {
     margin-block-start: 3px;
@@ -174,10 +172,10 @@
     border-color: var(--chat-bubble-outgoing-bg) transparent transparent transparent;
   }
   .incoming.followup .bubble {
-    border-top-left-radius: 12px;
+    border-top-left-radius: 8px;
   }
   .outgoing.followup .bubble {
-    border-top-right-radius: 12px;
+    border-top-right-radius: 8px;
   }
 
   .avatar {
