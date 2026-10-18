@@ -16,6 +16,7 @@
 <style>
   .app-button {
     align-items: center;
+    position: relative;
   }
   .app-button.padding {
     padding: 10px 0px 6px 0px;
@@ -27,31 +28,27 @@
     stroke: var(--appbar-fg);
   }
   .app-button:hover {
-    background-color: rgba(255, 255, 255, 25%);
-  }
-  .app-button:hover .label {
-    color: black;
+    background-color: rgba(255, 255, 255, 8%);
   }
   .app-button.selected {
-    background-color: rgba(255, 255, 255, 95%);
+    background-color: rgba(255, 255, 255, 14%);
   }
-  .app-button.selected .label :global(> .label) {
-    color: black;
+  .app-button.selected::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 3px;
+    background-color: var(--icon-primary);
   }
   .icon {
     color: rgba(255, 255, 255, 80%);
   }
-  .app-button.selected .icon {
-    color: #494558 /* var(--appbar-bg) */;
-  }
-  .app-button.selected .icon :global(.cls-1) {
-    stroke: #494558 /* var(--appbar-bg) */;
-  }
-  .app-button.selected .icon :global(.date-calendar-icon) {
-    fill: #494558 /* var(--appbar-bg) */;
+  .app-button:not(.selected) .label {
+    opacity: 80%;
   }
   .label {
-    color: #999999;
+    color: var(--appbar-fg);
     overflow: hidden;
     overflow-wrap: anywhere;
     text-overflow: clip;
@@ -60,8 +57,5 @@
     margin-block-start: 4px;
     margin-inline-start: 4px;
     margin-inline-end: 4px;
-  }
-  .selected .label {
-    color: black;
   }
 </style>

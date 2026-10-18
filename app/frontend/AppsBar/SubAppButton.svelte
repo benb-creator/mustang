@@ -26,22 +26,14 @@
     stroke: white;
   }
   .sub-app-button:hover {
-    background-color: rgba(255, 255, 255, 25%);
+    background-color: rgba(255, 255, 255, 8%);
   }
   .sub-app-button.selected {
-    background-color: rgba(255, 255, 255, 95%);
+    background-color: rgba(255, 255, 255, 14%);
+    box-shadow: inset 0 -2px 0 var(--icon-primary);
   }
   .icon {
     color: rgba(255, 255, 255, 80%);
-  }
-  .sub-app-button.selected .icon {
-    color: #494558 /* var(--appbar-bg) */;
-  }
-  .sub-app-button.selected .icon :global(.cls-1) {
-    stroke: #494558 /* var(--appbar-bg) */;
-  }
-  .sub-app-button.selected .icon :global(.date-calendar-icon) {
-    fill: #494558 /* var(--appbar-bg) */;
   }
 
   :global(.sub-app-bar[app="webapps"]) .icon {

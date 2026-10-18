@@ -39,7 +39,7 @@
   --windowheader-bg: #160C27;
   --windowheader-fg: white;
   /* #142862, #213547 */
-  --appbar-bg: #494558;
+  --appbar-bg: #160C27;
   --appbar-fg: white;
   --border: #E1E2E5; /* #3A3A3B */
   --outstanding-bg: #888888;
@@ -92,7 +92,7 @@
     --windowheader-fg: #C1C1C2;
     --headerbar-bg: #202022;
     --headerbar-fg: #C1C1C2;
-    --appbar-bg: #242626;
+    --appbar-bg: #202022;
     --appbar-fg: #FAFAFA;
     --border: #333335;
     --outstanding-bg: #666666;

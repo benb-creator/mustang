@@ -53,25 +53,15 @@
     padding-block-start: 8px;
     z-index: 4;
   }
-  .app-bar :global(.app-button),
-  .middle {
-    border-right: 1px dotted var(--border);
-  }
-  @media (prefers-color-scheme: light) {
-    .app-bar :global(.app-button),
-    .middle {
-      border-right: 1px dotted grey;
-    }
-  }
   .above-setup {
     position: fixed;
-    width: 63px;
+    width: 64px;
     bottom: 68px;
     margin: 0 auto;
   }
   .app-bar :global(.app-button.settings) {
     position: fixed;
-    width: 63px;
+    width: 64px;
     bottom: 10px;
     margin: 0 auto;
   }
