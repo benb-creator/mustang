@@ -55,6 +55,7 @@
   import type { Attachment } from "../../../logic/Abstract/Attachment";
   import { fileSize } from "../../Files/file";
   import { openFileInternallyFromFile, canOpenFileInternally } from "../../Files/open";
+  import { saveBlobAsFile } from "../../Util/util";
   import AttachmentMenu from "../../Mail/Message/AttachmentMenu.svelte";
   import FileIcon from "../../Files/Thumbnail/FileIcon.svelte";
   import Clickable from "../../Shared/Clickable.svelte";
@@ -75,7 +76,7 @@
     if (canOpenFileInternally(attachment.mimeType)) {
       await openFileInternallyFromFile(attachment.content);
     } else {
-      await attachment.saveFile(); // offer to save the blob to disk
+      await saveBlobAsFile(attachment.content); // offer to save the blob to disk
     }
   }
 

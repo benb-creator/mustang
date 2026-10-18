@@ -6,7 +6,8 @@ import { Observable, notifyChangedProperty } from "../util/Observable";
 import { openOSAppForFile } from "../util/os-integration";
 import { RunOnce } from "../util/flow/RunOnce";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
-import { blobToBase64, UserError, type URLString, fileExtensionForMIMEType, assert, saveBlobAsFile } from "../util/util";
+import { UserError, type URLString, fileExtensionForMIMEType, assert } from "../util/util";
+import { blobToBase64 } from "../util/blob";
 import { gt } from "../../l10n/l10n";
 import type { ArrayColl, Collection } from "svelte-collections";
 
@@ -158,10 +159,6 @@ export class Attachment extends Observable {
    * where this file is, and select this file. */
   async openOSFolder() {
     await appGlobal.remoteApp.showFileInFolder(this.filepathLocal);
-  }
-  async saveFile() {
-    await this.load();
-    await saveBlobAsFile(this.content);
   }
   async deleteFile() {
     await this.storageRunOnce.runOnce(async () => {

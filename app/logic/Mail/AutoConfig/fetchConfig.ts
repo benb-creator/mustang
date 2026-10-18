@@ -4,7 +4,8 @@ import { appGlobal } from "../../app";
 import { PriorityAbortable, makeAbortable } from "../../util/flow/Abortable";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { getBaseDomainFromHost } from "../../util/netUtil";
-import { assert, URLPart, type URLString } from "../../util/util";
+import { assert, type URLString } from "../../util/util";
+import { URLPart } from "../../util/blob";
 import type { ArrayColl } from "svelte-collections";
 
 /** Implements the Autoconfig protocol

@@ -5,7 +5,8 @@ import { ParticipationStatus, InvitationResponse } from "../Invitation/Invitatio
 import { ContentDisposition } from "../../Abstract/Attachment";
 import { ICalContainer, ICalParser } from "./ICalParser";
 import { WindowsToIANATimezone } from "./WindowsTimezone";
-import { base64ToUint8Array, fileExtensionForMIMEType, stringFromDataURL } from "../../util/util";
+import { fileExtensionForMIMEType } from "../../util/util";
+import { base64ToUint8Array, stringFromDataURL } from "../../util/blob";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { gt } from "../../../l10n/l10n";
 import type { ArrayColl } from "svelte-collections";

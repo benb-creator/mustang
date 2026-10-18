@@ -2,7 +2,6 @@ import { notifications, Notification, NotificationSeverity } from "./Notificatio
 import { production } from "../build";
 import * as Sentry from "@sentry/svelte";
 
-// <copied from="../../frontend/Util/error.ts">
 export function showError(ex: Error) {
   console.error(errorMessage(ex), ex);
   if (shouldShow(ex)) {
@@ -86,4 +85,3 @@ export function catchFallback<T>(func: () => T, fallbackResult: T): T {
     return fallbackResult;
   }
 }
-// </copied>

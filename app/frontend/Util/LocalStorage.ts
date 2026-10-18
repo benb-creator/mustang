@@ -9,8 +9,8 @@ class ObservableLocalStorageSetting<T> extends Observable {
     this.key = key;
     this.defaultValue = defaultValue;
   }
-  // <copied to="../../logic/util/util.ts, ../../logic/Auth/UI/OAuth2Redirect.ts">
-  // HACK: `getUserPreference()` and `OAuth2Redirect.storeValue()` in logic/ access `localStorage` directly.
+  // <copied to="../../logic/util/util.ts">
+  // HACK: `getUserPreference()` and `setUserPreference()` in logic/ access `localStorage` directly.
   // They assume that this class saves the value there, under the same key, in this format.
   get value(): T {
     return JSON.parse(sanitize.nonemptystring(localStorage.getItem(this.key), null)) ?? this.defaultValue;
