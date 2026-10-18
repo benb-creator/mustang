@@ -1,0 +1,14 @@
+id: T2
+title: {en: "Start the app", de: "App starten"}
+description: "Account set up and synced earlier, app closed; until the Inbox list is shown and settled"
+start_state: {server: synced, client: synced}
+apps:
+  parula-jmap: &start
+    steps:
+      - name: start
+        actions: [launch]
+        timeout_s: 300
+  parula-imap: *start
+  thunderbird: *start
+  outlook-classic: *start
+  outlook-new: *start

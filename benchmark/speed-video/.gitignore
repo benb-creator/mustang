@@ -1,0 +1,6 @@
+work/
+config.yaml
+voice/
+tools/
+__pycache__/
+*.pyc

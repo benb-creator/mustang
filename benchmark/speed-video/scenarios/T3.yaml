@@ -1,0 +1,15 @@
+id: T3
+title: {en: "Open a big folder", de: "Großen Ordner öffnen"}
+description: "App open, Inbox shown; until the Archive list (20,000 messages) is shown and settled"
+start_state: {server: synced, client: synced}
+apps:
+  parula-jmap: &open
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 300}}]
+    steps:
+      - name: open-archive
+        actions: [{click: folder.archive}]
+        timeout_s: 600
+  parula-imap: *open
+  thunderbird: *open
+  outlook-classic: *open
+  outlook-new: *open

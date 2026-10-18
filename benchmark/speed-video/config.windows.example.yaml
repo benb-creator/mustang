@@ -1,0 +1,131 @@
+# Benchmark config for the Windows comparisons C3 (Parula JMAP vs Outlook classic IMAP) and
+# C4 (Parula JMAP vs new Outlook for Windows, IMAP account synced through the Microsoft cloud).
+# UNTESTED: written without access to a Windows machine. Check every value during calibration.
+# Use a dedicated Windows user for benchmarking: client snapshots replace that user's app data folders.
+# Secrets only from environment variables: set BENCH_ACCOUNT_PASSWORD=...
+
+workdir: ./work
+
+tools:
+  ffmpeg: C:/Tools/ffmpeg/bin/ffmpeg.exe     # ffmpeg >= 7 with ddagrab (gyan.dev or BtbN "full" builds)
+  ffprobe: C:/Tools/ffmpeg/bin/ffprobe.exe
+
+server:
+  name: Stalwart
+  host: <bench.mail.example.org>
+  version_command: /opt/stalwart-bench/bin/stalwart --version
+  jmap_session_url: https://<bench.mail.example.org>/.well-known/jmap
+  imap: {host: <bench.mail.example.org>, port: 993, tls: true}
+  smtp: {host: <bench.mail.example.org>, port: 465}
+  snapshot:
+    method: storage
+    ssh: <bench@bench.mail.example.org>         # Windows 10/11 ship OpenSSH (ssh.exe); use key authentication
+    instance_dir: /opt/stalwart-bench
+    data_dir: /opt/stalwart-bench/data
+    snapshot_dir: /opt/stalwart-bench/snapshots
+    stop: sudo systemctl stop stalwart-bench
+    start: sudo systemctl start stalwart-bench
+    wipe_allowed_for: <bench@example.org>
+
+account:
+  email: <bench@example.org>
+  username: <bench@example.org>
+  display_name: Robin Sample
+  password_env: BENCH_ACCOUNT_PASSWORD
+
+corpus:
+  seed: 20261018
+  owner_name: Robin Sample
+  owner_address: <bench@example.org>
+
+corpus_facts:
+  search_term: kumquat
+  move_folder: Projects/Move-me
+
+display:
+  platform: windows
+  monitor: 0                         # ddagrab output_idx
+  layout: 2560x1440-100pct           # display scaling 100 % (the driver is per-monitor DPI aware)
+  app_region: {x: 0, y: 0, width: 1280, height: 1080}
+  marker: {cell: 12, position: below, gap: 4}
+
+capture:
+  fps: 60
+  cpus: "11"                         # ffmpeg process affinity (SetProcessAffinityMask)
+  draw_mouse: true
+  live_scale: 4
+
+settle:
+  pixel_threshold: 8
+  min_changed_pixels: 150
+  quiet_s: 1.0
+  live_quiet_s: 1.5
+  step_timeout_s: 300
+  reference_quiet_s: 4.0
+  reference_tolerance: 0.02
+
+runs: {measured: 5, warmup: 1, retries: 2}
+
+driver:
+  type_delay_ms: 40
+
+apps:
+  parula-jmap:
+    name: Parula
+    protocol: JMAP
+    os: Windows
+    launch: ["{home}/AppData/Local/Programs/parula/parula.exe"]
+    profile: {dirs: ["{home}/AppData/Roaming/Parula"]}       # config dir and Electron userData are the same folder
+    window: {process: parula.exe, timeout_s: 120}
+    close: {key: ctrl+q, timeout_s: 60}
+    process_names: [parula.exe]
+    version_from: {asar: "{home}/AppData/Local/Programs/parula/resources/app.asar"}
+  outlook-classic:
+    name: Outlook (classic)
+    protocol: IMAP
+    os: Windows
+    launch: ["C:/Program Files/Microsoft Office/root/Office16/OUTLOOK.EXE", /profile, Bench]
+    profile:
+      dirs: ["{home}/AppData/Local/Microsoft/Outlook"]      # the IMAP account's .ost data file(s)
+      registry: ["HKCU\\Software\\Microsoft\\Office\\16.0\\Outlook\\Profiles\\Bench"]
+    window: {class: rctrl_renwnd32, timeout_s: 180}
+    close: {key: alt+F4, timeout_s: 120}
+    process_names: [outlook.exe]
+    version_from:
+      command: [powershell, -NoProfile, -Command,
+                "(Get-Item 'C:/Program Files/Microsoft Office/root/Office16/OUTLOOK.EXE').VersionInfo.ProductVersion"]
+  outlook-new:
+    name: Outlook (new)
+    protocol: IMAP (via Microsoft cloud)
+    os: Windows
+    launch: [explorer.exe, "shell:AppsFolder\\Microsoft.OutlookForWindows_8wekyb3d8bbwe!Microsoft.OutlookforWindows"]
+    profile:
+      dirs: ["{home}/AppData/Local/Microsoft/Olk"]
+    window: {process: olk.exe, timeout_s: 180}
+    close: {key: alt+F4, timeout_s: 120}
+    process_names: [olk.exe]
+    version_from:
+      command: [powershell, -NoProfile, -Command, "(Get-AppxPackage Microsoft.OutlookForWindows).Version"]
+
+comparisons:
+  C3: {os: Windows, left: parula-jmap, right: outlook-classic, tasks: [T1, T2, T3, T4, T5, T6, T7]}
+  C4:
+    os: Windows
+    left: parula-jmap
+    right: outlook-new
+    tasks: [T1, T2, T3, T4, T5, T6, T7]
+    environment: {cloud_sync_confirmed: 0}   # set to 1 after confirming the IMAP account syncs through Microsoft's cloud
+
+deviations:
+  - "Outlook (classic): started with /profile Bench, a profile that only holds the benchmark IMAP account."
+  - "Windows: notifications (Focus assist / Do not disturb) on, so no toasts appear during capture."
+
+compose:
+  font_regular: C:/Windows/Fonts/segoeui.ttf
+  font_bold: C:/Windows/Fonts/segoeuib.ttf
+  voice_dir: ./voice
+
+encode:
+  loudness_lufs: -14
+  true_peak_db: -1
+  youtube_height: 2160

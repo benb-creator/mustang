@@ -1,0 +1,138 @@
+# Benchmark config for the Linux comparisons C1 (Parula JMAP vs Parula IMAP) and C2 (Parula JMAP vs Thunderbird IMAP).
+# Copy to config.yaml and fill in the placeholders (<…>). Relative paths are relative to this file.
+# Secrets come only from environment variables: export BENCH_ACCOUNT_PASSWORD=...
+
+workdir: ./work                     # runs, snapshots, references, results, compose output (needs tens of GB)
+
+tools:
+  ffmpeg: ffmpeg                    # ffmpeg >= 7 with x11grab, libx264, libvpx-vp9, libopus, drawtext, loudnorm
+  ffprobe: ffprobe
+  xdotool: xdotool
+  xdpyinfo: xdpyinfo
+
+server:
+  name: Stalwart
+  host: <bench.mail.example.org>
+  version_command: /opt/stalwart-bench/bin/stalwart --version   # run on the server through snapshot.ssh
+  jmap_session_url: https://<bench.mail.example.org>/.well-known/jmap
+  imap: {host: <bench.mail.example.org>, port: 993, tls: true}
+  smtp: {host: <bench.mail.example.org>, port: 465}
+  snapshot:
+    method: storage                 # storage (stop, copy data dir, start) | protocol (wipe + re-import) | none
+    ssh: <bench@bench.mail.example.org>
+    instance_dir: /opt/stalwart-bench                   # must contain the file BENCHMARK-INSTANCE
+    data_dir: /opt/stalwart-bench/data
+    snapshot_dir: /opt/stalwart-bench/snapshots
+    stop: sudo systemctl stop stalwart-bench
+    start: sudo systemctl start stalwart-bench
+    wipe_allowed_for: <bench@example.org>              # protocol level only wipes exactly this user
+
+account:
+  email: <bench@example.org>
+  username: <bench@example.org>
+  display_name: Robin Sample
+  password_env: BENCH_ACCOUNT_PASSWORD
+
+corpus:
+  seed: 20261018
+  owner_name: Robin Sample
+  owner_address: <bench@example.org>
+  # Defaults: Inbox 3,000 · Archive 20,000 (10 years) · Sent 4,000 · Projects/Alpha 800, Beta 600, Gamma 600,
+  # Move-me 1,000 · Projects/Done empty; 15 % with attachments (20 KB–5 MB); planted: "kumquat" in 250 bodies,
+  # "Zanzibar" in 40 subjects. Override any of these here, see benchlib/corpus.py CorpusSpec.
+
+corpus_facts:
+  search_term: kumquat
+  move_folder: Projects/Move-me
+
+display:
+  platform: linux
+  display: ":0"                     # an X11 (Xorg) session; Wayland sessions can't be captured with x11grab
+  layout: 2560x1440                 # name of the calibration set
+  app_region: {x: 0, y: 0, width: 1280, height: 1080}
+  marker: {cell: 12, position: below, gap: 4}   # sync marker strip just outside the app region (cropped later)
+  masks: []                         # rectangles (relative to the app region) ignored by settle detection, e.g. a clock
+
+capture:
+  fps: 60
+  cpus: "11"                        # ffmpeg pinned to this core (taskset); keep the apps off it if you can
+  draw_mouse: true
+  live_scale: 4
+
+settle:
+  pixel_threshold: 8                # a pixel counts as changed if a channel differs by more than this
+  min_changed_pixels: 150           # smaller changes (caret, cursor blink) are ignored
+  quiet_s: 1.0                      # a step ends at the last change before this much stillness
+  live_quiet_s: 1.5                 # live gate before the next action (conservative)
+  step_timeout_s: 300
+  reference_quiet_s: 4.0            # quiet period of the calibration run that makes the reference images
+  reference_tolerance: 0.02         # fraction of differing pixels still accepted as "same state as the reference"
+
+runs: {measured: 5, warmup: 1, retries: 2}
+
+driver:
+  type_delay_ms: 40                 # the same typing speed for every app
+
+apps:
+  parula-jmap: &parula
+    name: Parula
+    protocol: JMAP
+    os: Linux
+    launch: [/opt/Parula/parula]    # .deb install; or the extracted AppImage: <dir>/squashfs-root/AppRun
+    env: {HOME: "{profile}/home"}   # separate profile: ~/.parula and ~/.config/Parula move with HOME
+    create_dirs: ["{profile}/home"]
+    profile: {dirs: ["{profile}/home"]}
+    window: {class: "[Pp]arula", timeout_s: 120}
+    close: {key: ctrl+q, timeout_s: 60}
+    process_names: ["{profile}/home"]
+    version_from: {asar: /opt/Parula/resources/app.asar}
+  parula-imap:
+    <<: *parula
+    protocol: IMAP
+  thunderbird:
+    name: Thunderbird
+    protocol: IMAP
+    os: Linux
+    launch: ["{config_dir}/tools/thunderbird/thunderbird", -profile, "{profile}/tb", -no-remote]
+    profile:
+      dirs: ["{profile}/tb"]
+      files:
+        "{profile}/tb/user.js": |
+          user_pref("app.update.auto", false);
+          user_pref("app.update.checkInstallTime", false);
+          user_pref("mail.shell.checkDefaultClient", false);
+          user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);
+          user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+          user_pref("mail.rights.override", true);
+          user_pref("app.donation.eoy.version.viewed", 999);
+          user_pref("mail.inappnotifications.enabled", false);
+    window: {class: "thunderbird", timeout_s: 120}
+    close: {key: ctrl+q, timeout_s: 60}
+    process_names: ["{profile}/tb"]
+    version_from: {ini: "{config_dir}/tools/thunderbird/application.ini"}
+
+comparisons:
+  C1: {os: Linux, left: parula-jmap, right: parula-imap, tasks: [T1, T2, T3, T4, T5, T6, T7]}
+  C2: {os: Linux, left: parula-jmap, right: thunderbird, tasks: [T1, T2, T3, T4, T5, T6, T7]}
+
+deviations:
+  - "Thunderbird: user.js switches off only pop-ups that would appear during capture: update checks, the default-client question, the telemetry and rights notices, donation and in-app notifications. Install-wide app updates disabled with distribution/policies.json (DisableAppUpdate)."
+  - "Parula: installed from the .deb package (no auto-update)."
+
+compose:
+  font_regular: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+  font_bold: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+  voice_dir: ./voice                # voice/<lang>/<segment-id>.wav, <segment-id>.before|during|after.wav
+  # music: ./music/bed.wav          # optional, ducked under the voice
+  countdown_s: 2.4
+  min_hold_s: 2.0
+  timelapse_threshold_s: 25
+  timelapse_max_compressed_s: 8
+
+encode:
+  loudness_lufs: -14
+  true_peak_db: -1
+  webm_crf: 30
+  mp4_crf: 18
+  youtube_crf: 12
+  youtube_height: 2160              # lanczos upscale of the 2560x1440 master for YouTube's 4K encoding ladder

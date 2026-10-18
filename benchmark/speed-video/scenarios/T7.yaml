@@ -1,0 +1,19 @@
+# Select all 1,000 messages of Projects/Move-me and drag them onto Projects/Done.
+# The server state changes, so every run starts from the restored snapshot.
+id: T7
+title: {en: "Move 1,000 messages", de: "1.000 Nachrichten verschieben"}
+description: "Folder Projects/Move-me (1,000 messages) open; select all, move to Projects/Done; until the source folder is shown empty and settled"
+start_state: {server: synced, client: synced}
+apps:
+  parula-jmap: &move
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 300}}, {click: folder.move_me},
+              {wait_settled: {quiet_s: 3.0, timeout_s: 300}}, {click: message.first_row},
+              {wait_settled: {quiet_s: 3.0, timeout_s: 300}}]
+    steps:
+      - name: move
+        actions: [{key: ctrl+a}, {drag: message.first_row, to: folder.done}]
+        timeout_s: 900
+  parula-imap: *move
+  thunderbird: *move
+  outlook-classic: *move
+  outlook-new: *move

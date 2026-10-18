@@ -1,0 +1,16 @@
+# message.with_attachments: a row of the Inbox list (same snapshot, so the same message in every run) whose
+# message has attachments; calibrate it to the same message in every app.
+id: T5
+title: {en: "Open a message with attachments", de: "Nachricht mit Anhängen öffnen"}
+description: "App open, Inbox shown; until the message body and the attachment list are shown and settled"
+start_state: {server: synced, client: synced}
+apps:
+  parula-jmap: &open
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 300}}]
+    steps:
+      - name: open-message
+        actions: [{click: message.with_attachments}]
+  parula-imap: *open
+  thunderbird: *open
+  outlook-classic: *open
+  outlook-new: *open

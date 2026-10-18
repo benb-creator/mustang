@@ -1,0 +1,29 @@
+# Search all mail for the planted term (corpus_facts.search_term, default "kumquat", 250 hits in the default corpus).
+# Each app uses its own default way to search everything: Parula's search field, Thunderbird's global search
+# (Ctrl+K, results tab), Outlook's search box (scope "All folders"/"All mailboxes" is the default in recent versions;
+# check it during calibration and list any change of scope as a deviation).
+id: T4
+title: {en: "Search all mail", de: "Alle E-Mails durchsuchen"}
+description: "App open; until the results for the planted search term are shown and settled"
+start_state: {server: synced, client: synced}
+apps:
+  parula-jmap: &parula
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 300}}]
+    steps:
+      - name: search
+        actions: [{click: search.field}, {type: "${search.term}"}, {key: Return}]
+        timeout_s: 300
+  parula-imap: *parula
+  thunderbird:
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 300}}]
+    steps:
+      - name: search
+        actions: [{key: ctrl+k}, {type: "${search.term}"}, {key: Return}]
+        timeout_s: 300
+  outlook-classic: &outlook
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 300}}]
+    steps:
+      - name: search
+        actions: [{click: search.field}, {type: "${search.term}"}, {key: Return}]
+        timeout_s: 300
+  outlook-new: *outlook

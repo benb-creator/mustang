@@ -1,0 +1,19 @@
+# Default sort order matters: End reaches the oldest message when the list is sorted newest first.
+# If an app's default is oldest first, use {key: Home} for it here and say so in the report.
+id: T6
+title: {en: "Jump to the oldest message", de: "Zur ältesten Nachricht springen"}
+description: "Archive folder open at the top; End key until the bottom of the list is shown and settled"
+start_state: {server: synced, client: synced}
+apps:
+  parula-jmap: &jump
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 300}}, {click: folder.archive},
+              {wait_settled: {quiet_s: 3.0, timeout_s: 600}}, {click: message.first_row},
+              {wait_settled: {quiet_s: 3.0, timeout_s: 300}}]
+    steps:
+      - name: end
+        actions: [{key: End}]
+        timeout_s: 600
+  parula-imap: *jump
+  thunderbird: *jump
+  outlook-classic: *jump
+  outlook-new: *jump

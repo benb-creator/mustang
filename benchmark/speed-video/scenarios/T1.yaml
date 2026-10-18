@@ -1,0 +1,64 @@
+# Add the account (first run). Typing is not waiting: each step's timer starts at its last action
+# (the "continue"-type key or click) and runs until the screen settles.
+# Point names (button.*, protocol.*) are calibrated per app: bench.py calibrate points --app <id>.
+# Verify the flows against the installed app versions during calibration; the report publishes these lists.
+id: T1
+title: {en: "Add the account", de: "Konto einrichten"}
+description: "Fresh profile, app open at its account setup; until the Inbox list is shown and settled"
+start_state: {server: synced, client: fresh}
+apps:
+  parula-jmap:
+    prepare: [launch, {wait_settled: {quiet_s: 2.0, timeout_s: 120}}]
+    steps:
+      - name: find-config
+        actions: [{type: "${account.email}"}, {key: Return}, {type: "${account.password}"}, {key: Return}]
+      - name: check-login
+        actions: [{click: button.continue}]
+      - name: open-inbox
+        actions: [{click: button.continue}]
+        timeout_s: 900
+  parula-imap:
+    prepare: [launch, {wait_settled: {quiet_s: 2.0, timeout_s: 120}}]
+    steps:
+      - name: find-config
+        actions: [{type: "${account.email}"}, {key: Return}, {type: "${account.password}"}, {key: Return}]
+      - name: check-login
+        actions: [{click: protocol.imap}, {click: button.continue}]
+      - name: open-inbox
+        actions: [{click: button.continue}]
+        timeout_s: 900
+  thunderbird:
+    prepare: [launch, {wait_settled: {quiet_s: 2.0, timeout_s: 120}}]
+    steps:
+      - name: find-config
+        actions: [{type: "${account.name}"}, {key: Tab}, {type: "${account.email}"}, {key: Tab},
+                  {type: "${account.password}"}, {key: Return}]
+      - name: check-login
+        actions: [{click: button.done}]
+      - name: open-inbox
+        actions: [{click: button.finish}]
+        timeout_s: 900
+  outlook-classic:
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 180}}]
+    steps:
+      - name: choose-imap
+        actions: [{type: "${account.email}"}, {click: link.advanced}, {click: checkbox.manual}, {click: button.connect}]
+      - name: enter-password
+        actions: [{click: tile.imap}]
+      - name: connect
+        actions: [{type: "${account.password}"}, {click: button.connect}]
+      - name: open-inbox
+        actions: [{click: button.done}]
+        timeout_s: 900
+  outlook-new:
+    prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 180}}]
+    steps:
+      - name: choose-provider
+        actions: [{type: "${account.email}"}, {click: button.continue}]
+      - name: imap-form
+        actions: [{click: option.imap}, {click: button.continue}]
+      - name: connect
+        actions: [{type: "${account.password}"}, {click: button.continue}]
+      - name: open-inbox
+        actions: [{click: button.done}]
+        timeout_s: 1800
