@@ -348,13 +348,13 @@ test("EWS: Skip a calendar that is not shared with us anymore", async () => {
 
     expect(calendars.map(calendar => calendar.folderID)).toEqual(["carol-projects-id"]);
     expect(consoleError).not.toHaveBeenCalled();
-    expect(account.itemErrors.isEmpty).toBe(true);
+    expect(account.dataErrors.isEmpty).toBe(true);
   } finally {
     consoleError.mockRestore();
   }
 });
 
-test("EWS: Report an unexpected error as item error, but still offer the other calendars", async () => {
+test("EWS: Report an unexpected error as data error of the account, but still offer the other calendars", async () => {
   let { account, server } = newTestAccount();
   server.bobCalendarError = "ErrorInternalServerError";
   let errorCallback = vi.fn();
@@ -364,11 +364,11 @@ test("EWS: Report an unexpected error as item error, but still offer the other c
 
   expect(calendars.map(calendar => calendar.folderID)).toEqual(["carol-projects-id"]);
   // Bob's shortcut is in the list twice, so his calendar fails twice
-  let itemErrors = account.itemErrors.contents;
-  expect(itemErrors.length).toBe(2);
-  expect(itemErrors.every(ex => ex.message.includes("ErrorInternalServerError"))).toBe(true);
-  // `itemError()` also reports it like any other error of the account
-  expect(errorCallback.mock.calls.map(call => call[0])).toEqual(itemErrors);
+  let dataErrors = account.dataErrors.contents;
+  expect(dataErrors.length).toBe(2);
+  expect(dataErrors.every(ex => ex.message.includes("ErrorInternalServerError"))).toBe(true);
+  // `dataError()` also reports it like any other error of the account
+  expect(errorCallback.mock.calls.map(call => call[0])).toEqual(dataErrors);
 });
 
 test("EWS: The user never opened a calendar of another user", async () => {

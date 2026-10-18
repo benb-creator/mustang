@@ -2,6 +2,7 @@ import { notifications, Notification, NotificationSeverity } from "./Notificatio
 import { production } from "../build";
 import { ArrayColl } from "svelte-collections";
 
+/** Shows the error to the user, and logs it to the error log server */
 export function showError(ex: Error) {
   console.error(errorMessage(ex), ex);
   if (shouldShow(ex)) {
@@ -9,7 +10,18 @@ export function showError(ex: Error) {
   }
 }
 
-export function backgroundError(ex: Error) {
+/** The frontend watches this and sends the errors to the error log server */
+export const errorsForServer = new ArrayColl<Error>();
+
+/** Logs the error to the error log server, without showing it to the user */
+export function logErrorToServer(ex: Error) {
+  console.error(errorMessage(ex), ex);
+  errorsForServer.add(ex);
+}
+
+/** Logs the error only to the console, and not to the error log server.
+ * Development builds also show it to the user, as warning. */
+export function consoleError(ex: Error) {
   console.error(errorMessage(ex), ex);
   if (production) {
     return;
@@ -19,14 +31,20 @@ export function backgroundError(ex: Error) {
   }
 }
 
-/** @see `itemError()` */
-export const itemErrors = new ArrayColl<Error>();
+/** The data of one item is bad, e.g. a database row, an object from the server, or the HTML of an email.
+ * Call it in the `catch` within a loop, so that the loop continues with the other items. @see `Account.dataError()` */
+export function dataError(ex: Error) {
+  consoleError(ex);
+}
 
-/** For an error in a single item of a loop, when there is no account at hand, e.g. an account that failed to load.
- * Call it in the `catch` within the loop, so that the loop continues with the other items. @see `Account.itemError()` */
-export function itemError(ex: Error) {
-  itemErrors.add(ex);
-  backgroundError(ex);
+/** Our own state is inconsistent, e.g. an account lost its main account, or failed to load. Probably a bug. */
+export function internalError(ex: Error) {
+  logErrorToServer(ex);
+}
+
+/** A minor task failed, but the main task worked, e.g. marking the original email as replied after sending the reply */
+export function minorError(ex: Error) {
+  consoleError(ex);
 }
 
 function shouldShow(ex: Error): boolean {

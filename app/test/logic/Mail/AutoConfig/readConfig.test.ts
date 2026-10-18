@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { appGlobal } from "../../../../logic/app"; // defeats circular import
 import { readConfigFromXML } from "../../../../logic/Mail/AutoConfig/readConfig";
-import { itemErrors } from "../../../../logic/util/error";
+import { errorsForServer } from "../../../../logic/util/error";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 beforeAll(() => {
@@ -10,7 +10,7 @@ beforeAll(() => {
 });
 
 afterEach(() => {
-  itemErrors.clear();
+  errorsForServer.clear();
   vi.restoreAllMocks();
 });
 
@@ -44,7 +44,7 @@ const kConfigXML = `<?xml version="1.0"?>
   </emailProvider>
 </clientConfig>`;
 
-test("A broken server in the config is an item error, and we use the next server", () => {
+test("A broken server in the config is logged to the server, and we use the next server", () => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 
   let configs = readConfigFromXML(kConfigXML, "example.com", "builtin");
@@ -52,5 +52,5 @@ test("A broken server in the config is an item error, and we use the next server
   expect(configs.length).toBe(1);
   expect(configs.first.hostname).toBe("imap.example.com");
   expect(configs.first.outgoing.hostname).toBe("smtp.example.com");
-  expect(itemErrors.length).toBe(1);
+  expect(errorsForServer.length).toBe(1);
 });

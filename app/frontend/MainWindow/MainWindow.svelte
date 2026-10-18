@@ -80,7 +80,7 @@
   import CalendarInBackground from "../Calendar/CalendarInBackground.svelte";
   import MeetBackground from "../Meet/MeetBackground.svelte";
   import WebAppsInBackground from "../WebApps/Runner/WebAppsInBackground.svelte";
-  import { catchErrors, logError } from "../Util/error";
+  import { catchErrors } from "../Util/error";
   import { assert } from "../../logic/util/util";
   import { getUILocale, t } from "../../l10n/l10n";
   import { rtlLocales } from "../../l10n/list";
@@ -116,7 +116,7 @@
     if (appGlobal.emailAccounts.isEmpty && appGlobal.chatAccounts.isEmpty) {
       await setup();
     } else {
-      await loginOnStartup(console.error, logError);
+      await loginOnStartup(console.error);
       // Setting $selectedApp late would overwrite commandline/URL handlers
       $selectedAccount = appGlobal.emailAccounts.first;
       // `MailApp` selects the inbox, once we read the folders

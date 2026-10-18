@@ -85,7 +85,7 @@ export class SQLTopic {
           c.rawHTMLDangerous = sanitize.string(content.html, "");
         }
       } catch (ex) {
-        topic.account.itemError(ex);
+        topic.account.dataError(ex);
       }
     }
   }

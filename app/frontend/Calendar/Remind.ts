@@ -5,7 +5,7 @@ import { appGlobal } from "../../logic/app";
 import { SystemNotification, NotificationKinds } from "../Shared/SystemNotification";
 import { getComputerOn } from "../../logic/util/backend-wrapper";
 import { getLocalStorage } from "../Util/LocalStorage";
-import { catchErrors, backgroundError } from "../Util/error";
+import { catchErrors, consoleError } from "../Util/error";
 import { k1HourMS } from "../../logic/util/date";
 import CalendarIcon from '../asset/icon/appBar/calendar.svg?raw';
 import { Debounce } from "../../logic/util/flow/Debounce";
@@ -59,7 +59,7 @@ function waitForNextReminder() {
     return;
   }
   let delayMS = Math.max(Math.min(nextAlarm.getTime() - Date.now(), kMaxDelayMS), 0);
-  timeout = setTimeout(() => catchErrors(showReminder, backgroundError), delayMS);
+  timeout = setTimeout(() => catchErrors(showReminder, consoleError), delayMS);
 }
 
 async function showReminder() {
@@ -89,7 +89,7 @@ async function openEventInApp(event: Event) {
     openEvent(event, false);
     bringAppToFront();
   } catch (ex) {
-    backgroundError(ex);
+    consoleError(ex);
   }
 }
 
@@ -118,7 +118,7 @@ class EventsWithAlarmsObserver extends CollectionObserver<Event> {
 
   protected changed() {
     waitForNextReminderDebounce.debounce(waitForNextReminder)
-      .catch(backgroundError);
+      .catch(consoleError);
   }
 }
 let eventsObserver = new EventsWithAlarmsObserver();

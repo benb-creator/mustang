@@ -1,20 +1,21 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-/* logic/ shows errors by adding them to `notifications`, and must not
- * depend on Sentry. The frontend watches `notifications` and logs the
- * errors to the server. Sentry logs only in production builds. */
+/* logic/ shows errors by adding them to `notifications`, and logs them by
+ * adding them to `errorsForServer`. It must not depend on Sentry.
+ * The frontend watches both lists and sends the errors to the server.
+ * Sentry logs only in production builds. */
 vi.mock("@sentry/svelte", () => ({ captureException: vi.fn() }));
 vi.mock("../../../logic/build", async (importOriginal) => ({ ...await importOriginal<object>(), production: true }));
 
 import * as Sentry from "@sentry/svelte";
 import { notifications } from "../../../logic/util/Notification";
 import * as logic from "../../../logic/util/error";
-import { showError, showUserError, logError } from "../../../frontend/Util/error";
+import { showError, showUserError, logErrorToServer } from "../../../frontend/Util/error";
 import { UserError } from "../../../logic/util/util";
 
 beforeEach(() => {
   notifications.clear();
-  logic.itemErrors.clear();
+  logic.errorsForServer.clear();
   vi.mocked(Sentry.captureException).mockClear();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
@@ -32,8 +33,9 @@ test("An error that logic shows is logged to the server by the frontend", () => 
   expect(Sentry.captureException).toHaveBeenCalledWith(ex);
 });
 
-test("showError() of the frontend is the one of logic", () => {
+test("The frontend error functions are the ones of logic", () => {
   expect(showError).toBe(logic.showError);
+  expect(logErrorToServer).toBe(logic.logErrorToServer);
 });
 
 test("The same error is shown and logged only once", () => {
@@ -44,8 +46,17 @@ test("The same error is shown and logged only once", () => {
   expect(Sentry.captureException).toHaveBeenCalledTimes(1);
 });
 
-test("Background errors are neither shown nor logged in production", () => {
-  logic.backgroundError(new Error("Could not parse one email"));
+test("logErrorToServer() logs to the server without showing the error", () => {
+  let ex = new Error("Unexpected");
+
+  logic.logErrorToServer(ex);
+
+  expect(notifications.isEmpty).toBe(true);
+  expect(Sentry.captureException).toHaveBeenCalledWith(ex);
+});
+
+test("consoleError() neither shows nor logs in production", () => {
+  logic.consoleError(new Error("Could not parse one email"));
 
   expect(notifications.isEmpty).toBe(true);
   expect(Sentry.captureException).not.toHaveBeenCalled();
@@ -58,21 +69,35 @@ test("User errors are shown, but not logged to the server", () => {
   expect(Sentry.captureException).not.toHaveBeenCalled();
 });
 
-test("An item error without account is logged to the server, but not shown in production", () => {
-  let ex = new Error("Failed to load account");
+test("Errors with `doNotLog` are not logged to the server", () => {
+  let ex = new Error("Expected");
+  (ex as any).doNotLog = true;
 
-  logic.itemError(ex);
+  logic.logErrorToServer(ex);
 
-  expect(logic.itemErrors.contents).toEqual([ex]);
+  expect(Sentry.captureException).not.toHaveBeenCalled();
+});
+
+/* The error functions that say why the error happened.
+ * Which of them log to the server is decided in `logic/util/error.ts`. */
+
+test("internalError() is logged to the server, but not shown", () => {
+  let ex = new Error("Account lost its main account");
+
+  logic.internalError(ex);
+
   expect(notifications.isEmpty).toBe(true);
   expect(Sentry.captureException).toHaveBeenCalledWith(ex);
 });
 
-test("logError() logs to the server without showing the error", () => {
-  let ex = new Error("Unexpected");
+test("dataError() is not logged to the server", () => {
+  logic.dataError(new Error("Could not read one participant"));
 
-  logError(ex);
+  expect(Sentry.captureException).not.toHaveBeenCalled();
+});
 
-  expect(notifications.isEmpty).toBe(true);
-  expect(Sentry.captureException).toHaveBeenCalledWith(ex);
+test("minorError() is not logged to the server", () => {
+  logic.minorError(new Error("Could not mark the original as replied"));
+
+  expect(Sentry.captureException).not.toHaveBeenCalled();
 });

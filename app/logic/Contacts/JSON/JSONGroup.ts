@@ -1,7 +1,7 @@
 import { Group } from "../../Abstract/Group";
 import { Person } from "../../Abstract/Person";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
-import { itemError } from "../../util/error";
+import { dataError } from "../../util/error";
 import { assert } from "../../util/util";
 import { appGlobal } from "../../app";
 
@@ -59,7 +59,7 @@ export class JSONGroup {
         }
         group.participants.add(person);
       } catch (ex) {
-        itemError(ex);
+        dataError(ex);
       }
     }
   }

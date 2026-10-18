@@ -15,7 +15,7 @@ import { getComputerOn } from './util/backend-wrapper';
 import JPCWebSocket from '../../lib/jpc-ws';
 import { production, webMail } from './build';
 import { retryOnTransientError } from './util/netUtil';
-import { catchErrors, showError } from './util/error';
+import { catchErrors, logErrorToServer, showError } from './util/error';
 import { assert, sleep } from './util/util';
 
 // Set before anything reads it. Not in `app.ts` to break import cycle.
@@ -92,13 +92,11 @@ export async function getStartObjects(): Promise<void> {
  *
  * @param startupErrorCallback Called for login errors.
  *   May be called multiple times, e.g. once per account.
- * @param backgroundErrorCallback Called for the errors of an account later on.
- *   @see `Account.errorCallback`
  */
-export function loginOnStartup(startupErrorCallback: (ex: Error) => void, backgroundErrorCallback: (ex: Error) => void): void {
+export function loginOnStartup(startupErrorCallback: (ex: Error) => void): void {
   let allAccounts = getAllAccounts();
   for (let account of allAccounts) {
-    account.errorCallback = (ex) => backgroundErrorInAccount(ex, account, backgroundErrorCallback);
+    account.errorCallback = (ex) => backgroundErrorInAccount(ex, account);
   }
   for (let account of allAccounts) {
     (async () => {
@@ -155,10 +153,10 @@ function errorWithAccountName(account: Account, errorCallback: (ex: Error) => vo
   };
 }
 
-function backgroundErrorInAccount(ex: Error, account: Account, errorCallback: (ex: Error) => void) {
+function backgroundErrorInAccount(ex: Error, account: Account) {
   account.errors.add(ex);
   addAccountName(ex, account);
-  errorCallback(ex);
+  logErrorToServer(ex);
 }
 
 /** The account name is shown to the user, but must not end up in `ex.message`:

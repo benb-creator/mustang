@@ -94,7 +94,7 @@
   import CheckIcon from "lucide-svelte/icons/check";
   import MailIcon from "lucide-svelte/icons/mail";
   import { createIsSame, onKeyEnter } from "../../Util/util";
-  import { backgroundError } from "../../Util/error";
+  import { consoleError } from "../../Util/error";
   import { t } from "../../../l10n/l10n";
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   const dispatch = createEventDispatcher<{ close: void }>();
@@ -132,7 +132,7 @@
   onDestroy(() => {
     if (isEditing) {
       onSave()
-        .catch(backgroundError);
+        .catch(consoleError);
     }
   });
   function onClose() {

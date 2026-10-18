@@ -4,8 +4,8 @@ import { production } from "../../logic/build";
 import * as Sentry from "@sentry/svelte";
 
 export const showError = logic.showError;
-export const backgroundError = logic.backgroundError;
-export const itemError = logic.itemError;
+export const logErrorToServer = logic.logErrorToServer;
+export const consoleError = logic.consoleError;
 export const catchErrors = logic.catchErrors;
 export const catchFallback = logic.catchFallback;
 
@@ -24,12 +24,7 @@ export function showUserError(ex: Error, autoDisappearAfterSeconds?: number): { 
   };
 }
 
-export function logError(ex: Error) {
-  console.error(logic.errorMessage(ex), ex);
-  logErrorToServer(ex);
-}
-
-function logErrorToServer(ex: Error) {
+function sendToErrorLogServer(ex: Error) {
   try {
     if ((ex as any)?.isUserError || (ex as any)?.doNotLog) {
       return;
@@ -46,7 +41,7 @@ const logNotificationErrors = {
   added(added: Notification[]) {
     for (let notification of added) {
       if (notification.ex) {
-        logErrorToServer(notification.ex);
+        sendToErrorLogServer(notification.ex);
       }
     }
   },
@@ -56,14 +51,14 @@ const logNotificationErrors = {
 notifications.registerObserver(logNotificationErrors);
 (notifications as any)._logNotificationErrors = logNotificationErrors; // HACK to keep it alive: `registerObserver()` holds it only weakly
 
-const logItemErrors = {
+const logErrorsForServer = {
   added(added: Error[]) {
     for (let ex of added) {
-      logErrorToServer(ex);
+      sendToErrorLogServer(ex);
     }
   },
   removed() {
   },
 };
-logic.itemErrors.registerObserver(logItemErrors);
-(logic.itemErrors as any)._logItemErrors = logItemErrors; // HACK to keep it alive: `registerObserver()` holds it only weakly
+logic.errorsForServer.registerObserver(logErrorsForServer);
+(logic.errorsForServer as any)._logErrorsForServer = logErrorsForServer; // HACK to keep it alive: `registerObserver()` holds it only weakly

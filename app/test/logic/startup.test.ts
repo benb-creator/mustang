@@ -21,11 +21,10 @@ beforeAll(async () => {
   dependent.mainAccount = remote;
   local = new TestAccount();
   local.loggedIn = true; // like the local calendar, which is always logged in
-  remote.name = "Remote";
   appGlobal.chatAccounts.addAll([remote, dependent, local]);
-  // The frontend passes `logError()` for the background errors, which logs them to the server
-  loginOnStartup(ex => errors.push(ex), ex => errors.push(ex));
+  loginOnStartup(ex => errors.push(ex));
   await sleep(0.1);
+  remote.errorCallback = dependent.errorCallback = local.errorCallback = ex => errors.push(ex);
 });
 
 test("The app start logs in, then starts up, once", async () => {
@@ -54,18 +53,6 @@ test("The Login button of a shared mailbox logs in the main account, which start
   expect(errors).toEqual([]);
   expect(remote.calls).toEqual(["login", "startup", "login", "startup", "login", "startup"]);
   expect(dependent.calls).toEqual(["startup", "startup", "startup"]);
-});
-
-test("An error in one item of an account goes to the background error callback, with the account name", () => {
-  let ex = new Error("Could not read one message");
-
-  remote.itemError(ex);
-
-  expect(errors).toEqual([ex]);
-  expect(remote.itemErrors.contents).toEqual([ex]);
-  expect(remote.errors.contents).toEqual([ex]);
-  expect((ex as any).accountName).toBe("Remote");
-  errors.length = 0;
 });
 
 /** `login()` only logs in. The caller runs `syncOnStartup()`. */

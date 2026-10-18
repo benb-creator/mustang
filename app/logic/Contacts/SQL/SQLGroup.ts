@@ -4,7 +4,7 @@ import type { Addressbook } from "../Addressbook";
 import { SQLPerson } from "./SQLPerson";
 import { getDatabase } from "./SQLDatabase";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
-import { itemError } from "../../util/error";
+import { dataError } from "../../util/error";
 import { assert } from "../../util/util";
 import { ArrayColl } from "svelte-collections";
 import sql from "../../../../lib/rs-sqlite";
@@ -132,7 +132,7 @@ export class SQLGroup extends Group {
         }
         group.participants.add(person);
       } catch (ex) {
-        itemError(ex);
+        dataError(ex);
       }
     }
   }

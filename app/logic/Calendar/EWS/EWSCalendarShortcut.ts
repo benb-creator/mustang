@@ -84,7 +84,7 @@ export class EWSCalendarShortcut {
         }
       } catch (ex) {
         if (!EWSCalendarShortcut.isStaleError(ex)) {
-          account.itemError(ex);
+          account.dataError(ex);
         }
       }
     }

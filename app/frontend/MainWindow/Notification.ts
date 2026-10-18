@@ -1,12 +1,12 @@
 import { Notification, NotificationSeverity } from "../../logic/util/Notification";
-import { logError } from "../Util/error";
+import { logErrorToServer } from "../Util/error";
 import type { ArrayColl } from "svelte-collections";
 
 export function showNotificationToast(message: string, notifications: ArrayColl<Notification>) {
   showNotification(message, NotificationSeverity.Info, 3, notifications);
 }
 export function showNotificationError(ex: Error, notifications: ArrayColl<Notification>) {
-  logError(ex);
+  logErrorToServer(ex);
   showNotification(ex?.message ?? ex + "", NotificationSeverity.Error, 3, notifications);
 }
 function showNotification(message: string, severity: NotificationSeverity, closeAfterSec: number, notifications: ArrayColl<Notification>) {

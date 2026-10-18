@@ -4,7 +4,7 @@ import { appGlobal } from "../app";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
 import { Observable, notifyChangedProperty } from "../util/Observable";
 import { RunOnce } from "../util/flow/RunOnce";
-import { itemError } from "../util/error";
+import { logErrorToServer, internalError } from "../util/error";
 import { SpecificError, assert } from "../util/util";
 import { ArrayColl, Collection } from "svelte-collections";
 
@@ -50,8 +50,8 @@ export class Account extends Observable {
   fatalError: Error | null = null;
   /** Non-fatal errors, including when processing a single email */
   readonly errors = new ArrayColl<Error>();
-  /** @see `itemError()` */
-  readonly itemErrors = new ArrayColl<Error>();
+  /** @see `dataError()` */
+  readonly dataErrors = new ArrayColl<Error>();
   /** Will be called, when there are errors on the connection
    * which cannot be attributed directly to an API function called,
    * e.g. errors while processing server messages. */
@@ -64,10 +64,10 @@ export class Account extends Observable {
     this.color = unusedAccountColor();
   }
 
-  /** For an error in a single item of a loop, e.g. one email that we could not read.
-   * Call it in the `catch` within the loop, so that the loop continues with the other items. */
-  itemError(ex: Error) {
-    this.itemErrors.add(ex);
+  /** The data of one item of this account is bad, e.g. one email that we could not read.
+   * Call it in the `catch` within a loop, so that the loop continues with the other items. */
+  dataError(ex: Error) {
+    this.dataErrors.add(ex);
     this.errorCallback(ex);
   }
 
@@ -249,7 +249,7 @@ export class Account extends Observable {
     try {
       await this.logout();
     } catch (ex) {
-      this.errorCallback(ex); // e.g. server unreachable
+      logErrorToServer(ex); // e.g. server unreachable
     }
     for (let dependent of this.dependentAccounts()) {
       await dependent.deleteIt();
@@ -344,11 +344,11 @@ export function setMainAccounts(): void {
         if (main) {
           account.mainAccount = main;
         } else {
-          itemError(new Error(`Account ${account.name} (${account.protocol}) lost its main account: Account ID ${mainID} did not load`));
+          internalError(new Error(`Account ${account.name} (${account.protocol}) lost its main account: Account ID ${mainID} did not load`));
         }
       }
     } catch (ex) {
-      itemError(ex);
+      internalError(ex);
     }
   }
 }
