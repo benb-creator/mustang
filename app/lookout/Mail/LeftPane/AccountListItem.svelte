@@ -104,7 +104,7 @@
     flex-shrink: 0;
     margin-inline-start: 8px;
     color: var(--lo-accent-text);
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
     font-weight: 600;
   }
   /* </copied> */

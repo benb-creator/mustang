@@ -245,7 +245,7 @@
     height: 18px;
   }
   .message-item.subject-first .sender {
-    font-size: 13px;
+    font-size: var(--lo-font-size);
   }
   .thread-expander {
     display: flex;
@@ -291,7 +291,6 @@
   }
   .second-line {
     height: 18px;
-    font-size: 13px;
   }
   .sender {
     min-width: 0;
@@ -383,7 +382,7 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     color: var(--lo-fg-secondary);
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
     line-height: 18px;
     white-space: normal;
     word-break: break-word;

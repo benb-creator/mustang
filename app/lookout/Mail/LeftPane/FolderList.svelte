@@ -37,6 +37,6 @@
     gap: 8px;
     padding: 4px 8px 4px 28px;
     color: var(--lo-fg-secondary);
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
   }
 </style>

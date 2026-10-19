@@ -239,7 +239,7 @@
     gap: 6px;
     min-width: 0;
     color: var(--lo-fg-secondary);
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
     line-height: 20px;
   }
   .recipients-label {
@@ -255,7 +255,7 @@
     background-color: color-mix(in srgb, var(--lo-danger) 12%, var(--lo-pane-bg));
     border: 1px solid color-mix(in srgb, var(--lo-danger) 40%, transparent);
     color: var(--lo-fg);
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
   }
   .error-bar :global(svg) {
     flex-shrink: 0;

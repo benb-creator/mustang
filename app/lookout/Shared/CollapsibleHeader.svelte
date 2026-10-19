@@ -38,7 +38,6 @@
   }
   .collapsible-header.large {
     margin-block-start: 12px;
-    font-size: 15px;
   }
   .collapsible-header:hover {
     background-color: var(--lo-hover-bg);

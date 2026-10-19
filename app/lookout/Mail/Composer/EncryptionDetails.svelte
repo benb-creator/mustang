@@ -78,7 +78,7 @@
     background-color: color-mix(in srgb, var(--lo-warning) 14%, var(--lo-pane-bg));
     border: 1px solid color-mix(in srgb, var(--lo-warning) 45%, transparent);
     color: var(--lo-fg);
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
   }
   .info-bar :global(svg) {
     flex-shrink: 0;

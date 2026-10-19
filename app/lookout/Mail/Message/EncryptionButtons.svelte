@@ -49,7 +49,7 @@
     background-color: var(--lo-pane-alt-bg);
     border: 1px solid var(--lo-divider);
     color: var(--lo-fg);
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
   }
   .security-bar :global(svg) {
     flex-shrink: 0;

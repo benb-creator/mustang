@@ -562,7 +562,6 @@
     background-color: var(--lo-pane-alt-bg);
     color: var(--lo-fg);
     font: inherit;
-    font-size: 13px;
     font-weight: 600;
     text-align: start;
     cursor: pointer;

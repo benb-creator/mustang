@@ -220,7 +220,6 @@
     background: none;
     color: var(--lo-fg);
     font: inherit;
-    font-size: 15px;
     cursor: pointer;
   }
   .pivot:hover {
@@ -254,7 +253,6 @@
     background-color: var(--lo-input-bg);
     color: var(--lo-fg);
     font: inherit;
-    font-size: 13px;
   }
   .folder-search:focus {
     outline: none;
@@ -289,7 +287,6 @@
     background: none;
     color: var(--lo-fg);
     font: inherit;
-    font-size: 13px;
     cursor: pointer;
   }
   .header-button:hover {
@@ -314,7 +311,6 @@
     background: none;
     color: var(--lo-fg);
     font: inherit;
-    font-size: 13px;
     cursor: pointer;
   }
   .arrange:hover {

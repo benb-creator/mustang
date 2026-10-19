@@ -46,7 +46,6 @@
     background: none;
     color: var(--lo-accent-text);
     font: inherit;
-    font-size: 13px;
     cursor: pointer;
   }
   .connect.with-label {

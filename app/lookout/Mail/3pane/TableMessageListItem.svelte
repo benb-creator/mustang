@@ -184,7 +184,6 @@
     padding-inline: 8px 4px;
     border-bottom: 1px solid var(--lo-divider);
     color: var(--lo-fg);
-    font-size: 13px;
     cursor: default;
     user-select: none;
     overflow: hidden;
