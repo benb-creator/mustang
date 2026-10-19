@@ -54,6 +54,7 @@ settle:
   min_changed_pixels: 150
   quiet_s: 1.0                      # a step ends at the last change before this much stillness
   probe_interval_s: 1.0             # the completeness probe is asked at most this often, only while the screen is quiet
+  moving_content_hz: 10             # how often the probe reports content that changes by itself (Parula's setup video)
   step_timeout_s: 7200
   task_timeout_s: 7200              # time limit per task; a run that reaches it counts as "not done within the limit"
   no_reaction_s: 60
@@ -138,10 +139,11 @@ deviations:
   - "Thunderbird: started with Marionette (-marionette -remote-allow-system-access) for the instrumentation."
   - "Thunderbird: classic scrollbars instead of GTK overlay scrollbars (widget.gtk.overlay-scrollbars.enabled = false), as Parula shows them: an overlay scrollbar fades in and out whenever the window is inspected, which would keep the screen from settling."
   - "Parula: installed from the .deb package; started with --remote-debugging-port for the instrumentation."
-  - "Parula: the background video of its setup screens was paused with the screens' own Pause button before typing (so the screen can settle); this click and the click back into the e-mail field are not counted as user actions."
+  - "Parula: its setup pages play a background video, which kept playing as every user sees it (it streams from www.mustang.im during the setup). Where it is visible (the video minus the setup dialog, read from Parula's page ten times a second) was left out of the screen-change detection, during the run and in the analysis of the recording; the setup dialog and everything after the setup counted in full."
 
 instrumentation:
   - "The apps' own instrumentation (Parula: Chrome DevTools Protocol; Thunderbird: Marionette) finds the setup's buttons and fields, so the driver can click and type there like a user (xdotool). It never gives a time."
+  - "During Parula's setup its DevTools also report, ten times a second, where the setup's background video is visible (see deviations)."
   - "Every measured step ends at the last screen change in the recording before the moment the instrumentation confirmed the step's result (the next setup page; in the last step: the Inbox lists all messages). The instrumentation is asked only while the screen is still, about once per second."
   - "After the measured end the instrumentation checks completeness: the folder's message count equals the corpus and the corpus's oldest message is in the list (scrolled to). A run that fails this check counts as a wrong result."
   - "Client-side network evidence: the TCP connections of each app's processes are read from /proc ten times a second."

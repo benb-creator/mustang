@@ -115,20 +115,36 @@ class Step:
     complete: str | dict | None = None
     verify_probe: bool = False
     first_visible_list: bool = False
+    becomes_final: dict | None = None
+    final_reached: bool = False
 
     @property
     def checks(self) -> dict:
-        """What the analysis needs to know about a step that a flow created at run time (logged with step_start)."""
-        return {"complete": self.complete, "verify_probe": self.verify_probe, "after_end": self.after_end,
-                "first_visible_list": self.first_visible_list, "settle": self.settle,
-                "timeout_s": self.timeout_s, "expect": self.expect}
+        """What the analysis needs to know about a step that a flow created at run time (logged with step_start).
+        `becomes_final`: {"pages": [...], "checks": {...}}: on one of these pages the step turns into the final
+        step with those checks (logged as `step_final`)."""
+        checks = {"complete": self.complete, "verify_probe": self.verify_probe, "after_end": self.after_end,
+                  "first_visible_list": self.first_visible_list, "settle": self.settle,
+                  "timeout_s": self.timeout_s, "expect": self.expect}
+        if self.becomes_final:
+            checks["becomes_final"] = self.becomes_final
+        return checks
 
     @classmethod
     def from_checks(cls, name: str, checks: dict) -> "Step":
         return cls(name, [], True, dict(checks.get("settle") or {}), checks.get("expect", "none"),
                    checks.get("timeout_s"), after_end=str(checks.get("after_end", "report")),
                    complete=checks.get("complete"), verify_probe=bool(checks.get("verify_probe")),
-                   first_visible_list=bool(checks.get("first_visible_list")))
+                   first_visible_list=bool(checks.get("first_visible_list")),
+                   becomes_final=checks.get("becomes_final"))
+
+    def as_final(self) -> "Step":
+        """The step with the final checks it turned into (`becomes_final`)."""
+        final = dict((self.becomes_final or {}).get("checks") or {})
+        return Step(self.name, self.actions, True, {**dict(final.get("settle") or {}), **self.settle}, self.expect,
+                    self.timeout_s, after_end=str(final.get("after_end", "report")), complete=final.get("complete"),
+                    verify_probe=bool(final.get("verify_probe")),
+                    first_visible_list=bool(final.get("first_visible_list")), final_reached=True)
 
     @property
     def region_names(self) -> set[str]:

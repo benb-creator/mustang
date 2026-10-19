@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .capture import CaptureLayout, FFmpegCapture
-from .driver import AppProcess, Calibration, EventLog, NoReaction, ScenarioDriver, StepTimeout, TextVariables
+from .driver import (AppProcess, Calibration, EventLog, MovingAreaWatcher, NoReaction, ScenarioDriver, StepTimeout,
+                     TextVariables)
 from .references import References
 from .scenario import ScenarioLibrary
 from .settle import SettleParams
@@ -17,9 +18,41 @@ class RunError(Exception):
     pass
 
 
-class FinishError(RunError):
-    """A required finishing sequence failed (e.g. removing the account from new Outlook): later runs of the series
-    would not start from the same state, so the series stops."""
+class SeriesStop(RunError):
+    """Later runs of the series can't start from the same state or can't be recorded, so the series stops."""
+
+    failure = "stop"
+
+
+class FinishError(SeriesStop):
+    """A required finishing sequence failed (e.g. removing the account from new Outlook)."""
+
+    failure = "finish"
+
+
+class DiskFull(SeriesStop):
+    failure = "disk"
+
+
+class AppLifecycle:
+    """What an app needs around its runs besides its scenario: on Windows its fresh state, its windows and, for new
+    Outlook, keeping and then removing the account after the measured end (benchlib/winsession.py). This default
+    needs nothing."""
+
+    def app_process(self, app_id: str, spec: dict, desktop, region, log, output) -> AppProcess:
+        return AppProcess(app_id, spec, desktop, region, log, output)
+
+    def reset(self):
+        pass
+
+    def finish(self, driver: ScenarioDriver, probe) -> dict | None:
+        return None
+
+    def after_failure(self, driver: ScenarioDriver, probe) -> dict | None:
+        return None
+
+    def after_close(self) -> dict | None:
+        return None
 
 
 class Desktops:
@@ -48,7 +81,7 @@ class RunPlan:
 
 class RunExecutor:
     def __init__(self, config, desktop, scenarios: ScenarioLibrary, server_snapshots=None, client_profiles=None,
-                 progress=print, server_log=None, versions=None, folder=None, account=None):
+                 progress=print, server_log=None, versions=None, folder=None, account=None, lifecycles=None):
         self.config = config
         self.desktop = desktop
         self.scenarios = scenarios
@@ -59,6 +92,7 @@ class RunExecutor:
         self.versions = versions
         self.folder = folder
         self.account = account
+        self.lifecycles = dict(lifecycles or {})
         self.layout = CaptureLayout.from_config(config)
         self.references = References(config.workdir)
         self.rotation = PasswordRotation(config)
@@ -168,23 +202,48 @@ class RunExecutor:
             driver.live_regions[step.name] = [recording.live_region(r) for r in regions]
 
     def network_watcher(self, run_dir: Path, app: AppProcess, app_id: str):
-        if not self.config.get("evidence.network", True) or self.desktop.platform != "linux":
+        if not self.config.get("evidence.network", True) or self.desktop.platform not in ("linux", "windows"):
             return None
         from .netwatch import LinuxConnectionWatcher, NetworkLog
         log = NetworkLog(run_dir / "network.jsonl")
+        addresses = {}
         if self.account is not None:
             addresses = self.account.mail_server()
             for host, values in (addresses.get("hosts") or {}).items():
                 log.write("resolve", host=host, addresses=values)
             log.write("mail_server", **{k: addresses[k] for k in ("addresses", "ports", "mail_only_ports")})
         names = app.spec.get("process_names") or []
-        env = app.spec.get("process_env")
-        watcher = LinuxConnectionWatcher(
-            log, app_id, lambda: [app.process.pid] if app.process else [],
-            (lambda: self.desktop.matching_pids(names, env)) if names else None,
-            float(self.config.get("evidence.poll_hz", 10)), ss=self.config.tool("ss"))
+        poll_hz = float(self.config.get("evidence.poll_hz", 10))
+        if self.desktop.platform == "windows":
+            from .winnet import WindowsConnectionWatcher
+            watcher = WindowsConnectionWatcher(log, app_id, lambda: {app.process.pid} if app.process else set(),
+                                               [n.lower() for n in names], poll_hz, set(addresses.get("addresses") or []))
+        else:
+            env = app.spec.get("process_env")
+            watcher = LinuxConnectionWatcher(
+                log, app_id, lambda: [app.process.pid] if app.process else [],
+                (lambda: self.desktop.matching_pids(names, env)) if names else None, poll_hz, ss=self.config.tool("ss"))
         watcher.start()
         return watcher
+
+    def moving_watcher(self, probe, driver: ScenarioDriver):
+        """For an app that shows content that changes by itself (Parula's setup video): its area is left out of the
+        settle detection, live and offline (`settle.moving_content_hz` polls a second, 0 = off)."""
+        hz = float(self.config.get("settle.moving_content_hz", 10))
+        if not probe.shows_moving_content or hz <= 0:
+            return None
+        watcher = MovingAreaWatcher(probe, driver.log, hz).start()
+        watcher.show_to(driver.live)
+        return watcher
+
+    def check_disk(self, run_dir: Path):
+        need_gb = float(self.config.get("runs.min_free_gb", 0) or 0)
+        if need_gb <= 0:
+            return
+        free_gb = shutil.disk_usage(run_dir.parent).free / 1e9
+        if free_gb < need_gb:
+            raise DiskFull(f"Only {free_gb:.0f} GB free for the results; a run needs {need_gb:.0f} GB for its "
+                           f"recording, so the series stops here (the runs so far are kept)")
 
     def capture_record(self, run_dir: Path, recording: FFmpegCapture):
         record = {"version": 1, "command": recording.command(), "fps": recording.fps,
@@ -201,7 +260,10 @@ class RunExecutor:
         except Exception:
             pass
         if probe is not None:
-            probe.dump(shots / f"{label}-ui.json")
+            try:
+                probe.dump(shots / f"{label}-ui.json")
+            except Exception as ex:
+                (shots / f"{label}-ui-error.txt").write_text(f"{type(ex).__name__}: {ex}")
 
     @staticmethod
     def user_actions(log_path: Path, variables: TextVariables) -> dict:
@@ -224,6 +286,7 @@ class RunExecutor:
             shutil.rmtree(run_dir)
         run_dir.mkdir(parents=True)
         app_spec = self.config.expand(self.config.app(app_id), app_id)
+        lifecycle = self.lifecycles.get(app_id) or AppLifecycle()
         meta = {"run": run_id, "app": app_id, "task": task, "comparison": comparison, "warmup": warmup,
                 "order": order, "attempt": attempt, "layout": self.layout.to_dict(),
                 "started": datetime.now(timezone.utc).isoformat(), "status": "running",
@@ -232,17 +295,22 @@ class RunExecutor:
             meta["app_version"] = self.versions(app_id)
         (run_dir / "meta.json").write_text(json.dumps(meta, indent=2))
         log = EventLog(run_dir / "driver.jsonl")
-        app = AppProcess(app_id, app_spec, self.desktop, self.layout.app_region, log, run_dir / "app-output.log")
-        probe = Probes.create(app_spec.get("probe"))
+        app = lifecycle.app_process(app_id, app_spec, self.desktop, self.layout.app_region, log,
+                                    run_dir / "app-output.log")
+        probe = Probes.create(app_spec.get("probe"), self.config)
         driver = self.driver(app, app_id, log, app_scenario, scenario, reference_run, probe, run_dir / "verify.json")
+        probe.redact = driver.variables.redact
         marker = None
         recording = None
         watcher = None
+        moving = None
         marks = {}
         started_utc = time.time()
         log.clock("start")
         try:
+            self.check_disk(run_dir)
             self.restore(app_id, scenario.start_state, run_dir)
+            lifecycle.reset()
             if self.rotation.enabled and scenario.start_state.get("server"):
                 driver.variables.values["account.password"] = self.rotation.rotate()
                 meta["password_rotated"] = True
@@ -256,12 +324,15 @@ class RunExecutor:
                     if probe.method != "none":
                         probe.attach(app, float(app_spec.get("probe", {}).get("timeout_s", 120)))
                         meta["preparations"] = probe.prepare(self.account.server if self.account else None)
+                        moving = self.moving_watcher(probe, driver)
                 finally:
                     preview.stop()
             recording = self.capture(run_dir / "capture.mkv" if record else None, run_dir / "ffmpeg.log")
             self.capture_record(run_dir, recording)
             self.live_checks(driver, recording, app_id, task, app_scenario, reference_run)
             driver.live = recording.start()
+            if moving is not None:
+                moving.show_to(driver.live)
             x, y = self.layout.marker_screen_position
             marker = self.desktop.marker_window(x, y, self.layout.marker)
             driver.marker = marker
@@ -290,20 +361,24 @@ class RunExecutor:
             recording = None
             if driver.verify_result is not None:
                 meta["inbox_complete"] = driver.verify_result.get("inbox_complete")
-            if app_scenario.finish:
-                try:
+            try:
+                if app_scenario.finish:
                     driver.do_actions(app_scenario.finish, "finish")
-                except Exception as ex:
-                    if app_scenario.finish_required:
-                        raise FinishError(f"{app_id}: finishing sequence failed: {ex}") from ex
-                    raise
-                meta["finished_sequence"] = True
-        except FinishError as ex:
+                    meta["finished_sequence"] = True
+                finished = lifecycle.finish(driver, probe)
+                if finished is not None:
+                    meta["finish"] = finished
+            except Exception as ex:
+                if app_scenario.finish_required:
+                    raise FinishError(f"{app_id}: finishing sequence failed: {ex}") from ex
+                raise
+        except SeriesStop as ex:
             meta["status"] = "failed"
-            meta["failure"] = "finish"
+            meta["failure"] = ex.failure
             meta["error"] = driver.variables.redact(f"{type(ex).__name__}: {ex}")
             (run_dir / "error.txt").write_text(driver.variables.redact(traceback.format_exc()))
             self.progress(f"    {meta['error']}")
+            self.diagnostics(run_dir, probe, "stop")
         except Exception as ex:
             meta["status"] = "failed"
             meta["failure"] = "no-reaction" if isinstance(ex, NoReaction) else "technical"
@@ -311,13 +386,28 @@ class RunExecutor:
             (run_dir / "error.txt").write_text(driver.variables.redact(traceback.format_exc()))
             self.progress(f"    run failed: {meta['error']}")
             self.diagnostics(run_dir, probe, "failure")
+            try:
+                recovered = lifecycle.after_failure(driver, probe)
+                if recovered is not None:
+                    meta["after_failure"] = recovered
+            except Exception as recovery:
+                meta["after_failure_error"] = driver.variables.redact(f"{type(recovery).__name__}: {recovery}")
         finally:
+            if moving is not None:
+                moving.stop()
             if recording:
                 recording.stop()
             if marker:
                 marker.close()
             probe.close()
             meta["closed_cleanly"] = app.close()
+            meta.update(app.notes())
+            try:
+                closed = lifecycle.after_close()
+                if closed is not None:
+                    meta["after_close"] = closed
+            except Exception as ex:
+                meta["after_close_error"] = driver.variables.redact(f"{type(ex).__name__}: {ex}")
             log.write("closed")
             if watcher is not None:
                 watcher.stop()
@@ -353,8 +443,8 @@ class Orchestrator:
 
     def outcome(self, run_dir: Path) -> str:
         meta = json.loads((run_dir / "meta.json").read_text())
-        if meta.get("failure") == "finish":
-            return "finish-failed"
+        if meta.get("failure") in ("finish", "disk", "stop"):
+            return "series-stop"
         if meta.get("status") == "failed":
             return "technical"
         if self.analyzer is None:
@@ -402,9 +492,9 @@ class Orchestrator:
                               + (f" (attempt {attempt}, re-recorded at the end of the series)" if attempt > 1 else ""))
                 self.executor.execute(comparison_id, task, app_id, run_id, is_warmup, order, attempt=attempt)
                 outcome = self.outcome(run_dir)
-                if outcome == "finish-failed":
-                    raise FinishError(f"{comparison_id} {task} {app_id} {run_id}: the finishing sequence failed; "
-                                      f"the series stops (see {run_dir / 'error.txt'})")
+                if outcome == "series-stop":
+                    raise SeriesStop(f"{comparison_id} {task} {app_id} {run_id}: the series stops (see "
+                                     f"{run_dir / 'error.txt'})")
                 if outcome == "technical" and attempt <= retries:
                     queue.append((app_id, run_id, is_warmup, attempt + 1))
             self.watch_after_series(comparison_id, task)

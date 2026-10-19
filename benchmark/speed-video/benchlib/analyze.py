@@ -10,7 +10,7 @@ from .driver import Calibration, EventLog
 from .marker import ClockFit, ClockFitError, MarkerCode, MarkerTrack
 from .references import References
 from .scenario import ScenarioLibrary, Step
-from .settle import CompletionGate, FrameAnalyzer, Rect, Region, SettleDetector, SettleParams
+from .settle import CompletionGate, FrameAnalyzer, MovingMasks, Rect, Region, SettleDetector, SettleParams
 from .video import VideoError, VideoFile
 
 
@@ -149,8 +149,9 @@ class RunAnalyzer:
                  for key, r in checks.items() if r.reference is not None]
         if opening_region is not None:
             keyed.append(opening_region)
+        moving = self.moving_masks(events, layout)
         analyzer = FrameAnalyzer(app_rect.width, app_rect.height, base, masks, full_frames, tracked + keyed,
-                                 {name: params[name].reference_pixel_threshold for name in full_frames})
+                                 {name: params[name].reference_pixel_threshold for name in full_frames}, moving)
         rows = ListRows(list_rect) if list_rect is not None else None
 
         video = VideoFile(run_dir / "capture.mkv", self.config.tool("ffmpeg"), self.config.tool("ffprobe"))
@@ -165,8 +166,6 @@ class RunAnalyzer:
         times = np.asarray(decoded.times, dtype=np.float64)
         if len(times) == 0:
             raise AnalysisError(f"{run_dir}: no frames")
-        series = analyzer.series(times)
-        series.save(run_dir / "changes.npz")
         track = MarkerTrack()
         for t, c in zip(times, codes):
             track.add(float(t), c)
@@ -177,6 +176,8 @@ class RunAnalyzer:
             fit = ClockFit.fit(driver_markers, track.first_seen, 1.0 / fps)
         except ClockFitError as ex:
             raise AnalysisError(f"{run_dir}: {ex}") from ex
+        series = analyzer.series(times, fit.to_video)
+        series.save(run_dir / "changes.npz")
 
         results = []
         waited = 0.0
@@ -328,6 +329,7 @@ class RunAnalyzer:
             "verify": {k: verify.get(k) for k in ("method", "inbox_complete", "listed", "expected", "oldest_visible",
                                                   "newest_visible")} if verify else None,
             "opening_ranges": opening,
+            "moving_masks": analyzer.schedule_summary,
             "measured_end_utc": self.utc_of(events, fit, results, status),
             "frames": {"count": int(len(times)), "duration_s": float(times[-1] - times[0]),
                        "dropped_intervals": dropped, "max_gap_s": float(intervals.max()) if len(intervals) else 0.0,
@@ -340,8 +342,23 @@ class RunAnalyzer:
     @staticmethod
     def flow_steps(events: list[dict]) -> list[Step]:
         """The measured steps a flow created at run time, with the checks it logged."""
-        return [Step.from_checks(e["step"], e.get("checks") or {}) for e in events
-                if e["type"] == "step_start" and e.get("measure", True)]
+        turned_final = {e["step"] for e in events if e["type"] == "step_final"}
+        steps = [Step.from_checks(e["step"], e.get("checks") or {}) for e in events
+                 if e["type"] == "step_start" and e.get("measure", True)]
+        return [step.as_final() if step.name in turned_final else step for step in steps]
+
+    @staticmethod
+    def moving_masks(events: list[dict], layout: dict) -> MovingMasks | None:
+        """The masks over content that changed by itself during the run (driver `mask` lines, screen pixels), in
+        app-capture pixels."""
+        lines = [e for e in events if e["type"] == "mask"]
+        if not lines:
+            return None
+        app = Rect.from_dict(layout["app_region"])
+        changes = [{"t": e["t"], "since_t": e.get("since_t"),
+                    "rects": [Rect(int(r["x"]) - app.x, int(r["y"]) - app.y, int(r["w"]), int(r["h"]))
+                              for r in e.get("rects") or []]} for e in lines]
+        return MovingMasks(changes, app.width, app.height)
 
     @staticmethod
     def screen_rect(verify: dict | None, key: str, layout: dict) -> Rect | None:
@@ -472,6 +489,7 @@ class Aggregator:
                 "prepare_actions": meta.get("prepare_actions"), "inbox_complete": meta.get("inbox_complete"),
                 "preparations": meta.get("preparations"),
                 "account_repairs": (account or {}).get("repairs") if account else None,
+                "moving_mask_changes": ((analysis or {}).get("moving_masks") or {}).get("changes"),
                 "dir": self.folder.relative(run_dir) if self.folder is not None else str(run_dir)}
 
     def side(self, comparison: str, task: str, app_id: str) -> dict:
@@ -722,6 +740,13 @@ class ReportWriter:
                                      + "; ".join(c for c in checks if c))
                     if (s.get("settle") or {}).get("masks"):
                         lines.append(f"  - masked regions: {s['settle']['masks']}")
+                    masked = [x for x in s["runs"] if x.get("moving_mask_changes")]
+                    if masked:
+                        changes = sorted({x["moving_mask_changes"] for x in masked})
+                        times = str(changes[0]) if len(changes) == 1 else f"{changes[0]}–{changes[-1]}"
+                        lines.append(f"  - content that changes by itself (the setup's background video) left out of "
+                                     f"the change detection in {len(masked)} of {len(s['runs'])} runs; its visible "
+                                     f"area changed {times} times per run (see deviations)")
                     if s.get("re_recorded"):
                         lines.append("  - re-recorded at the end of the series after a technical failure: " + ", ".join(
                             f"{x['run']} ({', '.join(x['failed_attempts'])})" for x in s["re_recorded"]))

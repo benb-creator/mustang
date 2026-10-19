@@ -2,6 +2,8 @@
 shown, and act like a user at the elements' screen positions. Every input is logged and counted (phase "step");
 inputs that only exist because of the benchmark (phase "prepare") are logged, not counted, and disclosed."""
 
+import time
+
 from .probe import AppProbe, ProbeError
 from .scenario import Action, Step
 
@@ -18,6 +20,7 @@ class FlowContext:
         self.final_checks = dict(final_checks or {})
         self.path: list[str] = []
         self.variables = driver.variables
+        self.step_names: list[str] = []
 
     def note(self, text: str):
         self.path.append(text)
@@ -36,32 +39,66 @@ class FlowContext:
     def prepare(self, *actions: Action):
         self.driver.do_actions(list(actions), "prepare")
 
+    def finish(self, *actions: Action):
+        self.driver.do_actions(list(actions), "finish")
+
+    def final_step_checks(self) -> dict:
+        checks = {"complete": self.final_checks.get("complete"),
+                  "verify_probe": bool(self.final_checks.get("verify", False)),
+                  "after_end": str(self.final_checks.get("after_end", "report")),
+                  "first_visible_list": bool(self.final_checks.get("first_visible", False))}
+        if self.final_checks.get("settle"):
+            checks["settle"] = dict(self.final_checks["settle"])
+        return checks
+
     def step(self, name: str, *actions: Action, until: set[str] | None = None, fail: tuple[str, ...] = ("error:",),
-             final: bool = False, settle: dict | None = None):
+             final: bool = False, settle: dict | None = None, final_pages: set[str] | None = None) -> Step:
         """A measured step: its last action starts the timer, which runs until the screen settles at the moment the
         app shows one of the pages `until` (asked only while the screen is quiet; the time comes from the
-        recording). `final`: until the Inbox lists all messages, then the completeness check."""
+        recording). `final`: until the Inbox lists all messages, then the completeness check. `final_pages`: pages
+        on which the step turns into the final one (an app that opens its Inbox without a last page)."""
+        repeated = self.step_names.count(name)
+        self.step_names.append(name)
+        if repeated:
+            name = f"{name}-{repeated + 1}"
         step = Step(name, list(actions), True, dict(settle or {}), "none")
         if until:
             step.complete = {"pages": sorted(until), "fail": list(fail)}
+        if final_pages:
+            step.becomes_final = {"pages": sorted(final_pages), "checks": self.final_step_checks()}
         if final:
-            step.complete = self.final_checks.get("complete")
-            step.verify_probe = bool(self.final_checks.get("verify", False))
-            step.after_end = str(self.final_checks.get("after_end", "report"))
-            step.first_visible_list = bool(self.final_checks.get("first_visible", False))
-            if self.final_checks.get("settle"):
-                step.settle = {**self.final_checks["settle"], **step.settle}
+            checks = self.final_step_checks()
+            step.complete = checks["complete"]
+            step.verify_probe = checks["verify_probe"]
+            step.after_end = checks["after_end"]
+            step.first_visible_list = checks["first_visible_list"]
+            if checks.get("settle"):
+                step.settle = {**checks["settle"], **step.settle}
         self.driver.run_step(step)
+        return step
 
     def page(self, expected: set[str], timeout_s: float = 60) -> str:
         try:
-            return self.probe.wait_page(expected, timeout_s)
+            return self.probe.wait_page(expected, timeout_s, on_interruption=self.dismiss)
         except ProbeError as ex:
             raise FlowError(str(ex)) from ex
+
+    def dismiss(self, element: str):
+        """A first-run dialog the app shows in between (e.g. a privacy notice): closed with its own button, not
+        counted, listed in the flow path."""
+        self.note(f"closed the app's notice with '{element}' (not counted)")
+        self.prepare(self.action("click", element))
 
     def replace_text(self, element: str, text: str):
         """Click into a field, select its content and type the new text (3 user actions)."""
         self.act(self.action("click", element), self.action("key", "ctrl+a"), self.action("type", text))
+
+    def type_into(self, element: str, text: str):
+        """Type into a field; a click into it first unless the app already put the cursor there."""
+        found = self.probe.find(element)
+        if not (found and found.get("focused")):
+            self.act(self.action("click", element))
+        self.act(self.action("type", text))
 
     def field_value(self, element: str) -> str | None:
         found = self.probe.find(element)
@@ -71,7 +108,9 @@ class FlowContext:
 class ParulaSetupFlow:
     """Parula's own setup: e-mail address and password, then the configuration it finds (autoconfig) or, if it
     finds none, its manual setup. Parula 0.9.39 doesn't discover JMAP (Stalwart's autoconfig lists IMAP, POP3 and
-    SMTP), so its JMAP account always goes through the manual setup with protocol "JMAP"."""
+    SMTP), so its JMAP account always goes through the manual setup with protocol "JMAP". Its setup pages play a
+    background video, which keeps playing (the probe reports where it is visible, and the settle detection leaves
+    that area out)."""
 
     def __init__(self, ctx: FlowContext):
         self.ctx = ctx
@@ -80,14 +119,20 @@ class ParulaSetupFlow:
     def run(self):
         ctx, a = self.ctx, FlowContext.action
         manual_pages = {"manual", "manual-full", "error:manual", "error:manual-full"}
-        page = ctx.page({"initial", "email"}, 120)
+        page = ctx.page({"initial", "email", "import-accounts", "import-addressbooks"}, 120)
+        if page == "import-accounts":
+            ctx.note("Parula offered to import Thunderbird accounts of this computer's user: skipped")
+            ctx.step("skip-import", a("click", "setup.skip"), until={"import-addressbooks", "initial"}, fail=())
+            page = ctx.page({"import-addressbooks", "initial"}, 30)
+        if page == "import-addressbooks":
+            ctx.note("Parula offered to import Thunderbird address books: skipped")
+            ctx.step("skip-addressbooks", a("click", "setup.skip"), until={"initial"}, fail=())
+            page = ctx.page({"initial"}, 30)
         if page == "initial":
             ctx.act(a("click", "setup.add_email"))
             ctx.page({"email"}, 30)
-        if ctx.probe.find("setup.pause_video"):
-            ctx.prepare(a("click", "setup.pause_video"), a("click", "setup.email"))
-            ctx.note("paused the setup screen's background video with its own Pause button (not counted)")
-        ctx.act(a("type", "${account.email}"), a("key", "Return"), a("type", "${account.password}"))
+        ctx.type_into("setup.email", "${account.email}")
+        ctx.act(a("key", "Return"), a("type", "${account.password}"))
         ctx.step("find-config", a("key", "Return"), until={"found", "finalize"} | manual_pages, fail=())
         page = ctx.page({"found", "finalize"} | manual_pages, 30)
         if page == "found":
@@ -211,8 +256,110 @@ class ThunderbirdSetupFlow:
             ctx.act(a("key", "ctrl+a"), a("type", "${" + variable + "}"))
 
 
+class OutlookClassicSetupFlow:
+    """Outlook (classic), started with an empty profile: its own "Add account" dialog, the default way (no
+    "set up manually" option); the pages that follow depend on what Outlook detects for the address."""
+
+    def __init__(self, ctx: FlowContext):
+        self.ctx = ctx
+
+    def run(self):
+        ctx, a = self.ctx, FlowContext.action
+        after_connect = {"advanced-setup", "imap-settings", "password", "done", "error"}
+        ctx.page({"account-email"}, 180)
+        ctx.type_into("field.email", "${account.email}")
+        ctx.step("connect", a("click", "button.connect"), until=after_connect, fail=())
+        for _ in range(6):
+            page = ctx.page(after_connect, 30)
+            ctx.note(page)
+            if page == "error":
+                raise FlowError(f"Outlook reports an error in its account setup: {ctx.probe.page_text()[:400]}")
+            if page == "advanced-setup":
+                ctx.step("choose-imap", a("click", "tile.imap"), until={"imap-settings", "password", "error"}, fail=())
+            elif page == "imap-settings":
+                ctx.step("imap-settings", a("click", "button.next"), until={"password", "done", "error"}, fail=())
+            elif page == "password":
+                ctx.type_into("field.password", "${account.password}")
+                ctx.step("login", a("click", "button.connect"), until={"done", "error", "imap-settings"}, fail=())
+            elif page == "done":
+                mobile = ctx.probe.find("checkbox.mobile")
+                if mobile is not None and mobile.get("checked"):
+                    ctx.note("unchecked 'Set up Outlook Mobile on my phone, too'")
+                    ctx.act(a("click", "checkbox.mobile"))
+                ctx.step("open-inbox", a("click", "button.done"), final=True)
+                return
+        raise FlowError("Outlook's account setup didn't reach its last page")
+
+
+class NewOutlookSetupFlow:
+    """New Outlook for Windows: its own "Add account" flow for an IMAP address, which ends with its notice that the
+    account is synced through the Microsoft Cloud."""
+
+    def __init__(self, ctx: FlowContext):
+        self.ctx = ctx
+
+    def run(self):
+        ctx, a = self.ctx, FlowContext.action
+        after_continue = {"choose-provider", "imap-form", "cloud-sync", "success", "mail"}
+        page = ctx.page({"add-account", "mail"}, 180)
+        if page == "mail":
+            raise FlowError("New Outlook already has an account; the test needs it without accounts (the previous "
+                            "run's account wasn't removed, or this Windows user has accounts there)")
+        ctx.type_into("field.email", "${account.email}")
+        step = ctx.step("continue", a("click", "button.continue"), until=after_continue - {"mail"},
+                        final_pages={"mail"}, fail=())
+        for _ in range(6):
+            if step.final_reached:
+                return
+            page = ctx.page(after_continue, 60)
+            ctx.note(page)
+            if page == "choose-provider":
+                step = ctx.step("choose-imap", a("click", "option.imap"), until={"imap-form", "cloud-sync"}, fail=())
+            elif page == "imap-form":
+                ctx.type_into("field.password", "${account.password}")
+                step = ctx.step("connect", a("click", "button.continue"), until={"cloud-sync", "success"},
+                                final_pages={"mail"}, fail=())
+            elif page == "cloud-sync":
+                step = ctx.step("cloud-sync", a("click", "button.continue"), until={"success"},
+                                final_pages={"mail"}, fail=())
+            elif page == "success":
+                ctx.step("open-inbox", a("click", "button.done"), final=True)
+                return
+            else:
+                raise FlowError("New Outlook shows its mail view, but no step measured the Inbox listing")
+        raise FlowError("New Outlook's account setup didn't reach its last page")
+
+
+class NewOutlookRemoval:
+    """After a run: Settings → Accounts → Your accounts → Manage (the test account's row) → Remove → "Remove from
+    all devices" (also from the Microsoft Cloud, which Microsoft names as the way to delete the stored credentials).
+    Not measured, not user actions (phase "finish")."""
+
+    def __init__(self, ctx: FlowContext, email: str):
+        self.ctx = ctx
+        self.email = email
+
+    def run(self, wait_gone_s: float = 120):
+        ctx, a = self.ctx, FlowContext.action
+        ctx.probe.values["account"] = self.email
+        ctx.finish(a("click", "button.settings"), a("click", "nav.accounts"))
+        if ctx.probe.find("nav.email_accounts") is not None:
+            ctx.finish(a("click", "nav.email_accounts"))
+        ctx.finish(a("click", "button.manage"), a("click", "button.remove"), a("click", "option.remove_all_devices"))
+        if ctx.probe.find("button.confirm") is not None:
+            ctx.finish(a("click", "button.confirm"))
+        deadline = time.monotonic() + wait_gone_s
+        while time.monotonic() < deadline:
+            if self.email.lower() not in ctx.probe.page_text().lower():
+                ctx.driver.log.write("account_removed", email_domain=self.email.rpartition("@")[2])
+                return
+            time.sleep(2)
+        raise FlowError(f"New Outlook still lists the test account {wait_gone_s:.0f} s after its removal")
+
+
 class Flows:
-    known = {"parula-setup": ParulaSetupFlow, "thunderbird-setup": ThunderbirdSetupFlow}
+    known = {"parula-setup": ParulaSetupFlow, "thunderbird-setup": ThunderbirdSetupFlow,
+             "outlook-classic-setup": OutlookClassicSetupFlow, "outlook-new-setup": NewOutlookSetupFlow}
 
     @classmethod
     def run(cls, spec: dict, driver, probe: AppProbe, final_checks: dict) -> list[str]:

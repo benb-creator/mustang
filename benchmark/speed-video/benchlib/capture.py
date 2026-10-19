@@ -71,12 +71,16 @@ class LiveRegion:
 class LiveMonitor:
     live_pixel_threshold_match = 12
 
-    def __init__(self, stream, width: int, height: int, pixel_threshold: int, min_changed_pixels: int):
+    def __init__(self, stream, width: int, height: int, pixel_threshold: int, min_changed_pixels: int,
+                 origin: tuple[int, int] = (0, 0), scale: int = 1):
         self.stream = stream
         self.width = width
         self.height = height
         self.pixel_threshold = pixel_threshold
         self.min_changed_pixels = min_changed_pixels
+        self.origin = origin
+        self.scale = scale
+        self.keep: np.ndarray | None = None
         self.arrivals: list[float] = []
         self.changes: list[int] = []
         self.latest: np.ndarray | None = None
@@ -100,9 +104,10 @@ class LiveMonitor:
                 changed = 0
                 if previous is not None:
                     moved = np.abs(frame.astype(np.int16) - previous.astype(np.int16)) > self.pixel_threshold
-                    changed = int(np.count_nonzero(moved))
                     with self.lock:
                         regions = list(self.watch_regions)
+                        keep = self.keep
+                    changed = int(np.count_nonzero(moved if keep is None else moved & keep))
                     if any(region.crop(moved).any() for region in regions):
                         changed = max(changed, self.min_changed_pixels)
                 with self.lock:
@@ -113,6 +118,25 @@ class LiveMonitor:
                 self.first_frame.set()
         finally:
             self.ended.set()
+
+    def set_masks(self, rects: list[dict]):
+        """Screen rectangles {x, y, w, h} whose changes don't count (content that changes by itself); every
+        low-resolution pixel they touch is left out."""
+        if not rects:
+            with self.lock:
+                self.keep = None
+            return
+        keep = np.ones((self.height, self.width), dtype=bool)
+        ox, oy = self.origin
+        for r in rects:
+            x0 = max(0, (int(r["x"]) - ox) // self.scale)
+            y0 = max(0, (int(r["y"]) - oy) // self.scale)
+            x1 = min(self.width, -(-(int(r["x"]) + int(r["w"]) - ox) // self.scale))
+            y1 = min(self.height, -(-(int(r["y"]) + int(r["h"]) - oy) // self.scale))
+            if x1 > x0 and y1 > y0:
+                keep[y0:y1, x0:x1] = False
+        with self.lock:
+            self.keep = keep
 
     def distance(self, latest: np.ndarray, reference: np.ndarray) -> float:
         if latest.shape != reference.shape:
@@ -271,7 +295,8 @@ class FFmpegCapture:
                                         stderr=self.log or subprocess.DEVNULL, env=getattr(self.desktop, "env", None))
         self.desktop.set_affinity(self.process, self.cpus)
         live_w, live_h = self.live_size
-        self.live = LiveMonitor(self.process.stdout, live_w, live_h, self.live_pixel_threshold, self.live_min_changed)
+        self.live = LiveMonitor(self.process.stdout, live_w, live_h, self.live_pixel_threshold, self.live_min_changed,
+                                (self.layout.app_region.x, self.layout.app_region.y), self.live_scale)
         deadline = time.monotonic() + first_frame_timeout_s
         while not self.live.first_frame.wait(0.1):
             if self.process.poll() is not None or time.monotonic() > deadline:

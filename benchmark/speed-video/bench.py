@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from benchlib.account import AccountCheck, AccountSeeder, AccountServer  # noqa: E402
 from benchlib.config import Config  # noqa: E402
 from benchlib.corpus import CorpusGenerator, CorpusSpec  # noqa: E402
-from benchlib.resultfolder import ResultFolder  # noqa: E402
+from benchlib.resultfolder import ReadmeFirst, ResultFolder  # noqa: E402
 from benchlib.seed import Seeder  # noqa: E402
 from benchlib.stages import Calibrator, Pipeline, SnapshotBuilder  # noqa: E402
 
@@ -58,7 +58,9 @@ class CommandLine:
         linux.add_argument("--warmup", type=int)
         linux.add_argument("--no-resume", action="store_true")
         linux.add_argument("--xvfb", action="store_true", help="start a virtual X server (display.xvfb)")
-        linux.add_argument("--no-zip", action="store_true", help="no zip next to the result folder (saves disk)")
+        linux.add_argument("--no-zip", action="store_true",
+                           help="no zip of everything next to the result folder (saves disk); the small zip to "
+                                "send is always written")
 
         snapshot = sub.add_parser("snapshot", help="take, restore or list snapshot pairs (server + client profiles)")
         snapshot.add_argument("action", choices=["take", "restore", "list", "server-take", "server-restore"])
@@ -228,11 +230,14 @@ class CommandLine:
     def cmd_run_linux(self, pipeline, config, args):
         xvfb = self.virtual_display(config, args)
         try:
-            results = pipeline.run_session(args.session, args.runs, args.warmup, not args.no_resume, not args.no_zip)
+            results = pipeline.run_session(args.session, args.runs, args.warmup, not args.no_resume,
+                                           full_zip=not args.no_zip)
         finally:
             if xvfb:
                 xvfb.stop()
-        summary = {"result_folder": str(pipeline.results_folder().path)}
+        folder = pipeline.results_folder()
+        summary = {"result_folder": str(folder.path), "small_zip": str(folder.small_zip_path),
+                   "small_zip_size": ReadmeFirst.size(folder.small_zip_path)}
         for comparison_id, comparison in results["comparisons"].items():
             for task_id, task in comparison["tasks"].items():
                 summary[f"{comparison_id} {task_id}"] = {side: {"median_s": task[side]["median_s"],

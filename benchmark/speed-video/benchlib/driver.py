@@ -187,6 +187,15 @@ class AppProcess:
             raise DriverError(f"{self.app_id}: window not found: {self.window_error}")
         return self.window
 
+    def client_origin(self) -> tuple[int, int] | None:
+        """The screen position of the app window's client area, where the window system knows it better than the
+        app (Windows); None: the app's own value counts."""
+        return None
+
+    def notes(self) -> dict:
+        """What the run's meta.json records about the app's windows."""
+        return {}
+
     def ensure_foreground(self):
         """Keys and typed text go to the foreground window: make sure it is the app's, or fail."""
         if self.spec.get("focus_check") is False:
@@ -233,6 +242,89 @@ class AppProcess:
         if self.log:
             self.log.write("killed_after_timeout", app=self.app_id)
         return False
+
+
+class ProbeInputs:
+    """Inputs of a probe's completeness check after the measured end (e.g. End in the message list): logged with
+    phase "verify", never user actions."""
+
+    def __init__(self, driver: "ScenarioDriver"):
+        self.driver = driver
+
+    def click(self, x: int, y: int):
+        t_before = EventLog.now()
+        self.driver.desktop.click(x, y)
+        self.driver.log.write("input", t=EventLog.now(), phase="verify", action="click", arg={"x": x, "y": y},
+                              t_before=t_before)
+        if self.driver.park:
+            self.driver.desktop.move(*self.driver.park)
+
+    def key(self, combo: str):
+        self.driver.app.ensure_foreground()
+        t_before = EventLog.now()
+        self.driver.desktop.key(combo)
+        self.driver.log.write("input", t=EventLog.now(), phase="verify", action="key", arg=combo, t_before=t_before)
+
+
+class MovingAreaWatcher:
+    """Asks the probe `hz` times a second where the app shows content that changes by itself (Parula's setup
+    video) and keeps the live gate's mask up to date. Every change is logged (`mask`: the rectangles in screen
+    pixels; `since_t`: the previous poll, which still saw the old ones), so the analysis applies the same masks to
+    the recording. It stops once that content is gone after it was there (the setup has ended)."""
+
+    def __init__(self, probe, log: EventLog, hz: float = 10):
+        self.probe = probe
+        self.log = log
+        self.period_s = 1.0 / hz
+        self.rects: list[dict] = []
+        self.live = None
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self.loop, daemon=True)
+        self.polls = 0
+
+    def show_to(self, live):
+        self.live = live
+        if live is not None:
+            live.set_masks(self.rects)
+
+    def start(self) -> "MovingAreaWatcher":
+        self.thread.start()
+        return self
+
+    def loop(self):
+        previous_t = None
+        seen = False
+        failed = False
+        while not self.stop_event.is_set():
+            t_before = EventLog.now()
+            try:
+                areas = self.probe.moving_areas()
+            except Exception as ex:
+                if not failed:
+                    self.log.write("mask_error", error=f"{type(ex).__name__}: {ex}")
+                failed = True
+                self.stop_event.wait(self.period_s)
+                continue
+            t = EventLog.now()
+            self.polls += 1
+            rects = [{k: int(r[k]) for k in ("x", "y", "w", "h")} for r in areas or []]
+            if rects != self.rects:
+                self.log.write("mask", t=t, t_before=t_before, since_t=previous_t, rects=rects)
+                self.rects = rects
+                if self.live is not None:
+                    self.live.set_masks(rects)
+            if areas is not None:
+                seen = True
+            elif seen:
+                self.log.write("mask_end", t=t, polls=self.polls)
+                return
+            previous_t = t
+            self.stop_event.wait(max(0.0, self.period_s - (EventLog.now() - t_before)))
+
+    def stop(self):
+        self.stop_event.set()
+        if self.thread.is_alive():
+            self.thread.join(5)
 
 
 class ScenarioDriver:
@@ -318,8 +410,9 @@ class ScenarioDriver:
             return
         limit = float(step.timeout_s or self.step_timeout_s)
         if self.task_timeout_s is not None:
-            limit = min(limit, max(0.0, self.task_timeout_s - self.waited))
-        complete = self.completion_check(step) if step.complete else None
+            remaining = max(0.0, self.task_timeout_s - self.waited)
+            limit = remaining if step.complete == "inbox_listed" or step.becomes_final else min(limit, remaining)
+        complete = self.completion_check(step) if step.complete or step.becomes_final else None
         status, info = self.live.wait_settled(
             since, self.quiet_by_step.get(step.name, self.quiet_s), limit, step.name,
             reference=self.live_references.get(step.name), regions=self.live_regions.get(step.name),
@@ -332,29 +425,37 @@ class ScenarioDriver:
             raise NoReaction(f"Step '{step.name}': no screen change within {self.no_reaction_s:.0f} s after "
                              f"its input (a missed click or key?)")
         self.waited += (info.get("live_end") or EventLog.now()) - since
+        if step.final_reached:
+            self.log.write("step_final", step=step.name)
         if step.verify:
             self.do_actions(step.verify.actions, "verify", step, Step("verify", step.verify.actions).trigger_index)
             self.live.wait_settled(EventLog.now(), self.quiet_s, max(step.verify.within_s, self.quiet_s) + 5,
                                    f"{step.name}:verify", expect_change=False)
-        if step.verify_probe:
+        if step.verify_probe or (step.final_reached and step.as_final().verify_probe):
             self.probe_verify(step)
 
     def completion_check(self, step: Step):
         """The probe's check of a step's result: `inbox_listed`, or {"pages": [...], "fail": [...]} = the app shows
-        one of these pages (a page starting with a `fail` prefix also ends the step; the flow then stops)."""
+        one of these pages (a page starting with a `fail` prefix also ends the step; the flow then stops). A page of
+        `becomes_final` turns the step into the final one: from then on it waits for the complete Inbox listing."""
         def check() -> bool:
             t_before = EventLog.now()
             try:
-                if step.complete == "inbox_listed":
+                if step.complete == "inbox_listed" or step.final_reached:
                     result = self.probe.inbox_listed(self.expected)
                 else:
                     page = self.probe.page()
-                    failed = any(page.startswith(prefix) for prefix in step.complete.get("fail", []))
-                    result = {"complete": page in step.complete.get("pages", []) or failed, "page": page,
-                              "failed": failed}
+                    if step.becomes_final and page in step.becomes_final["pages"]:
+                        step.final_reached = True
+                        result = {**self.probe.inbox_listed(self.expected), "page": page, "became_final": True}
+                    else:
+                        failed = any(page.startswith(prefix) for prefix in (step.complete or {}).get("fail", []))
+                        result = {"complete": page in (step.complete or {}).get("pages", []) or failed,
+                                  "page": page, "failed": failed}
             except Exception as ex:
                 result = {"complete": False, "error": self.variables.redact(f"{type(ex).__name__}: {ex}")}
-            self.log.write("probe", step=step.name, check=step.complete, t_before=t_before, **result)
+            self.log.write("probe", step=step.name, check="inbox_listed" if step.final_reached else step.complete,
+                           t_before=t_before, **result)
             return bool(result.get("complete"))
         return check
 
@@ -362,6 +463,7 @@ class ScenarioDriver:
         """After the measured end: the probe checks completeness (e.g. all messages listed, the oldest one
         reachable). Not waiting time; its screen changes come after the step's analysis window."""
         self.log.write("verify_start", step=step.name, method=self.probe.method)
+        self.probe.inputs = ProbeInputs(self)
         try:
             result = self.probe.verify(self.expected)
         except Exception as ex:

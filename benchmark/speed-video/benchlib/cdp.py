@@ -1,5 +1,6 @@
 import itertools
 import json
+import threading
 import time
 import urllib.request
 
@@ -11,12 +12,14 @@ class CdpError(Exception):
 
 
 class CdpClient:
-    """Chrome DevTools Protocol client for the page of an Electron app started with --remote-debugging-port."""
+    """Chrome DevTools Protocol client for the page of an Electron app started with --remote-debugging-port; one
+    call at a time, from any thread."""
 
     def __init__(self, socket, timeout_s: float):
         self.socket = socket
         self.timeout_s = timeout_s
         self.ids = itertools.count(1)
+        self.lock = threading.Lock()
 
     @classmethod
     def connect(cls, port: int, timeout_s: float = 60, url_contains: str = "") -> "CdpClient":
@@ -39,17 +42,18 @@ class CdpClient:
         raise CdpError(f"No DevTools page on port {port} within {timeout_s:.0f} s: {last_error}")
 
     def call(self, method: str, **params) -> dict:
-        message_id = next(self.ids)
-        self.socket.send(json.dumps({"id": message_id, "method": method, "params": params}))
-        while True:
-            try:
-                message = json.loads(self.socket.recv())
-            except websocket.WebSocketTimeoutException as ex:
-                raise CdpError(f"{method}: no answer within {self.timeout_s:.0f} s") from ex
-            if message.get("id") == message_id:
-                if "error" in message:
-                    raise CdpError(f"{method}: {message['error']}")
-                return message["result"]
+        with self.lock:
+            message_id = next(self.ids)
+            self.socket.send(json.dumps({"id": message_id, "method": method, "params": params}))
+            while True:
+                try:
+                    message = json.loads(self.socket.recv())
+                except websocket.WebSocketTimeoutException as ex:
+                    raise CdpError(f"{method}: no answer within {self.timeout_s:.0f} s") from ex
+                if message.get("id") == message_id:
+                    if "error" in message:
+                        raise CdpError(f"{method}: {message['error']}")
+                    return message["result"]
 
     def evaluate(self, expression: str):
         result = self.call("Runtime.evaluate", expression=expression, returnByValue=True, awaitPromise=True)

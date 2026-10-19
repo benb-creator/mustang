@@ -225,10 +225,40 @@ class WindowsDesktop:
         return Rect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
 
     def place_window(self, hwnd, region: Rect, offsets: dict):
+        """Windows 10/11 windows have invisible resize borders around their visible frame: without explicit
+        offsets, the window is moved a second time so that its visible frame (DWM) covers the region exactly."""
         self.user32.ShowWindow(hwnd, 9)
         self.user32.MoveWindow(hwnd, region.x + int(offsets.get("x", 0)), region.y + int(offsets.get("y", 0)),
                                region.width + int(offsets.get("width", 0)),
                                region.height + int(offsets.get("height", 0)), True)
+        if offsets:
+            return
+        outer, visible = self.window_geometry(hwnd), self.visible_frame(hwnd)
+        if visible is None or visible == outer:
+            return
+        left, top = visible.x - outer.x, visible.y - outer.y
+        right = outer.x + outer.width - visible.x - visible.width
+        bottom = outer.y + outer.height - visible.y - visible.height
+        self.user32.MoveWindow(hwnd, region.x - left, region.y - top, region.width + left + right,
+                               region.height + top + bottom, True)
+
+    def visible_frame(self, hwnd) -> Rect | None:
+        DWMWA_EXTENDED_FRAME_BOUNDS = 9
+        rect = wintypes.RECT()
+        try:
+            dwmapi = ctypes.WinDLL("dwmapi")
+        except OSError:
+            return None
+        if dwmapi.DwmGetWindowAttribute(wintypes.HWND(hwnd), DWMWA_EXTENDED_FRAME_BOUNDS, ctypes.byref(rect),
+                                        ctypes.sizeof(rect)) != 0:
+            return None
+        return Rect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
+
+    def client_origin(self, hwnd) -> tuple[int, int]:
+        """The screen position of the window's client area (physical pixels; the process is DPI aware)."""
+        point = wintypes.POINT(0, 0)
+        self.user32.ClientToScreen(wintypes.HWND(hwnd), ctypes.byref(point))
+        return point.x, point.y
 
     def window_process_id(self, hwnd) -> int:
         pid = wintypes.DWORD()
@@ -315,8 +345,162 @@ class WindowsDesktop:
 
     def describe_display(self, xdpyinfo: str = "") -> dict:
         screen = self.virtual_screen()
-        dpi = self.user32.GetDpiForSystem()
-        return {"resolution": f"{screen.width}x{screen.height}", "scale_percent": round(dpi * 100 / 96)}
+        primary = self.primary_monitor()
+        return {"resolution": f"{screen.width}x{screen.height}", "scale_percent": self.scale_percent(),
+                "primary": primary["monitor"].to_dict(), "work_area": primary["work_area"].to_dict(),
+                "monitors": self.monitor_count()}
+
+    def scale_percent(self) -> int:
+        return round(self.user32.GetDpiForSystem() * 100 / 96)
+
+    def monitor_count(self) -> int:
+        return int(self.user32.GetSystemMetrics(80))
+
+    def primary_monitor(self) -> dict:
+        class MONITORINFO(ctypes.Structure):
+            _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT), ("rcWork", wintypes.RECT),
+                        ("dwFlags", wintypes.DWORD)]
+
+        MONITOR_DEFAULTTOPRIMARY = 1
+        self.user32.MonitorFromPoint.restype = wintypes.HANDLE
+        self.user32.MonitorFromPoint.argtypes = (wintypes.POINT, wintypes.DWORD)
+        self.user32.GetMonitorInfoW.argtypes = (wintypes.HANDLE, ctypes.c_void_p)
+        monitor = self.user32.MonitorFromPoint(wintypes.POINT(0, 0), MONITOR_DEFAULTTOPRIMARY)
+        info = MONITORINFO()
+        info.cbSize = ctypes.sizeof(MONITORINFO)
+        self.user32.GetMonitorInfoW(monitor, ctypes.byref(info))
+
+        def rect(r):
+            return Rect(r.left, r.top, r.right - r.left, r.bottom - r.top)
+
+        return {"monitor": rect(info.rcMonitor), "work_area": rect(info.rcWork)}
+
+    def on_ac_power(self) -> bool | None:
+        class SYSTEM_POWER_STATUS(ctypes.Structure):
+            _fields_ = [("ACLineStatus", ctypes.c_ubyte), ("BatteryFlag", ctypes.c_ubyte),
+                        ("BatteryLifePercent", ctypes.c_ubyte), ("SystemStatusFlag", ctypes.c_ubyte),
+                        ("BatteryLifeTime", wintypes.DWORD), ("BatteryFullLifeTime", wintypes.DWORD)]
+
+        status = SYSTEM_POWER_STATUS()
+        if not self.kernel32.GetSystemPowerStatus(ctypes.byref(status)):
+            return None
+        return {0: False, 1: True}.get(status.ACLineStatus)
+
+    def ui_language(self) -> str:
+        lang_id = self.kernel32.GetUserDefaultUILanguage()
+        return {0x07: "de", 0x09: "en"}.get(lang_id & 0x3FF, f"0x{lang_id:04x}")
+
+    def screenshot(self, path: Path, ffmpeg: str | None = None) -> Path:
+        from PIL import ImageGrab
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        ImageGrab.grab(all_screens=True).save(path)
+        return path
+
+    def move_window(self, hwnd, x: int, y: int):
+        SWP_NOSIZE, SWP_NOZORDER, SWP_NOACTIVATE = 0x0001, 0x0004, 0x0010
+        self.user32.SetWindowPos(hwnd, None, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+
+    def is_window(self, hwnd) -> bool:
+        return bool(self.user32.IsWindow(hwnd))
+
+    def is_minimized(self, hwnd) -> bool:
+        return bool(self.user32.IsIconic(hwnd))
+
+    def console_window(self):
+        self.kernel32.GetConsoleWindow.restype = wintypes.HWND
+        return self.kernel32.GetConsoleWindow()
+
+    def show_window(self, hwnd, minimized: bool):
+        SW_MINIMIZE, SW_RESTORE = 6, 9
+        self.user32.ShowWindow(hwnd, SW_MINIMIZE if minimized else SW_RESTORE)
+
+    def has_caption(self, hwnd) -> bool:
+        GWL_STYLE, WS_CAPTION = -16, 0x00C00000
+        return self.user32.GetWindowLongW(hwnd, GWL_STYLE) & WS_CAPTION == WS_CAPTION
+
+    def window_keeper(self, process_ids, region: Rect, main_match: dict, offsets: dict | None = None,
+                      poll_s: float = 0.05) -> "WindowKeeper":
+        return WindowKeeper(self, process_ids, region, main_match, offsets or {}, poll_s)
+
+
+class WindowKeeper:
+    """Keeps an app's windows in the recorded area while it runs: the main window (by class or process match) gets
+    the app region's position and size, every other new window of the app's processes (setup dialogs) is moved,
+    at its own size, to the region's center. Runs in its own thread; `placed` lists what it did."""
+
+    def __init__(self, desktop: WindowsDesktop, process_ids, region: Rect, main_match: dict, offsets: dict,
+                 poll_s: float = 0.05):
+        self.desktop = desktop
+        self.process_ids = process_ids
+        self.region = region
+        self.main_match = main_match
+        self.offsets = offsets
+        self.poll_s = poll_s
+        self.known: set = set()
+        self.placed: list[dict] = []
+        self.main = None
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self.loop, daemon=True)
+
+    def start(self) -> "WindowKeeper":
+        self.thread.start()
+        return self
+
+    def is_main(self, hwnd, title: str, cls: str, geometry: Rect) -> bool:
+        if self.main_match.get("class"):
+            return cls == self.main_match["class"]
+        if self.main_match.get("name"):
+            return bool(re.search(self.main_match["name"], title))
+        main_gone = self.main is None or not self.desktop.is_window(self.main)
+        return main_gone and geometry.width >= 400 and geometry.height >= 300
+
+    def inside_region(self, geometry: Rect) -> bool:
+        r = self.region
+        return geometry.x >= r.x and geometry.y >= r.y and geometry.x + geometry.width <= r.x + r.width and \
+            geometry.y + geometry.height <= r.y + r.height
+
+    def target(self, hwnd, title: str, cls: str) -> tuple[str, Rect] | None:
+        """Popups (menus, drop-down lists, tooltips) have no caption and stay where the app puts them."""
+        geometry = self.desktop.window_geometry(hwnd)
+        if self.is_main(hwnd, title, cls, geometry):
+            return "main", self.region
+        if not self.desktop.has_caption(hwnd) or self.inside_region(geometry):
+            return None
+        x = self.region.x + max(0, (self.region.width - geometry.width) // 2)
+        y = self.region.y + max(0, (self.region.height - geometry.height) // 2)
+        return "dialog", Rect(x, y, geometry.width, geometry.height)
+
+    def check(self):
+        pids = set(self.process_ids())
+        for hwnd, pid, title, cls in self.desktop.top_level_windows():
+            if pid not in pids or hwnd in self.known:
+                continue
+            self.known.add(hwnd)
+            placement = self.target(hwnd, title, cls)
+            if placement is None:
+                continue
+            kind, rect = placement
+            if kind == "main":
+                self.main = hwnd
+                self.desktop.place_window(hwnd, rect, self.offsets)
+            else:
+                self.desktop.move_window(hwnd, rect.x, rect.y)
+            self.placed.append({"t": time.perf_counter(), "kind": kind, "class": cls, "title": title,
+                                "rect": rect.to_dict()})
+
+    def loop(self):
+        while not self.stop_event.is_set():
+            try:
+                self.check()
+            except Exception:
+                pass
+            self.stop_event.wait(self.poll_s)
+
+    def stop(self):
+        self.stop_event.set()
+        if self.thread.is_alive():
+            self.thread.join(2)
 
 
 class WindowsMarkerWindow:

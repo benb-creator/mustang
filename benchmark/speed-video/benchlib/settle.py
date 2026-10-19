@@ -165,38 +165,133 @@ class ChangeSeries:
         return mask
 
 
+class MovingMasks:
+    """Masks over content that changes by itself while the run goes on (Parula's setup video): the driver's `mask`
+    lines, each a set of rectangles (app-capture pixels) that the probe saw at `t`, while the poll before (`since_t`)
+    still saw the previous set. Per frame the analysis counts the changed pixels inside each distinct set
+    (`measure`, through a grid of cells cut by all rectangle edges); `schedule` decides which set applies to each
+    frame: the previous one stays until the first frame after `since_t` that changes outside it (the layout change
+    itself, still counted), the new one from the frame after that, or from `latency_s` after `t` at the latest."""
+
+    def __init__(self, changes: list[dict], width: int, height: int):
+        self.width, self.height = width, height
+        self.sets: list[tuple] = [()]
+        self.changes = []
+        for change in sorted(changes, key=lambda c: c["t"]):
+            rects = []
+            for r in change["rects"]:
+                x0, y0 = max(0, r.x), max(0, r.y)
+                x1, y1 = min(width, r.x + r.width), min(height, r.y + r.height)
+                if x1 > x0 and y1 > y0:
+                    rects.append((x0, y0, x1, y1))
+            key = tuple(sorted(rects))
+            if key not in self.sets:
+                self.sets.append(key)
+            self.changes.append({"t": change["t"], "since_t": change.get("since_t"), "set": self.sets.index(key)})
+        self.xs = sorted({0, width} | {v for key in self.sets for r in key for v in (r[0], r[2])})
+        self.ys = sorted({0, height} | {v for key in self.sets for r in key for v in (r[1], r[3])})
+        self.blocks = [[(self.ys.index(y0), self.ys.index(y1), self.xs.index(x0), self.xs.index(x1))
+                        for x0, y0, x1, y1 in key] for key in self.sets]
+
+    def measure(self, changed: np.ndarray) -> tuple[int, np.ndarray]:
+        """All changed pixels of a frame, and those inside each distinct set."""
+        cells = np.add.reduceat(np.add.reduceat(changed, self.ys[:-1], axis=0, dtype=np.int64), self.xs[:-1],
+                                axis=1)
+        inside = np.array([sum(int(cells[a:b, c:d].sum()) for a, b, c, d in blocks) for blocks in self.blocks],
+                          dtype=np.int64)
+        return int(cells.sum()), inside
+
+    def schedule(self, times: np.ndarray, totals: np.ndarray, inside: np.ndarray, to_video, min_changed: int,
+                 latency_s: float = 0.1) -> np.ndarray:
+        index = np.zeros(len(times), dtype=np.int64)
+        current, start = 0, 0
+        for change in self.changes:
+            new = change["set"]
+            if new == current:
+                continue
+            seen = to_video(change["t"])
+            opened = to_video(change["since_t"]) if change["since_t"] is not None else seen
+            first = max(start, int(np.searchsorted(times, opened, side="left")))
+            last = max(first, int(np.searchsorted(times, seen + latency_s, side="right")))
+            outside_old = totals[first:last] - inside[first:last, current]
+            hits = np.flatnonzero(outside_old >= min_changed)
+            switch = first + int(hits[0]) + 1 if len(hits) else last
+            index[start:switch] = current
+            current, start = new, switch
+        index[start:] = current
+        return index
+
+    def summary(self, times: np.ndarray, index: np.ndarray) -> dict:
+        switches = np.flatnonzero(np.diff(index)) + 1
+        return {"sets": [[{"x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0} for x0, y0, x1, y1 in key]
+                         for key in self.sets],
+                "changes": len(self.changes),
+                "applied": [{"time": float(times[i]), "set": int(index[i])} for i in ([0] if len(index) else [])]
+                + [{"time": float(times[i]), "set": int(index[i])} for i in switches]}
+
+
 class FrameAnalyzer:
-    """Builds a ChangeSeries from a sequence of frames (the app area, RGB)."""
+    """Builds a ChangeSeries from a sequence of frames (the app area, RGB). With `moving` (MovingMasks), the change
+    counts inside each of its sets are kept per frame and `series(..., to_video)` applies its schedule."""
 
     def __init__(self, width: int, height: int, params: SettleParams, masks: Iterable[Rect] = (),
-                 references: dict | None = None, regions: Iterable[Region] = (), reference_thresholds: dict | None = None):
+                 references: dict | None = None, regions: Iterable[Region] = (), reference_thresholds: dict | None = None,
+                 moving: MovingMasks | None = None):
         self.params = params
         self.diff = FrameDiff(width, height, params.pixel_threshold, masks)
         self.references = dict(references or {})
         self.reference_thresholds = dict(reference_thresholds or {})
         self.regions = {r.name: r for r in regions}
+        self.moving = moving
         self.history: deque = deque(maxlen=max(1, params.fade_lag_frames))
         self.times, self.counts, self.fine, self.lag = [], [], [], []
+        self.inside: dict[str, list] = {"counts": [], "fine": [], "lag": []}
         self.ref_distances = {name: [] for name in self.references}
         self.region_changes = {name: [] for name in self.regions}
         self.region_distances = {name: [] for name, r in self.regions.items() if r.reference is not None}
+        self.schedule_summary: dict | None = None
+
+    def moving_counts(self, diff: np.ndarray, threshold: int) -> tuple[int, np.ndarray]:
+        changed = diff > threshold
+        if not self.diff.keep.all():
+            changed &= self.diff.keep
+        return self.moving.measure(changed)
 
     def add(self, time: float, frame: np.ndarray):
         previous = self.history[-1] if self.history else None
         oldest = self.history[0] if len(self.history) == self.history.maxlen else None
         self.times.append(time)
-        diff = None
-        count = fine = 0
-        if previous is not None:
-            diff = self.diff.absdiff(previous, frame)
-            count, fine = self.diff.count(diff, self.params.pixel_threshold), self.diff.count(diff, 0)
+        diff = None if previous is None else self.diff.absdiff(previous, frame)
+        minimum = self.params.min_changed_pixels
+        if self.moving is not None:
+            self.add_moving(frame, diff, oldest, minimum)
+        else:
+            count = fine = lag = 0
+            if diff is not None:
+                count, fine = self.diff.count(diff, self.params.pixel_threshold), self.diff.count(diff, 0)
+            if oldest is not None and fine >= minimum and count < minimum:
+                lag = self.diff.count(self.diff.absdiff(oldest, frame), self.params.pixel_threshold)
+            self.counts.append(count)
+            self.fine.append(fine)
+            self.lag.append(lag)
+        self.add_checks(frame, diff)
+
+    def add_moving(self, frame: np.ndarray, diff: np.ndarray | None, oldest, minimum: int):
+        empty = np.zeros(len(self.moving.sets), dtype=np.int64)
+        count, inside_count, fine, inside_fine, lag, inside_lag = 0, empty, 0, empty, 0, empty
+        if diff is not None:
+            count, inside_count = self.moving_counts(diff, self.params.pixel_threshold)
+            fine, inside_fine = self.moving_counts(diff, 0)
+            if oldest is not None and fine >= minimum and int((count - inside_count).min()) < minimum:
+                lag, inside_lag = self.moving_counts(self.diff.absdiff(oldest, frame), self.params.pixel_threshold)
         self.counts.append(count)
         self.fine.append(fine)
-        minimum = self.params.min_changed_pixels
-        lag = 0
-        if oldest is not None and fine >= minimum and count < minimum:
-            lag = self.diff.count(self.diff.absdiff(oldest, frame), self.params.pixel_threshold)
         self.lag.append(lag)
+        self.inside["counts"].append(inside_count)
+        self.inside["fine"].append(inside_fine)
+        self.inside["lag"].append(inside_lag)
+
+    def add_checks(self, frame: np.ndarray, diff: np.ndarray | None):
         for name, reference in self.references.items():
             threshold = self.reference_thresholds.get(name, self.params.reference_pixel_threshold)
             self.ref_distances[name].append(self.diff.reference_distance(frame, reference, threshold)
@@ -208,12 +303,25 @@ class FrameAnalyzer:
                 self.region_distances[name].append(region.distance(frame))
         self.history.append(frame)
 
-    def series(self, times: np.ndarray | None = None) -> ChangeSeries:
+    def series(self, times: np.ndarray | None = None, to_video=None) -> ChangeSeries:
+        """`to_video` maps the driver's clock onto the video's (needed with `moving`)."""
         as_float = lambda values: np.asarray(values, dtype=np.float32)
-        return ChangeSeries(np.asarray(self.times if times is None else times, dtype=np.float64),
-                            np.asarray(self.counts, dtype=np.int64),
+        times = np.asarray(self.times if times is None else times, dtype=np.float64)
+        counts = np.asarray(self.counts, dtype=np.int64)
+        fine = np.asarray(self.fine, dtype=np.int64)
+        lag = np.asarray(self.lag, dtype=np.int64)
+        if self.moving is not None:
+            inside = {name: np.asarray(values, dtype=np.int64).reshape(len(values), len(self.moving.sets))
+                      for name, values in self.inside.items()}
+            index = self.moving.schedule(times, counts, inside["counts"], to_video, self.params.min_changed_pixels)
+            frames = np.arange(len(index))
+            counts = counts - inside["counts"][frames, index]
+            fine = fine - inside["fine"][frames, index]
+            lag = lag - inside["lag"][frames, index]
+            self.schedule_summary = self.moving.summary(times, index)
+        return ChangeSeries(times, counts,
                             {k: as_float(v) for k, v in self.ref_distances.items()},
-                            np.asarray(self.fine, dtype=np.int64), np.asarray(self.lag, dtype=np.int64),
+                            fine, lag,
                             {k: np.asarray(v, dtype=np.int64) for k, v in self.region_changes.items()},
                             {k: as_float(v) for k, v in self.region_distances.items()})
 

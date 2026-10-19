@@ -3,28 +3,23 @@
 # step's timer starts at its last action (the "continue"-type key or click) and runs until the screen settles.
 #
 # "All listed" is checked, not assumed (an Inbox shows its first page long before the rest of the list is loaded).
-# Apps with a `flow` find their setup's elements through the app's instrumentation (no calibration); the probe's
-# completeness check opens the live gate during a quiet screen, the measured end comes from the recording, and
-# after it the probe verifies that all messages are listed and the oldest is reachable (README, "Instrumentation").
-# Apps with `steps` use calibrated points and regions (bench.py calibrate …):
-# - regions: calibrated rectangles whose content must match the calibration run's final state;
-# - verify: after the measured end, End jumps to the end of the list; within 3 s the region list.bottom must show
-#   what it showed in the calibration run (the corpus's oldest message). Not waiting time, not a user action;
-# - first_visible: the time the first rows appear (list.top), reported as "first messages visible";
-# - after_end fail: a significant screen change after the measured end makes the run invalid.
+# Every app's setup is a `flow` that finds the setup's elements through the app's instrumentation (no calibration);
+# the probe's completeness check opens the live gate during a quiet screen, the measured end comes from the
+# recording, and after it the probe verifies that all messages are listed and the oldest is reachable (README,
+# "Instrumentation").
 id: T1
 title: {en: "New account: Inbox lists all messages", de: "Neues Konto: Posteingang listet alle Mails"}
 description: "Fresh app profile and the seeded server state; from the first continue of the account setup until the Inbox lists all messages and has settled"
 start_state: {server: seeded, client: fresh}
 timeout_s: 7200
 apps:
-  # Linux apps: the account setup is found programmatically (`flow`, benchlib/flows.py): the app's probe (Parula:
-  # DevTools, Thunderbird: Marionette) tells which page is shown and where its elements are; the driver clicks and
-  # types there like a user. The last step ends when the screen is quiet and the probe confirms that the Inbox lists
+  # The account setup is found programmatically (`flow`, benchlib/flows.py): the app's probe (Parula: DevTools,
+  # Thunderbird: Marionette, the Outlooks: UI Automation) tells which page is shown and where its elements are; the
+  # driver clicks and types there like a user. The last step ends when the screen is quiet and the probe confirms that the Inbox lists
   # all messages (`final.complete`); after the measured end the probe checks that the oldest message is reachable
   # (`final.verify`). Every input of the flow is a counted user action except the "prepare" ones (disclosed).
   parula-jmap:
-    prepare: [launch]                 # its first screens play a video: the flow waits for the page and pauses it
+    prepare: [launch]                 # its setup pages play a video: the probe reports its area, which isn't counted
     tail_s: 30
     flow: {name: parula-setup, protocol: jmap,
            final: {complete: inbox_listed, verify: true, after_end: fail, first_visible: true}}
@@ -38,53 +33,20 @@ apps:
     tail_s: 30
     flow: {name: thunderbird-setup,
            final: {complete: inbox_listed, verify: true, after_end: fail, first_visible: true}}
+  # Windows apps (the session of windows/run-windows-tests.ps1): Parula is the same app with the same flow and
+  # probe as on Linux (parula-jmap above). Outlook (classic) and new Outlook are found with UI Automation (probe
+  # `uia`, element names in windows/uia-elements.yaml, English and German).
   outlook-classic:
     prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 180}}]
     tail_s: 30
-    opening_screen: {region: pane.center, tolerance: 0.02}
-    steps:
-      - name: choose-imap
-        actions: [{type: "${account.email}"}, {click: link.advanced}, {click: checkbox.manual}, {click: button.connect}]
-      - name: enter-password
-        actions: [{click: tile.imap}]
-      - name: connect
-        actions: [{type: "${account.password}"}, {click: button.connect}]
-      - name: open-inbox
-        actions: [{click: button.done}]
-        regions: [{region: inbox.count}]
-        first_visible: {region: list.top}
-        verify: {actions: [{key: ctrl+End}], regions: [{region: list.bottom}], within_s: 3}
-        after_end: fail
+    flow: {name: outlook-classic-setup,
+           final: {complete: inbox_listed, verify: true, after_end: fail, first_visible: true}}
   outlook-new:
+    # After the measured end the account stays until new Outlook has listed every message for a few minutes,
+    # then it is removed with "Remove from all devices" (benchlib/winsession.py NewOutlookLifecycle); if that
+    # fails, the series stops, because the next run would not start as a new account setup.
     prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 180}}]
     tail_s: 30
-    opening_screen: {region: pane.center, tolerance: 0.02}
-    steps:
-      - name: choose-provider
-        actions: [{type: "${account.email}"}, {click: button.continue}]
-      - name: imap-form
-        actions: [{click: option.imap}, {click: button.continue}]
-      - name: connect
-        actions: [{type: "${account.password}"}, {click: button.continue}]
-      - name: open-inbox
-        actions: [{click: button.done}]
-        regions: [{region: inbox.count}]
-        first_visible: {region: list.top}
-        verify: {actions: [{key: ctrl+End}], regions: [{region: list.bottom}], within_s: 3}
-        after_end: fail
-    # Evidence first (not measured time): keep the account until the server log shows no more fetches from outside
-    # the benchmark computer for 3 minutes (at most 2 hours). Then every next run must be a new account setup:
-    # remove the account from new Outlook with "remove from all devices" (also from the Microsoft cloud; Microsoft
-    # names it as the way to delete the stored credentials), and wait until the log shows no login attempt from
-    # outside the benchmark computer for 10 minutes. If the removal fails, the series stops.
     finish_required: true
-    finish:
-      - {wait_cloud_quiet: {watch: fetches, minutes: 3, timeout_min: 120}}
-      - {click: button.settings}
-      - {click: nav.accounts}
-      - {click: account.manage}
-      - {click: button.remove}
-      - {click: option.remove_all_devices}
-      - {click: button.confirm_remove}
-      - {sleep: 5}
-      - {wait_cloud_quiet: {watch: logins, minutes: 10, timeout_min: 120}}
+    flow: {name: outlook-new-setup,
+           final: {complete: inbox_listed, verify: true, after_end: fail, first_visible: true}}

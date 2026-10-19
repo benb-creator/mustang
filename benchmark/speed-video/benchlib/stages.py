@@ -18,7 +18,7 @@ from .method import MethodTexts
 from .narration import Narration
 from .references import References
 from .resultfolder import ResultFolder
-from .runner import Desktops, Orchestrator, RunExecutor, RunPlan
+from .runner import Desktops, Orchestrator, RunExecutor, RunPlan, SeriesStop
 from .scenario import ScenarioLibrary
 from .seed import Seeder
 from .serverlog import EvidenceSummary, ServerLog
@@ -70,12 +70,18 @@ class NarrationFiles:
 
 
 class Pipeline:
-    def __init__(self, config, progress=print, folder: ResultFolder | None = None):
+    """`lifecycles`: per app what it needs around its runs besides its scenario (`runner.AppLifecycle`; the Windows
+    session's apps); `notes`: what a session changed on the computer, listed with the deviations."""
+
+    def __init__(self, config, progress=print, folder: ResultFolder | None = None, lifecycles: dict | None = None,
+                 desktop=None):
         self.config = config
         self.console = progress
         self.scenarios = ScenarioLibrary(config.scenario_dir)
         self.folder = folder
-        self._desktop = None
+        self.lifecycles = dict(lifecycles or {})
+        self.notes: list[str] = []
+        self._desktop = desktop
         self._server_log = None
         self._account = None
 
@@ -172,7 +178,7 @@ class Pipeline:
     def executor(self) -> RunExecutor:
         return RunExecutor(self.config, self.desktop, self.scenarios, self.server_snapshots(),
                            ClientProfiles(self.config), self.progress, self.server_log, self.app_version,
-                           self.results_folder(), self.account())
+                           self.results_folder(), self.account(), self.lifecycles)
 
     def corpus_facts(self) -> dict:
         generator = CorpusGenerator(CorpusSpec.from_dict(self.config.get("corpus")))
@@ -225,21 +231,31 @@ class Pipeline:
             comparison_id, tasks, resume, measured, warmup, only_apps)
 
     def run_session(self, session: str, measured: int | None = None, warmup: int | None = None,
-                    resume: bool = True, zip_folder: bool = True) -> dict:
+                    resume: bool = True, package: bool = True, full_zip: bool = True) -> dict:
         """All comparisons of one computer's session (e.g. C1 + C2 on Linux): one interleaved series of the
-        session's apps, then analysis, results, evidence, report and the zip of the result folder."""
+        session's apps, then analysis, results, evidence, report, README-FIRST.txt and the zips of the result
+        folder (`package`; the zip of everything only with `full_zip`). A series that stops early (`SeriesStop`) is
+        analyzed and packaged as far as it got; the stop is raised afterwards."""
         comparisons = [c for c, spec in (self.config.get("comparisons") or {}).items()
                        if self.config.run_group(c) == session]
         if not comparisons:
             raise ConfigError(f"No comparison belongs to session '{session}'")
-        for comparison_id in comparisons:
-            self.run(comparison_id, None, resume, measured, warmup)
+        stopped = None
+        try:
+            for comparison_id in comparisons:
+                self.run(comparison_id, None, resume, measured, warmup)
+        except SeriesStop as ex:
+            stopped = ex
+            self.progress(f"the series stopped early: {ex}")
         results = self.analyze(comparisons[0])
-        if zip_folder:
-            archive = self.results_folder().zip()
-            self.progress(f"result folder {self.results_folder().path} ({archive.name} next to it)")
-        else:
-            self.progress(f"result folder {self.results_folder().path}")
+        if package:
+            os_label = "Windows" if self.results_folder().manifest().get("os") == "windows" else "Linux"
+            text = self.results_folder().package(os_label, stopped is None, str(stopped) if stopped else None,
+                                                 full_zip, self.progress)
+            for line in text.splitlines():
+                self.progress(line)
+        if stopped is not None:
+            raise stopped
         return results
 
     def recorded_comparisons(self) -> list[str]:
@@ -352,7 +368,8 @@ class Pipeline:
 
     def deviations(self, language: str) -> list[str]:
         deviations = self.config.get("deviations") or []
-        return deviations.get(language) or deviations.get("en") or [] if isinstance(deviations, dict) else deviations
+        listed = deviations.get(language) or deviations.get("en") or [] if isinstance(deviations, dict) else deviations
+        return list(listed) + self.notes
 
     def merged_results(self, results_paths: list[str] | None) -> dict:
         """results.json of one or several result folders (e.g. Linux + Windows); each comparison remembers its

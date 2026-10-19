@@ -21,7 +21,7 @@ bench.py seed                                    account mode: seed the corpus i
                                                  pipelined; resumable and idempotent)
 bench.py check [--repair]                        account mode: compare the account with the corpus (and repair)
 bench.py fetch-parula [--dir tools/parula]       the current public Parula .deb, unpacked without root
-bench.py run-linux [--results <folder>]          the whole Linux session (C1 + C2): runs, analysis, results, zip
+bench.py run-linux [--results <folder>]          the whole Linux session (C1 + C2): runs, analysis, results, zips
 bench.py corpus     manifest | time | write      deterministic test corpus (profile inbox-30k or multi-folder)
 bench.py env        record OS, CPU, RAM, GPU, display, app and server versions, round-trip time
 bench.py run        warm-up + 5 measured runs per app and task, interleaved A B A B, with capture
@@ -36,8 +36,11 @@ bench.py snapshot | calibrate | seed import/verify/wipe   admin mode only (a ded
 ```
 
 A session writes one **result folder** (`results-<os>-<yyyymmdd-hhmm>/`, see "Result folder format") with every
-run, the captures and all evidence, plus a zip of it; `analyze`, `compose` and `method` read result folders, so
-the Linux folder made here and the Windows folder Ben sends are composed the same way. `run` and `run-linux`
+run, the captures and all evidence, plus two zips of it: `…-small.zip` to send (every data file, log and screenshot
+of every run, but only the recordings the videos use) and `….zip` with everything; `analyze`, `compose` and
+`method` read result folders, so the Linux folder made here and the Windows folder Ben sends are composed the same
+way. Both OSes run the same code: one runner (`benchlib/runner.py`), the same flows, probes and analysis; the
+Windows session only adds what Windows needs around the runs (`benchlib/winsession.py`). `run` and `run-linux`
 continue an interrupted folder with `--results <folder>` (completed runs are kept).
 
 ## Account mode (default): an existing server, one test account
@@ -61,6 +64,97 @@ but that one account is ever read or changed; no SSH, no server administration, 
   appended. The result is the run's `account.json`; a run whose account still differs after the repair fails.
 - `bench.py check [--repair]` runs the same check by hand.
 
+## Windows tests: run once
+
+The Windows tests (C3, C4) are one script that runs everything by itself. **Untested on Windows**: it was written
+without a Windows machine (see "What is verified" below).
+
+**The command** (PowerShell, as the normal Windows user, no administrator rights; it asks for the password without
+showing it). Until this code is on master, the script comes from the fork's branch:
+
+```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/benb-creator/mustang/claude/speed-benchmark-video/benchmark/speed-video/windows/run-windows-tests.ps1 -OutFile run-windows-tests.ps1
+powershell -ExecutionPolicy Bypass -File .\run-windows-tests.ps1 -Server mail.example.org -Email test@example.org
+```
+
+The script fetches the test scripts of the commit it names as its default `-CodeRef` (repository
+`-CodeRepo benb-creator/mustang`), so the script and the code it runs always belong together; the commit is
+recorded in `logs\code.json` of the result folder. (From a checkout of the repository: `powershell
+-ExecutionPolicy Bypass -File windows\run-windows-tests.ps1 …` uses that checkout; `-Password <pw>` is accepted
+too, but then the password is visible in the process list; `-CheckOnly` only checks the prerequisites.) It creates
+the folder `parula-speed-test\` where it is started and keeps everything there.
+
+**What it needs:** 64-bit Windows 10 (1809 or later) or 11; Outlook (classic) from Microsoft 365, started and
+signed in to Office once; the new Outlook for Windows ("Outlook (new)" from the Microsoft Store) **without
+accounts** (or a separate Windows user just for the test); about 60 GB free disk space; the power supply plugged
+in; the test account seeded by us (the script checks it and stops if not). Display scaling 100 % is best; other
+scalings work when the screen fits a 1280×940 window at that scaling.
+
+**What it does:** fetches pinned tools into `parula-speed-test\tools\` (portable Python 3.13.16, numpy, Pillow,
+PyYAML, comtypes, websocket-client, ffmpeg 8.1.2; each file checked by SHA-256) and installs Parula 0.9.39 for the
+current user if Parula is missing; checks the prerequisites (apps installed and closed, display, disk, ffmpeg's
+`ddagrab`, the account reachable and seeded); asks to close other open apps (waits up to 10 minutes); runs a
+**preflight** (each app starts from a fresh state and its instrumentation finds the first page of its account
+setup; a 2-second capture test) and stops early with diagnostics if anything fails; then runs the series through
+the shared core (`Pipeline.run_session`, the same as `run-linux`): Parula (JMAP), Outlook (classic), new Outlook,
+interleaved, 1 warm-up + 5 measured runs each, every run a new account setup, recorded from the screen (ffmpeg
+`ddagrab`, lossless, with sync markers), with the account checked (and repaired) before every run and the TCP
+connections of each app's processes logged 10 times a second. Runs that fail for a technical reason are recorded
+again at the end. Finally it analyzes everything and writes the result folder and its two zips.
+
+**How long:** typically 6–12 hours, depending mostly on new Outlook (its account is kept until its Inbox lists
+all messages, at most 2 hours per run, then removed; the next new Outlook run starts at least 10 minutes later).
+
+**Meanwhile:** don't use the computer (no mouse, no keyboard), don't lock it (Windows+L stops the screen
+capture), don't open apps, keep it plugged in. Sleep and the screen saver are suspended while it runs. Ctrl+C in
+its window stops it and still undoes everything.
+
+**What it changes, and undoes at the end** (also after an error, Ctrl+C or a crash: the next start undoes what a
+crashed session left, from `parula-speed-test\state\session-state.json`):
+- power plan "High performance" when the computer has it, Windows notifications (toasts) off;
+- Parula: a Parula profile of this Windows user (`%APPDATA%\Parula`, `%USERPROFILE%\Parula`) is moved aside and
+  moved back; Parula's update check is off (`resources\app-update.yml` renamed back afterwards); the benchmark's
+  own Parula profile is deleted after every run;
+- Outlook (classic): its own profile `ParulaBench` (`outlook.exe /profile ParulaBench`), deleted after every run
+  with the test account's data files and its Credential Manager entries; the user's own profiles and files are
+  never touched;
+- new Outlook: the test account is added in every run and removed with "Remove from all devices" (also after a
+  failed run, when new Outlook lists it);
+- the console window is minimized when it covers the recorded area.
+Parula stays installed if the script installed it (uninstall in Settings → Apps if wanted).
+
+**The result:** `parula-speed-test\results-windows-<yyyymmdd-hhmm>\` with all recordings, logs and measurements
+(layout in "Result folder format") and next to it `results-windows-<yyyymmdd-hhmm>-small.zip` (**the one to send
+us**: every measurement, log, check and screenshot of every run, plus the recordings the videos use, i.e. the
+median run of each app: 3 of the 18 recordings) and `results-windows-<yyyymmdd-hhmm>.zip` (everything, all
+recordings, 10–60 GB; keep it until we confirm). The console and `README-FIRST.txt` in the folder name both zips
+with their sizes. The lossless recordings are large where the screen moves a lot: a Parula run with its setup
+video is ~200 MB at 1280×940, a run whose screen is still for long stretches much less per minute. On a stop, the folder holds the
+diagnostics: `preflight\` (instrumentation dumps and screenshots of every app's first setup page) and
+`runs\<app>\T1\<run>\screenshots\`.
+
+**How the flows work:** the same flows and probes as on Linux (`benchlib/flows.py`, `benchlib/probe.py`).
+Parula is started with `--remote-debugging-port` and found through its DevTools exactly as on Linux (the same
+flow, the same steps, the same video mask; its page texts in English and German); the window system gives the
+position of its window's client area. Outlook (classic) and new Outlook are found with UI Automation
+(`benchlib/winprobe.py`, element names in `windows/uia-elements.yaml`, English and German; the UI language is
+detected from the names that match). Input goes through `SendInput` at the elements' screen positions, like a
+user's. Each app's default setup path is taken; the pages that appear decide the next action, and the path is
+recorded (`flow_path` in `meta.json`). Every "continue"-type action starts a measured step, which ends at the
+last significant screen change before the probe confirms the next page (the last step: the complete Inbox
+listing: Outlook's "Items: N" in its status bar, Parula's "N mails", new Outlook's list size or Inbox unread
+count; a step after which new Outlook opens its Inbox directly becomes the last step); after the measured end,
+the completeness check runs (`verify.json`; in the Outlooks the newest message is selected and End must bring
+the corpus's oldest message into view). The instrumentation never gives the time.
+
+**What is verified, what is assumed:** Parula's probe and flow are the Linux ones, tested here against the real
+app (0.9.39); its German page texts come from its translations. Outlook's and new Outlook's names are the
+visible labels in Microsoft's support articles (`source: docs`) or remembered (`source: assumed`); none was
+checked against a real UI Automation tree. The preflight writes those trees, so a wrong name shows up there and
+is fixed in `windows/uia-elements.yaml` only. If this Windows user has Thunderbird profiles, Parula's first page
+offers to import their accounts (the flow skips it, a measured step; the account names would be visible in the
+recording).
+
 ## Prerequisites
 
 Linux (C1, C2) — run in this container by us (Ben, round 4), or on any Linux computer:
@@ -78,15 +172,11 @@ Linux (C1, C2) — run in this container by us (Ben, round 4), or on any Linux c
   Thunderbird from the official tarball, extracted to `tools/thunderbird/`, with
   `tools/thunderbird/distribution/policies.json` = `{"policies": {"DisableAppUpdate": true}}`.
 
-Windows (C3, C4), **untested** — written without access to a Windows machine:
-- Python 3.10+ (`pip install -r requirements.txt`; python-xlib is skipped), ffmpeg ≥ 7 with `ddagrab`
-  (gyan.dev "full" or BtbN builds), the built-in OpenSSH client for the server snapshots and the server log.
-- Input goes through `SendInput` (ctypes, `benchlib/windows.py`), the sync marker is a topmost popup window,
-  capture is ffmpeg `ddagrab` (Desktop Duplication) + `hwdownload`, ffmpeg's CPU affinity is set with
-  `SetProcessAffinityMask`. The driver is per-monitor DPI aware; use 100 % display scaling. Before every key or
-  typed text the driver checks that the app's window is in the foreground (it brings it there with
-  `AttachThreadInput` + `SetForegroundWindow`); if that fails, the run fails and nothing is typed.
-- A dedicated Windows user for benchmarking: client snapshots replace that user's app data folders.
+Windows (C3, C4): `windows/run-windows-tests.ps1` fetches everything it needs, see "Windows tests: run once".
+Input goes through `SendInput` (ctypes, `benchlib/windows.py`), the sync marker is a topmost popup window, capture
+is ffmpeg `ddagrab` (Desktop Duplication) + `hwdownload`, ffmpeg's CPU affinity is set with
+`SetProcessAffinityMask`; the driver is per-monitor DPI aware and checks before every key or typed text that the
+app's window is in the foreground, else the run fails and nothing is typed.
 
 ## Admin mode (optional): a dedicated Stalwart instance
 
@@ -181,7 +271,7 @@ Only for admin mode (snapshots) and for scenarios with calibrated `steps` (T2–
 T1 runs need none of this.
 
 ```sh
-cp config.linux.example.yaml config.yaml            # or config.windows.example.yaml; fill in the <…> values
+cp config.linux.example.yaml config.yaml            # fill in the <…> values
 export BENCH_ACCOUNT_PASSWORD='…'
 ./bench.py corpus manifest                          # work/corpus/manifest.json: counts, sizes, digest
 ./bench.py seed import                              # JMAP import + verify (counts, attachments, planted terms)
@@ -196,11 +286,9 @@ home and the font cache stays the user's (`XDG_CACHE_HOME`), so Parula looks and
 runs with the real `HOME`. Lingering Parula processes are found by binary path *and* the benchmark `HOME`, never
 your own Parula. Thunderbird runs with `-profile <dir> -no-remote` and a `user.js` that switches off its start
 page (the one deviation from its defaults that changes what it does: no web page loads during the measurement)
-and pop-ups. Neither app keeps the password in the desktop keyring. Outlook classic: the profile's registry key
-and `Office\16.0\Outlook\Setup` (exported and imported with `reg`) plus its `.ost` file; the fresh state is an
-empty `Bench` profile, so `/profile Bench` opens the account setup; list its Credential Manager entries in
-`credential_targets` (check `cmdkey /list` after one setup). New Outlook: see "New Outlook (C4)". Every restore
-refuses to replace a directory that lacks the `.bench-profile` marker, so real profiles are never touched.
+and pop-ups. Neither app keeps the password in the desktop keyring. On Windows the session gives every app its
+fresh state (see "Windows tests: run once"). Every restore refuses to replace a directory that lacks the
+`.bench-profile` marker, so real profiles are never touched.
 
 For T2–T7 (`multi-folder` corpus): `snapshot take --name synced --apps …` syncs each app from a fresh profile,
 then checks that the sync is complete: the screen is still, the profile size stops changing for
@@ -220,7 +308,7 @@ first (T1's setup pages appear one after another: calibrate one page, click on, 
 Points and regions are stored per display layout and app relative to the app region
 (`work/calibration/<layout>/<app>.yaml`).
 
-T1's completion checks, per app (`scenarios/T1.yaml`):
+Completion checks of calibrated steps (scenarios with `steps`, e.g. T2–T7):
 - `regions` (e.g. `inbox.count`, the Inbox's message count in the folder pane, or another area that only shows
   its final state when all messages are listed): the step only ends at a frame where each region matches the
   calibration run's final state, and any change inside a region counts as a screen change, however small. An app
@@ -240,8 +328,9 @@ fails its analysis (set `expect: none` to measure a step without one). `calibrat
 <seconds> --app <id> --region <name> --kind opening` saves a region of a recorded frame, e.g. a Microsoft app's
 opening screen (`opening_screen` in the scenario), which the video then hides behind a neutral card.
 
-Add `display.masks` or per-scenario `masks` for regions that change on their own (a clock, relative dates); the
-report lists every mask, region and setting per app and step.
+Add `display.masks` or per-scenario `masks` for fixed regions that change on their own (a clock, relative dates);
+the report lists every mask, region and setting per app and step. Content that changes by itself and moves with
+the app's pages (Parula's setup video) is masked from the probe's report instead (see "Instrumentation").
 
 ## Linux tests: run here (C1 + C2), step by step
 
@@ -258,9 +347,10 @@ export BENCH_PASSWORD='…'                       # or put --password-prompt bef
 `run-linux` starts Xvfb (2560×1440), records the session of `sessions.linux` (Parula JMAP, Parula IMAP,
 Thunderbird; 1 warm-up + 5 measured runs each, interleaved A B C A B C, a fresh app profile and the account check
 before every run), analyzes every run right after it is recorded, re-records technical failures at the end of the
-series, writes `results.json`, `evidence.json` and `report.md` into the result folder and zips it. It prints the
-folder and the medians (`--no-zip` skips the zip when the folder is composed on the same machine and disk is
-short: the lossless captures are most of its size). Interrupted? `./bench.py run-linux --results <folder>`
+series, writes `results.json`, `evidence.json`, `report.md` and `README-FIRST.txt` into the result folder and
+the two zips next to it (`-small.zip` with the data and the recordings the videos use, and the zip of everything).
+It prints the folder, the small zip with its size and the medians (`--no-zip` skips the zip of everything when the
+folder is composed on the same machine and disk is short: the lossless captures are most of its size). Interrupted? `./bench.py run-linux --results <folder>`
 continues it. On a shared machine, run it under the same lock as other heavy jobs (e.g. `flock <lock file>
 ./bench.py run-linux`), so nothing else competes for the CPU during the measurement; it runs one app and one Xvfb
 at a time.
@@ -286,13 +376,16 @@ corpus differ; each test shows its own machine).
 ## Instrumentation (finding the UI, checking completeness)
 
 No calibration: the apps' own debugging interfaces find the elements of each setup page, and the driver clicks and
-types there like a user (xdotool on Linux).
+types there like a user (xdotool on Linux, `SendInput` on Windows).
 - Parula (Electron) is started with `--remote-debugging-port`; `benchlib/probe.py` `ParulaProbe` reads its page
   through the Chrome DevTools Protocol (`benchlib/cdp.py`): which setup page is shown, the screen position of
-  buttons and fields, the Inbox's message count ("30000 mails").
+  buttons and fields, the Inbox's message count ("30000 mails"); English and German texts. The same on Windows,
+  where the window system tells where its client area is.
 - Thunderbird is started with `-marionette -remote-allow-system-access` (and `marionette.port` in user.js);
   `ThunderbirdProbe` reads its Account Hub (shadow DOM), the folder tree and the thread pane's count ("30,000
   Messages") through Marionette (`benchlib/marionette.py`).
+- Outlook (classic) and new Outlook (Windows): UI Automation, `benchlib/winprobe.py` `UiaProbe` with the element
+  map `windows/uia-elements.yaml` (`probe: {type: uia, app: …, map: …}`).
 - The account setup is a flow (`benchlib/flows.py`, `scenarios/T1.yaml` `flow:`): the app's own default path —
   the configuration it finds (autoconfig), or, when the server's domain offers none for that app, its manual setup
   (recorded per run as `flow_path`, and every input of it is a counted user action). Parula 0.9.39 doesn't find JMAP
@@ -309,9 +402,17 @@ types there like a user (xdotool on Linux).
 - After the measured end the probe checks completeness (`verify.json`): the count equals the corpus, and the
   corpus's oldest message is in the list (Parula: the list scrolled to its end; Thunderbird: the message found by
   its Message-ID and scrolled to). A run that fails it is a differing result (status 3).
-- Disclosed in the manifest (`instrumentation`) and the report. Benchmark-only inputs (Parula: pausing the setup
-  screen's background video with its own Pause button, so the screen can settle, and clicking back into the e-mail
-  field) are logged as `prepare` and not counted.
+- Content that changes by itself: Parula's setup pages play a background video (streamed from www.mustang.im),
+  which keeps playing as a user sees it. Ten times a second during the setup (`settle.moving_content_hz`) the
+  probe reports where it is visible: the video's rectangle minus the setup dialog (`.page-box`, 12 CSS pixels
+  inside its edge for its rounded corners). The driver's live gate leaves that area out at once; every change of
+  it is logged (`mask` in `driver.jsonl`, with the poll before that still saw the old one), and the analysis
+  applies the same masks to the recording: the old mask stays until the first significant change it sees after
+  that earlier poll (the dialog's own layout change, which counts), the new one from the next frame (or 0.1 s after
+  the poll that saw it, at the latest). The dialog and everything after the setup count in full. Listed under
+  deviations; `analysis.json` `moving_masks` records the masks and when each applied.
+- Disclosed in the manifest (`instrumentation`) and the report. Benchmark-only inputs (e.g. closing a first-run
+  notice an app shows in between) are logged as `prepare` and not counted.
 
 ## Network evidence (client side)
 
@@ -347,12 +448,15 @@ results-<os>-<yyyymmdd-hhmm>/                 os = linux | windows
     account.json     the account check and repair before the run
     screenshots/     on a failed run: the screen and the app's UI state
     app-output.log, ffmpeg.log, error.txt (secrets redacted)
+  preflight/         Windows: the preflight's result, screenshots and UI dumps of every app's first setup page
   results.json       per comparison and task: left/right medians, min, max, status, runs in run order, actions,
                      setup path, first rows visible, wall-clock elapsed, evidence summary, environment, corpus
   evidence.json      the evidence facts per comparison (the narration's env.<C>.* values)
   report.md          the human-readable report
   logs/              session logs (secrets redacted)
-results-<os>-<yyyymmdd-hhmm>.zip
+  README-FIRST.txt   for the person who ran it: where the folder and the zips are, how big, what to send
+results-<os>-<yyyymmdd-hhmm>-small.zip      every file except the recordings the videos don't use (to send)
+results-<os>-<yyyymmdd-hhmm>.zip            everything (recordings stored, not recompressed)
 ```
 All JSON is self-describing (keys named as above; times in seconds; UTC as ISO 8601 or epoch seconds where noted).
 The password never appears in any file: typed text that is a secret is logged as `<secret>`, error texts are
@@ -371,17 +475,18 @@ evidence.
 ### New Outlook (C4)
 
 New Outlook syncs IMAP accounts through the Microsoft cloud, so its state can't be restored from a snapshot.
-Every C4 run of new Outlook is a new account setup: its `finish` sequence (scenario T1) removes the account with
-"remove from all devices" (also from the Microsoft cloud) and then waits until the server log shows no login from
-outside the benchmark computer for 10 minutes (`wait_cloud_quiet`); the logins seen in that time are recorded
-(`cloud_logins_after_removal`). If the removal fails, the series stops, because the next run would not be a new
-setup. After the last run, `server.log.final_watch_min` keeps watching the log and records later Microsoft logins
-(`evidence/<C>/<T>/after-series.json`). The procedure is listed in the report and the method text.
+Every C4 run of new Outlook is a new account setup. In account mode (the Windows script): after the measured end
+the account stays in new Outlook until its Inbox has listed all messages for 3 minutes (at most 2 hours; not
+measured time), then it is removed with "Remove from all devices" (also from the Microsoft cloud; Microsoft names
+it as the way to delete the stored credentials), and the next new Outlook run starts at least 10 minutes later
+(`benchlib/winsession.py` `NewOutlookLifecycle`). If the removal fails, the series stops, because the next run
+would not be a new setup. The evidence is client-side ("Network evidence"): whether any of new Outlook's
+processes connected to the mail server at all, and whether its Inbox listed every message anyway.
 
-Before the removal, the account stays in new Outlook until the server log shows no fetch from outside the test
-computer for 3 minutes (at most 2 hours; not measured time), so the evidence covers everything Microsoft fetched.
-Full-content and header-only fetches are counted separately (`cloud_fetched_messages`, `cloud_fetched_headers`),
-login attempts after the removal include failed ones (`cloud_logins_after_removal`).
+In admin mode (a server log is available), the scenario's `finish` sequence can instead wait until the server log
+shows no fetch and then no login from outside the benchmark computer (`wait_cloud_quiet`), and the server-log
+evidence (`cloud_logins_after_removal`, `cloud_fetched_messages`, `cloud_fetched_headers`, after the last run
+`server.log.final_watch_min`) is recorded. The procedure is listed in the report and the method text.
 
 Every variant may only be published when its `publish_when` in `compose.json` holds (C4:
 `cloud_sync_confirmed`, `cloud_login_confirmed`, `left_direct_only`; the combined cut also one session per
@@ -399,8 +504,10 @@ for each step do its actions — the timer starts at the step's last input event
 out of the recorded area — and wait until the live low-resolution stream has been still for `quiet_s` (the same
 quiet period the analysis uses) and matches the step's references; run the step's verify actions; show 5 sync
 markers; record the scenario's tail (T1: 30 s, to show what the app does after the list is complete); show 5
-markers; stop the recording; run the finishing sequence; close the app; stop the network log (admin mode: collect
-the server log of the run). A flow decides its steps while it runs (the page the app shows); the analysis reads
+markers; stop the recording; run the finishing sequence (new Outlook: keep, then remove the account); close the
+app; reset what it left (Windows: its profile); stop the network log (admin mode: collect the server log of the
+run). A series that can't go on (a required finishing sequence failed, or less than `runs.min_free_gb` is free for
+the next recording) stops; the runs so far are analyzed and packaged. A flow decides its steps while it runs (the page the app shows); the analysis reads
 them back from `driver.jsonl`.
 
 Runs are interleaved: warm-up A, warm-up B, then A B A B … for 5 measured runs each. Each run is analyzed right
@@ -423,7 +530,8 @@ again; so is a differing result.
   fail. Frame times come from the decoder (ffmpeg `showinfo`), so a frame it skips can't shift the later ones.
 - Settle detection on the lossless file (`benchlib/settle.py`): per frame, the number of pixels whose largest
   channel difference to the previous frame exceeds 8; changes below 150 pixels (caret, cursor blink) and masked
-  regions are ignored, except inside the step's check regions, where every change counts; slow fades are found
+  regions (and, while it is shown, content that changes by itself, see "Instrumentation") are ignored, except
+  inside the step's check regions, where every change counts; slow fades are found
   by comparing with the frame 6 frames earlier. A step ends at the last significant change before at least
   `quiet_s` without one, at a frame that matches the step's references and regions — or, for a flow step, in the
   quiet period during which the app's probe confirmed the step's result (see "Instrumentation"). Duration = time of that frame
@@ -454,7 +562,9 @@ list keeps loading in the background would have ended 1.2–2.0 s too early.
   snapshot is restored (admin mode), and the app starts from a fresh profile. One warm-up run per app and task is
   discarded (disclosed).
 - Both apps get the same instrumentation treatment: their probes are asked only while the screen is still, about
-  once per second, and the same typing speed and click timing (xdotool with no extra delay) apply to every app. Then 5 measured runs; the median is reported with min and max; the video shows
+  once per second, and the same typing speed and click timing (xdotool with no extra delay) apply to every app.
+  An app's own moving content is not paused or switched off: it plays as for every user, and only its area is
+  left out of the change detection (disclosed). Then 5 measured runs; the median is reported with min and max; the video shows
   the median run, never the best one.
 - Screen recording runs during all measured runs of all apps; ffmpeg is pinned to its own core in the same way
   for every app.
@@ -518,9 +628,16 @@ python -m pytest tests/                                     # settle detection i
                                                            # parsing; account check and repair; network log
                                                            # parsing and evidence; result folder; live gate with
                                                            # a probe; setup flows with a fake app probe;
+                                                           # masks over moving content (live and offline);
+                                                           # result folder zips;
                                                            # narration, spoken durations, method templates,
                                                            # speech; corpus profiles and determinism
 BENCH_VOICEOVER=<voice-over dir> python -m pytest tests/   # also every real variant and method template
+BENCH_PWSH=<pwsh> BENCH_PSSA=<PSScriptAnalyzer module dir> python -m pytest tests/test_windows.py
+                                                           # Windows logic with fakes (UI Automation probe and
+                                                           # the Outlook flows through the shared driver,
+                                                           # lifecycles, session cleanup), plus the PowerShell script
+                                                           # parsed and checked for Windows PowerShell 5.1
 tests/e2e_fake.py --work /tmp/e2e --tools <dir with ffmpeg, Xvfb, xdotool>
 tests/snapshot_check.py --config config.yaml [--protocol-level]       # admin mode only
 ```

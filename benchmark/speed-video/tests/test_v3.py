@@ -14,7 +14,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from benchlib.account import AccountCheck, AccountServer, AccountSession, ImapSession  # noqa: E402
-from benchlib.analyze import Aggregator, ListRows  # noqa: E402
+from benchlib.analyze import Aggregator, ListRows, RunAnalyzer  # noqa: E402
 from benchlib.capture import LiveMonitor  # noqa: E402
 from benchlib.config import Config  # noqa: E402
 from benchlib.corpus import CorpusGenerator, CorpusSpec  # noqa: E402
@@ -258,6 +258,69 @@ def test_result_folder_layout(tmp_path):
         ResultFolder.open(tmp_path)
 
 
+def test_small_zip_holds_every_data_file_but_only_the_recordings_the_videos_use(tmp_path):
+    import zipfile
+    from benchlib.resultfolder import ReadmeFirst
+    folder = ResultFolder.create(tmp_path, "windows")
+    runs = {}
+    for app in ("parula-jmap", "outlook-new"):
+        for run in ("warmup-1", "run-1", "run-2", "run-3"):
+            path = folder.run_dir(app, "T1", run)
+            (path / "screenshots").mkdir(parents=True)
+            for name in ("meta.json", "driver.jsonl", "network.jsonl", "evidence.json", "verify.json"):
+                (path / name).write_text("{}")
+            (path / "capture.mkv").write_bytes(b"\0" * 1000)
+            (path / "screenshots" / "failure.png").write_bytes(b"png")
+            runs[(app, run)] = folder.relative(path)
+    side = lambda app, median, timeout=None: {"median_run": median, "timeout_run": timeout, "runs": [
+        {"run": r, "dir": runs[(app, r)]} for r in ("run-1", "run-2", "run-3")]}
+    (folder.results_path).write_text(json.dumps({"comparisons": {"C4": {"tasks": {"T1": {
+        "left": side("parula-jmap", "run-2"), "right": side("outlook-new", None, "run-3")}}}}}))
+    text = folder.package("Windows", False, "stopped with Ctrl+C", progress=lambda _: None)
+    with zipfile.ZipFile(folder.small_zip_path) as small:
+        names = set(small.namelist())
+    recordings = sorted(n for n in names if n.endswith(".mkv"))
+    assert recordings == [f"{folder.name}/runs/outlook-new/T1/run-3/capture.mkv",
+                          f"{folder.name}/runs/parula-jmap/T1/run-2/capture.mkv"]
+    assert f"{folder.name}/runs/parula-jmap/T1/warmup-1/driver.jsonl" in names
+    assert f"{folder.name}/runs/outlook-new/T1/run-1/screenshots/failure.png" in names
+    with zipfile.ZipFile(folder.zip_path) as full:
+        assert len([n for n in full.namelist() if n.endswith(".mkv")]) == 8
+    assert folder.small_zip_path.name in text and folder.zip_path.name in text and "being written" not in text
+    assert "stopped before the end" in text and "Ctrl+C" in text
+    assert (folder.path / "README-FIRST.txt").read_text(encoding="utf-8") == text
+    assert ReadmeFirst.size(folder.small_zip_path).endswith("MB")
+
+
+def test_a_step_turns_final_on_a_final_page_and_then_waits_for_the_full_inbox():
+    from benchlib.driver import ScenarioDriver, TextVariables
+
+    class InboxProbe(PageProbe):
+        def __init__(self, pages, listed):
+            super().__init__(pages)
+            self.listed = list(listed)
+
+        def inbox_listed(self, expected):
+            listed = self.listed.pop(0)
+            return {"complete": listed == expected["inbox_messages"], "listed": listed}
+
+    log = MemoryLog()
+    driver = ScenarioDriver(None, None, None, TextVariables({}), log,
+                            probe=InboxProbe(["imap-form", "mail"], [100, 2000, 3000]),
+                            expected={"inbox_messages": 3000})
+    step = Step("connect", [], complete={"pages": ["cloud-sync"], "fail": []},
+                becomes_final={"pages": ["mail"], "checks": {"complete": "inbox_listed", "verify_probe": True,
+                                                             "after_end": "fail", "first_visible_list": True}})
+    check = driver.completion_check(step)
+    assert [check(), check(), check(), check()] == [False, False, False, True]
+    assert step.final_reached and step.as_final().complete == "inbox_listed" and step.as_final().after_end == "fail"
+    probes = [e for e in log.events if e["type"] == "probe"]
+    assert [p["check"] for p in probes][1:] == ["inbox_listed"] * 3 and probes[1]["became_final"]
+    events = [{"type": "step_start", "step": "connect", "checks": step.checks}, {"type": "step_final", "step": "connect"}]
+    rebuilt = RunAnalyzer.flow_steps(events)[0]
+    assert rebuilt.complete == "inbox_listed" and rebuilt.verify_probe and rebuilt.first_visible_list
+
+
 def test_completion_gate_chooses_the_quiet_period_with_the_confirmation():
     times = np.arange(0, 20, 1 / 60)
     counts = np.zeros(len(times), dtype=np.int64)
@@ -344,9 +407,8 @@ class FakeProbe(AppProbe):
     def find(self, name):
         if name == "found.option":
             return None
-        if name == "setup.pause_video" and self.pages[0] not in ("email",):
-            return None
-        return Element(x=10, y=10, w=10, h=10, enabled=True, text=name, value=self.values.get(name), hit=True)
+        return Element(x=10, y=10, w=10, h=10, enabled=True, text=name, value=self.values.get(name), hit=True,
+                       focused=name in self.values.get("focused", ()))
 
     def page_text(self):
         return self.pages[0]
@@ -378,17 +440,35 @@ class FakeDriver:
 
 
 def test_parula_flow_manual_jmap_counts_its_actions():
-    probe = FakeProbe(["email", "manual", "finalize", "mail"])
+    probe = FakeProbe(["email", "manual", "finalize", "mail"], {"focused": ["setup.email"]})
     driver = FakeDriver(probe)
     path = Flows.run({"name": "parula-setup", "protocol": "jmap"}, driver, probe,
                      {"complete": "inbox_listed", "verify": True})
     assert [s[0] for s in driver.steps] == ["find-config", "show-details", "check-config", "open-inbox"]
     assert driver.steps[-1] == ("open-inbox", "inbox_listed", True)
     counted = [i for i in driver.inputs if i[0] == "step"]
-    prepared = [i for i in driver.inputs if i[0] == "prepare"]
-    assert prepared == [("prepare", "click", "setup.pause_video"), ("prepare", "click", "setup.email")]
+    assert not [i for i in driver.inputs if i[0] == "prepare"]
+    assert counted[0] == ("step", "type", "${account.email}")
     assert ("step", "type", "${server.jmap_url}") in counted and len(counted) == 13
     assert any("manual setup" in note for note in path) and any("JMAP URL" in note for note in path)
+
+
+def test_parula_flow_clicks_into_the_address_field_when_it_has_no_cursor_and_skips_the_import():
+    probe = FakeProbe(["import-accounts", "import-addressbooks", "initial", "email", "manual", "finalize", "mail"])
+    driver = FakeDriver(probe)
+
+    def do_actions(actions, phase, step=None, trigger=-1, original=driver.do_actions):
+        original(actions, phase, step, trigger)
+        if any(a.arg == "setup.add_email" for a in actions):
+            probe.pages.pop(0)
+    driver.do_actions = do_actions
+    path = Flows.run({"name": "parula-setup", "protocol": "jmap"}, driver, probe,
+                     {"complete": "inbox_listed", "verify": True})
+    assert [s[0] for s in driver.steps][:2] == ["skip-import", "skip-addressbooks"]
+    counted = [i for i in driver.inputs if i[0] == "step"]
+    assert counted[:2] == [("step", "click", "setup.skip"), ("step", "click", "setup.skip")]
+    assert ("step", "click", "setup.email") in counted
+    assert any("import" in note for note in path)
 
 
 def test_thunderbird_flow_manual_configuration():

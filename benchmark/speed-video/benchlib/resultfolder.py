@@ -1,6 +1,7 @@
 import json
-import shutil
+import os
 import subprocess
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -96,9 +97,60 @@ class ResultFolder:
         data.update(sections)
         (self.path / "manifest.json").write_text(json.dumps(data, indent=2, ensure_ascii=False, default=str))
 
-    def zip(self) -> Path:
-        archive = shutil.make_archive(str(self.path), "zip", root_dir=self.path.parent, base_dir=self.path.name)
-        return Path(archive)
+    @property
+    def zip_path(self) -> Path:
+        return self.path.with_name(f"{self.path.name}.zip")
+
+    @property
+    def small_zip_path(self) -> Path:
+        return self.path.with_name(f"{self.path.name}-small.zip")
+
+    def needed_recordings(self) -> set[str]:
+        """The run folders whose recordings the composition uses (results.json): per comparison, task and side the
+        median run, or the run shown for a time limit."""
+        if not self.results_path.exists():
+            return set()
+        results = json.loads(self.results_path.read_text())
+        needed = set()
+        for comparison in (results.get("comparisons") or {}).values():
+            for task in (comparison.get("tasks") or {}).values():
+                for side in (task.get(name) or {} for name in ("left", "right")):
+                    shown = {side.get("median_run"), side.get("timeout_run")} - {None}
+                    needed |= {r["dir"] for r in side.get("runs") or [] if r.get("run") in shown and r.get("dir")}
+        return needed
+
+    def zip(self, small: bool = False) -> Path:
+        """The folder as a zip next to it. `small`: every file except the recordings the composition doesn't use
+        (`needed_recordings`): the one to send. Recordings and images are stored as they are (they don't compress)."""
+        recordings = {".mkv", ".mp4", ".webm"}
+        stored = recordings | {".png", ".jpg", ".npz", ".zip"}
+        needed = self.needed_recordings() if small else set()
+        target = self.small_zip_path if small else self.zip_path
+        partial = target.with_name(target.name + ".partial")
+        with zipfile.ZipFile(partial, "w", allowZip64=True) as archive:
+            for path in sorted(self.path.rglob("*")):
+                if not path.is_file():
+                    continue
+                relative = path.relative_to(self.path).as_posix()
+                if small and path.suffix.lower() in recordings and \
+                        not any(relative.startswith(run + "/") for run in needed):
+                    continue
+                compression = zipfile.ZIP_STORED if path.suffix.lower() in stored else zipfile.ZIP_DEFLATED
+                archive.write(path, f"{self.path.name}/{relative}", compress_type=compression)
+        os.replace(partial, target)
+        return target
+
+    def package(self, os_label: str, ok: bool, problem: str | None = None, full: bool = True,
+                progress=print) -> str:
+        """README-FIRST.txt, the small zip and (unless `full` is False) the zip of everything; README-FIRST is
+        written again with the sizes once the zips exist. Returns its text."""
+        ReadmeFirst.write(self, os_label, ok, problem, full)
+        progress(f"writing {self.small_zip_path.name}")
+        self.zip(small=True)
+        if full:
+            progress(f"writing {self.zip_path.name}")
+            self.zip()
+        return ReadmeFirst.write(self, os_label, ok, problem, full)
 
     @staticmethod
     def tool_version(source_dir: Path) -> dict:
@@ -111,3 +163,39 @@ class ResultFolder:
         status = git("status", "--porcelain", "--", ".")
         return {"git_commit": git("rev-parse", "HEAD"), "git_dirty": bool(status) if status is not None else None,
                 "git_branch": git("rev-parse", "--abbrev-ref", "HEAD")}
+
+
+class ReadmeFirst:
+    """README-FIRST.txt in the result folder, for the person who ran the test: where the results are, how big,
+    what to send (the small zip)."""
+
+    @staticmethod
+    def size(path: Path) -> str:
+        if not path.exists():
+            return "being written"
+        total = sum(p.stat().st_size for p in path.rglob("*") if p.is_file()) if path.is_dir() else path.stat().st_size
+        return f"{total / 1e9:.1f} GB" if total >= 1e9 else f"{total / 1e6:.0f} MB"
+
+    @classmethod
+    def write(cls, folder: ResultFolder, os_label: str, ok: bool, problem: str | None = None,
+              full: bool = True) -> str:
+        lines = [f"Parula speed test on {os_label}: " + ("finished." if ok else "stopped before the end."), ""]
+        if problem:
+            lines += [f"Why: {problem}", ""]
+        lines += [f"Results folder: {folder.path}  ({cls.size(folder.path)})", "",
+                  f"Please send this file to the Parula team: {folder.small_zip_path}  "
+                  f"({cls.size(folder.small_zip_path)})",
+                  "  It holds every measurement, log, check and screenshot of every run, and the screen recordings "
+                  "the videos are made from (the median run of each app). If it is too large for e-mail, share it "
+                  "as a link from OneDrive, Google Drive or Dropbox."]
+        if full:
+            lines += ["", f"Everything, with all recordings: {folder.zip_path}  ({cls.size(folder.zip_path)})",
+                      "  Please keep it (or the results folder) until the Parula team confirms they have what they "
+                      "need; they may ask for it."]
+        lines += ["", "The folder contains no password. The test account's address is visible in the screen recordings "
+                      "(typed into each app's setup) and in the apps' own logs; the data files name only its domain."]
+        if os_label == "Windows":
+            lines.append("Everything the test changed on this computer has been undone (see logs/cleanup.txt).")
+        text = "\n".join(lines) + "\n"
+        (folder.path / "README-FIRST.txt").write_text(text, encoding="utf-8")
+        return text

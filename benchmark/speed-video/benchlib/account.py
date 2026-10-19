@@ -601,7 +601,8 @@ class AccountSession:
         if self._expected is None:
             inbox = next(f for f in self.generator.spec.folders if f.role == "inbox")
             last = inbox.count - 1
-            self._expected = {"inbox_messages": inbox.count,
+            unread = sum(1 for i in range(inbox.count) if "$seen" not in self.generator.keywords(inbox.name, i))
+            self._expected = {"inbox_messages": inbox.count, "inbox_unread": unread,
                               "inbox_oldest_subject": self.generator.subject(inbox.name, 0),
                               "inbox_oldest_message_id": self.generator.message_id(inbox.name, 0),
                               "inbox_newest_subject": self.generator.subject(inbox.name, last),

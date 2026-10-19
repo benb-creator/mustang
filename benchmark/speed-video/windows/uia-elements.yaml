@@ -1,0 +1,77 @@
+# UI Automation names of the elements the Windows flows of the Outlooks use, in English (en) and German (de); Parula
+# is found through its DevTools, as on Linux (benchlib/probe.py). Names are regular expressions matched against the
+# whole UIA Name (case-insensitive; `contains: true` searches). `near: <value>`: of the matching elements, the one in
+# the row of the element that names that value (the probe's `values`, e.g. the test account). `source` says where a
+# name comes from:
+#   docs           the visible label as Microsoft's support articles (en-us, de-de) or setup guides quote it; that the
+#                  UIA Name equals the visible label is assumed
+#   assumed        from memory of the dialogs, not found in a document and not checked against a UIA dump
+# Pages are recognized in the order listed: a page whose elements include another page's comes first.
+# The preflight dumps every app's UI tree (preflight/<app>-ui-dump.txt in the result folder), so an assumed name that is
+# wrong shows up there; fix it here, nothing else changes.
+
+outlook-classic:
+  process_names: [outlook.exe]
+  elements:
+    field.email: {control_type: Edit, password: false, names: {en: "Email address", de: "E-Mail-Adresse"}, source: assumed}
+    link.advanced: {control_type: [Hyperlink, Button], names: {en: "Advanced options.*", de: "Erweiterte Optionen.*"}, source: docs}
+    checkbox.manual: {control_type: CheckBox, names: {en: "Let me set up my account manually", de: "Ich möchte mein Konto manuell einrichten"}, source: docs}
+    button.connect: {control_type: Button, names: {en: "Connect", de: "Verbinden"}, source: docs}
+    heading.advanced_setup: {control_type: Text, names: {en: "Advanced setup", de: "Erweitertes Setup"}, source: assumed}
+    tile.imap: {control_type: [Button, ListItem], names: {en: "IMAP", de: "IMAP"}, source: docs}
+    heading.imap_settings: {control_type: Text, names: {en: "IMAP Account Settings", de: "IMAP-Kontoeinstellungen"}, source: assumed}
+    button.next: {control_type: Button, names: {en: "Next", de: "Weiter"}, source: docs}
+    field.password: {control_type: Edit, password: true, source: assumed}
+    heading.done: {control_type: Text, names: {en: "Account successfully added.*", de: "(Das )?Konto (wurde )?erfolgreich hinzugefügt.*"}, source: assumed}
+    checkbox.mobile: {control_type: CheckBox, names: {en: "Set up Outlook Mobile on my phone, too", de: "Outlook Mobile auch auf meinem (Telefon|Smartphone|Handy) einrichten"}, source: assumed}
+    button.done: {control_type: Button, names: {en: "Done", de: "Fertig"}, source: assumed}
+    heading.error: {control_type: Text, names: {en: "Something went wrong.*", de: "(Es ist ein Fehler aufgetreten|Fehler).*"}, source: assumed}
+    status.items: {control_type: [Text, Button, StatusBar, Custom], names: {en: "Items: ([\\d.,\\s  ]+)", de: "Elemente: ([\\d.,\\s  ]+)"}, source: assumed}
+    status.unread: {control_type: [Text, Button, StatusBar, Custom], names: {en: "Unread: ([\\d.,\\s  ]+)", de: "Ungelesen: ([\\d.,\\s  ]+)"}, source: assumed}
+    status.up_to_date: {control_type: [Text, Button, StatusBar, Custom], names: {en: "All folders are up to date\\.?", de: "Alle Ordner sind auf dem neuesten Stand\\.?"}, source: assumed}
+    list.messages: {control_type: [Table, DataGrid, List], names: {en: "Table View|Message list", de: "Tabellenansicht|Nachrichtenliste"}, source: assumed}
+    privacy.next: {control_type: Button, names: {en: "Next|Accept|Close|OK", de: "Weiter|Akzeptieren|Schließen|OK"}, source: assumed}
+  pages:
+    password: [field.password, button.connect]
+    account-email: [field.email, button.connect]
+    advanced-setup: [heading.advanced_setup, tile.imap]
+    imap-settings: [heading.imap_settings, button.next]
+    done: [heading.done, button.done]
+    error: [heading.error]
+    mail: [status.items]
+  inbox_listed: {count: status.items, idle: status.up_to_date, list: list.messages}
+  verify: {keys: [End], within_s: 30}
+  interruptions:
+    privacy: {require: [{control_type: Text, names: {en: ".*(respects your privacy|Your privacy option|optional (diagnostic )?data).*", de: ".*(Datenschutz|Privatsphäre|optionale).*"}}], click: privacy.next}
+
+outlook-new:
+  process_names: [olk.exe]
+  elements:
+    field.email: {control_type: Edit, password: false, names: {en: "Email( address)?", de: "E-Mail(-Adresse)?"}, source: assumed}
+    button.continue: {control_type: Button, names: {en: "Continue|Next|Connect", de: "Weiter|Fortfahren|Verbinden"}, source: docs}
+    option.imap: {control_type: [Button, ListItem, RadioButton, MenuItem], names: {en: "IMAP", de: "IMAP"}, source: assumed}
+    field.password: {control_type: Edit, password: true, source: assumed}
+    text.cloud_sync: {control_type: [Text, Group, Document], names: {en: ["Sync your IMAP account", ".*Microsoft Cloud.*"], de: ["IMAP-Konto synchronisieren", ".*Microsoft[- ]Cloud.*"]}, source: docs}
+    button.done: {control_type: Button, names: {en: "Done|Skip|Maybe later|Not now", de: "Fertig|Überspringen|Vielleicht später|Jetzt nicht"}, source: docs}
+    heading.success: {control_type: Text, names: {en: "(Success!?|Account added.*|You're all set.*)", de: "(Erfolg(reich)?!?|Konto hinzugefügt.*|Alles bereit.*)"}, source: assumed}
+    tree.inbox: {control_type: [TreeItem, ListItem, Button], names: {en: "Inbox.*", de: "Posteingang.*"}, source: assumed}
+    tree.inbox_unread: {control_type: [TreeItem, ListItem, Button], names: {en: "Inbox\\W+([\\d.,\u00a0\u202f]+)\\s+unread.*", de: "Posteingang\\W+([\\d.,\u00a0\u202f]+)\\s+ungelesen.*"}, source: assumed}
+    list.messages: {control_type: [List, Group, DataGrid, Table], names: {en: "Message list.*", de: "Nachrichtenliste.*"}, source: assumed}
+    list.item: {control_type: [ListItem, DataItem], source: assumed}
+    button.settings: {control_type: [Button, MenuItem], names: {en: "Settings|View settings", de: "Einstellungen|Ansichtseinstellungen"}, source: docs}
+    nav.accounts: {control_type: [TabItem, ListItem, Button, TreeItem, Hyperlink], names: {en: "Accounts", de: "Konten"}, source: docs}
+    nav.email_accounts: {control_type: [TabItem, ListItem, Button, TreeItem, Hyperlink], names: {en: "Your accounts", de: "Ihre Konten"}, source: docs}
+    button.manage: {control_type: Button, names: {en: "Manage.*", de: "Verwalten.*"}, near: account, source: docs}
+    button.remove: {control_type: Button, names: {en: "Remove", de: "Entfernen"}, source: docs}
+    option.remove_all_devices: {control_type: [Button, RadioButton, CheckBox, MenuItem], names: {en: "Remove (it )?from all devices", de: "Von allen Geräten entfernen"}, source: docs}
+    button.confirm: {control_type: Button, names: {en: "Remove|OK|Yes|Continue", de: "Entfernen|OK|Ja|Weiter"}, source: assumed}
+    button.close_settings: {control_type: Button, names: {en: "Close", de: "Schließen"}, source: assumed}
+  pages:
+    imap-form: [field.password, button.continue]
+    add-account: [field.email, button.continue]
+    choose-provider: [option.imap]
+    cloud-sync: [text.cloud_sync, button.continue]
+    success: [heading.success]
+    mail: [tree.inbox]
+  inbox_listed: {set_size: list.item, unread: tree.inbox_unread, list: list.messages}
+  verify: {keys: [End], within_s: 900, repeat_s: 3}

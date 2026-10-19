@@ -3,6 +3,7 @@ timing source: the live gate asks `inbox_listed()` only while the screen is quie
 the last screen change in the recording (README, "Instrumentation")."""
 
 import json
+import math
 import re
 import time
 from pathlib import Path
@@ -23,8 +24,32 @@ class Element(dict):
         return int(self["x"] + self["w"] / 2), int(self["y"] + self["h"] / 2)
 
 
+class Bands:
+    """Rectangles {x, y, w, h}."""
+
+    @staticmethod
+    def intersect(a: dict, b: dict) -> dict | None:
+        x0, y0 = max(a["x"], b["x"]), max(a["y"], b["y"])
+        x1, y1 = min(a["x"] + a["w"], b["x"] + b["w"]), min(a["y"] + a["h"], b["y"] + b["h"])
+        return {"x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0} if x1 > x0 and y1 > y0 else None
+
+    @classmethod
+    def around(cls, outer: dict, inner: dict | None) -> list[dict]:
+        """The parts of `outer` that `inner` doesn't cover: up to four bands (above, below, left, right)."""
+        hole = cls.intersect(outer, inner) if inner and inner["w"] > 0 and inner["h"] > 0 else None
+        if hole is None:
+            return [outer]
+        x0, y0, x1, y1 = outer["x"], outer["y"], outer["x"] + outer["w"], outer["y"] + outer["h"]
+        hx0, hy0, hx1, hy1 = hole["x"], hole["y"], hole["x"] + hole["w"], hole["y"] + hole["h"]
+        bands = [{"x": x0, "y": y0, "w": x1 - x0, "h": hy0 - y0}, {"x": x0, "y": hy1, "w": x1 - x0, "h": y1 - hy1},
+                 {"x": x0, "y": hy0, "w": hx0 - x0, "h": hy1 - hy0}, {"x": hx1, "y": hy0, "w": x1 - hx1, "h": hy1 - hy0}]
+        return [b for b in bands if b["w"] > 0 and b["h"] > 0]
+
+
 class AppProbe:
     method = "none"
+    shows_moving_content = False
+    redact = None
 
     def attach(self, app, timeout_s: float = 60):
         pass
@@ -45,12 +70,18 @@ class AppProbe:
     def page(self) -> str:
         return "unknown"
 
-    def wait_page(self, pages: set[str], timeout_s: float = 60) -> str:
+    def wait_page(self, pages: set[str], timeout_s: float = 60, on_interruption=None) -> str:
+        """`on_interruption(element)` is called with the element that closes a first-run dialog the app shows
+        in between (`interruption()`); the flow clicks it."""
         deadline = time.monotonic() + timeout_s
         while True:
             page = self.page()
             if page in pages:
                 return page
+            dismiss = self.interruption() if on_interruption is not None else None
+            if dismiss:
+                on_interruption(dismiss)
+                continue
             if time.monotonic() > deadline:
                 raise ProbeError(f"Expected page {sorted(pages)} within {timeout_s:.0f} s, but it shows '{page}': "
                                  f"{self.page_text()[:300]}")
@@ -58,6 +89,14 @@ class AppProbe:
 
     def page_text(self) -> str:
         return ""
+
+    def interruption(self) -> str | None:
+        return None
+
+    def moving_areas(self) -> list[dict] | None:
+        """Screen rectangles {x, y, w, h} where the app shows content that changes by itself (Parula's setup video),
+        left out of the settle detection while shown; None while there is none."""
+        return None
 
     def inbox_listed(self, expected: dict) -> dict:
         return {"complete": True, "listed": None}
@@ -92,14 +131,30 @@ class ParulaProbe(AppProbe):
     """Parula (Electron) through the Chrome DevTools Protocol of its renderer (`--remote-debugging-port`)."""
 
     method = "cdp"
+    shows_moving_content = True
+    view_script = "({d: window.devicePixelRatio || 1, sx: window.screenX, sy: window.screenY})"
 
     def __init__(self, port: int):
         self.port = port
         self.client: CdpClient | None = None
         self.values = {}
+        self.app = None
+        self.last_moving: list[dict] | None = None
 
     def attach(self, app, timeout_s: float = 60):
+        self.app = app
         self.client = CdpClient.connect(self.port, timeout_s, "index.html")
+
+    def to_screen(self, rect: dict, view: dict) -> dict:
+        """A rectangle in CSS pixels of the page's viewport, in screen pixels: from the window's client area origin
+        when the window system tells it (Windows), else from window.screenX/Y; both scaled by devicePixelRatio."""
+        d = float(view["d"])
+        origin = self.app.client_origin() if self.app is not None else None
+        ox, oy = origin if origin is not None else (view["sx"] * d, view["sy"] * d)
+        x0, y0 = ox + rect["x"] * d, oy + rect["y"] * d
+        x1, y1 = x0 + rect["w"] * d, y0 + rect["h"] * d
+        return {"x": math.floor(x0), "y": math.floor(y0), "w": math.ceil(x1) - math.floor(x0),
+                "h": math.ceil(y1) - math.floor(y0)}
 
     def evaluate(self, expression: str):
         if self.client is None:
@@ -124,19 +179,18 @@ class ParulaProbe(AppProbe):
       if (!el) return null;
       const r = el.getBoundingClientRect();
       const box = el.matches('input') ? el : el.querySelector('input[type=radio], input[type=checkbox]');
-      const d = window.devicePixelRatio || 1;
-      return {x: (window.screenX + r.x) * d, y: (window.screenY + r.y) * d, w: r.width * d, h: r.height * d,
+      return {x: r.x, y: r.y, w: r.width, h: r.height, view: VIEW, focused: document.activeElement === el,
               enabled: !el.disabled && !el.classList.contains('disabled'), text: text(el).slice(0, 200),
               value: el.value === undefined ? null : (el.type == 'password' ? null : el.value),
               checked: box && (box.type == 'radio' || box.type == 'checkbox') ? box.checked : null};
-    }"""
+    }""".replace("VIEW", self.view_script)
         elements = {
             "setup.add_email": {"css": "button", "text": ["Add email address", "E-Mail-Adresse hinzufügen"]},
-            "setup.pause_video": {"css": "button.pause"},
+            "setup.skip": {"css": ".page-box button.secondary", "text": ["Skip", "Überspringen"]},
             "setup.email": {"css": "input[type=email]"},
             "setup.password": {"css": ".page-box input[type=password]"},
             "setup.next": {"css": ".page-box button.filled.large"},
-            "setup.manual": {"css": ".page-box button.secondary", "text": ["Manual setup", "Manuelle Einrichtung"]},
+            "setup.manual": {"css": ".page-box button.secondary", "text": ["Manual setup", "Manuelles Setup"]},
             "found.option": {"css": ".page-box .alt label.protocol", "text_contains": "{protocol}"},
             "manual.protocol": {"css": "select.protocol"},
             "manual.url": {"css": ".page-box input[type=url]"},
@@ -150,7 +204,38 @@ class ParulaProbe(AppProbe):
         if spec is None:
             return super().find(name)
         found = self.evaluate(f"({find_script})({json.dumps(spec)}, {json.dumps(self.values)})")
-        return Element(found) if found else None
+        if not found:
+            return None
+        view = found.pop("view")
+        return Element({**found, **self.to_screen(found, view)})
+
+    def moving_areas(self) -> list[dict] | None:
+        """The setup pages' background video where it is visible: the video's rectangle minus the setup dialog (its
+        page box, `margin` CSS pixels inside its edge, so its rounded corners count as video)."""
+        margin = 12
+        video_script = r"""
+    (() => {
+      const shown = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 &&
+        getComputedStyle(el).visibility != 'hidden'; };
+      const rect = el => { const r = el.getBoundingClientRect(); return {x: r.x, y: r.y, w: r.width, h: r.height}; };
+      const video = [...document.querySelectorAll('video.background-video')].find(shown);
+      if (!video) return null;
+      const box = [...document.querySelectorAll('.page-box')].find(shown);
+      return {video: rect(video), box: box ? rect(box) : null, viewport: {x: 0, y: 0, w: innerWidth, h: innerHeight},
+              view: VIEW};
+    })()""".replace("VIEW", self.view_script)
+        found = self.evaluate(video_script)
+        video = Bands.intersect(found["video"], found["viewport"]) if found else None
+        if video is None:
+            self.last_moving = None
+            return None
+        box = found["box"]
+        if box is None and self.last_moving is not None:
+            return self.last_moving
+        inner = None if box is None else {"x": box["x"] + margin, "y": box["y"] + margin,
+                                          "w": box["w"] - 2 * margin, "h": box["h"] - 2 * margin}
+        self.last_moving = [self.to_screen(band, found["view"]) for band in Bands.around(video, inner)]
+        return self.last_moving
 
     def state(self) -> dict:
         state_script = r"""
@@ -170,24 +255,35 @@ class ParulaProbe(AppProbe):
         """The page shown; "error:<page>" while the setup shows an error message."""
         state = self.state()
         page = self.base_page(state)
-        return f"error:{page}" if state.get("error") and page not in ("mail", "initial") else page
+        return f"error:{page}" if state.get("error") and page not in ("mail", "initial", "import-accounts",
+                                                                       "import-addressbooks") else page
 
     @staticmethod
     def base_page(state: dict) -> str:
-        hash_, text = state["hash"], state["text"]
+        """Parula's texts in English and German (its UI follows the system language)."""
+        hash_, text, headings = state["hash"], state["text"], state["headings"]
+
+        def shows(*texts: str) -> bool:
+            return any(t in text for t in texts)
+
         if "/setup/initial" in hash_:
+            if any(h in ("Import accounts", "Konten importieren") for h in headings):
+                return "import-accounts"
+            if any(h in ("Import address books", "Adressbücher importieren") for h in headings):
+                return "import-addressbooks"
             return "initial"
         if hash_.startswith("#/mail"):
             return "mail"
-        if "Verifying that the configuration works" in text:
+        if shows("Verifying that the configuration works", "Überprüfung, ob die Konfiguration funktioniert"):
             return "checking"
-        if "We are looking for the configuration" in text:
+        if shows("We are looking for the configuration", "Wir suchen nach der Konfiguration"):
             return "finding"
-        if "is working and ready" in text:
+        if shows("is working and ready", "funktioniert und ist bereit"):
             return "finalize"
-        if "Manual configuration" in state["headings"]:
+        if any(h in ("Manual configuration", "Manuelle Konfiguration") for h in headings):
             return "manual-full" if state["expanded"] else "manual"
-        if state["radios"] or re.search(r"We (found|received|guessed) (a|the) configuration", text):
+        if state["radios"] or re.search(r"We (found|received|guessed) (a|the) configuration|"
+                                        r"Wir haben (eine|die) Konfiguration", text):
             return "found"
         if "/setup/mail" in hash_:
             return "email"
@@ -222,13 +318,11 @@ class ParulaProbe(AppProbe):
         return {top: r.top, bottom: r.bottom, subject: subject ? subject.innerText.trim() : null}; })
         .filter(r => r.subject !== null && r.bottom > box.top + 1 && r.top < box.bottom - 1)
         .sort((a, b) => a.top - b.top);
-      const d = window.devicePixelRatio || 1;
-      const screen = r => ({x: (window.screenX + r.x) * d, y: (window.screenY + r.y) * d, w: r.width * d, h: r.height * d});
+      const plain = r => ({x: r.x, y: r.y, w: r.width, h: r.height});
       const count = [...document.querySelectorAll('.msg-count')].find(e => e.getBoundingClientRect().width > 0);
-      const c = count ? count.getBoundingClientRect() : null;
       return {rows, scrollTop: list.scrollTop, scrollHeight: list.scrollHeight, clientHeight: list.clientHeight,
-              rect: screen(box), count_rect: c ? screen(c) : null};
-    })()"""
+              rect: plain(box), count_rect: count ? plain(count.getBoundingClientRect()) : null, view: VIEW};
+    })()""".replace("VIEW", self.view_script)
         deadline = time.monotonic() + settle_s
         rows = self.evaluate(rows_script)
         while time.monotonic() < deadline:
@@ -237,7 +331,13 @@ class ParulaProbe(AppProbe):
             if again == rows:
                 break
             rows = again
-        return rows or {"rows": []}
+        if not rows:
+            return {"rows": []}
+        view = rows.pop("view")
+        for key in ("rect", "count_rect"):
+            if rows.get(key):
+                rows[key] = self.to_screen(rows[key], view)
+        return rows
 
     def verify(self, expected: dict) -> dict:
         listed = self.inbox_listed(expected)
@@ -505,13 +605,19 @@ return db.addCertFromBase64(arguments[0], "C,C,C").subjectName;""", ["".join(lin
 
 class Probes:
     @staticmethod
-    def create(spec: dict | None) -> AppProbe:
+    def create(spec: dict | None, config=None) -> AppProbe:
+        """`uia`: Windows UI Automation with the app's section `app` of the element map `map` (a path relative to the
+        config)."""
         spec = dict(spec or {})
         kind = spec.get("type", "none")
         if kind == "cdp":
             return ParulaProbe(int(spec.get("port", 29222)))
         if kind == "marionette":
             return ThunderbirdProbe(int(spec.get("port", 28828)))
+        if kind == "uia":
+            from .winprobe import UiaAppMap, UiaProbe
+            path = config.path(spec["map"]) if config is not None else Path(spec["map"])
+            return UiaProbe(UiaAppMap.load(path, spec["app"]))
         if kind == "none":
             return AppProbe()
         raise ProbeError(f"Unknown probe type '{kind}'")
