@@ -384,7 +384,7 @@ class WindowsDesktop:
         lang_id = self.kernel32.GetUserDefaultUILanguage()
         return {0x07: "de", 0x09: "en"}.get(lang_id & 0x3FF, f"0x{lang_id:04x}")
 
-    def screenshot(self, path: Path) -> Path:
+    def screenshot(self, path: Path, ffmpeg: str | None = None) -> Path:
         from PIL import ImageGrab
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
