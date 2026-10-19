@@ -627,8 +627,8 @@ class ReportWriter:
                  f"Generated {r['generated']}. Median of {r['runs']['measured']} measured runs per app and task, "
                  f"after {r['runs']['warmup']} discarded warm-up run(s) each.", "",
                  "## Method", "",
-                 "- Same computer, OS, display resolution, window size, network, server and "
-                 + ("test account" if account_mode else "server snapshot") + " for both apps.",
+                 "- Same computer, OS, display resolution, window size, network"
+                 + (", server and test account" if account_mode else " and server snapshot") + " for both apps.",
                  "- Apps recorded one after another, never at the same time; run order interleaved (A B A B …). A run "
                  "that failed for a technical reason is recorded again at the end of the series (listed below); "
                  "timeouts and differing results are never recorded again.",
