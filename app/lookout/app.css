@@ -168,6 +168,16 @@ body {
   color: var(--lo-fg);
 }
 
+:root {
+  --font-size-smallest: var(--lo-font-size-small);
+  --font-size-small: var(--lo-font-size);
+  --font-size-normal: var(--lo-font-size);
+  --font-size-large: var(--lo-font-size-large);
+}
+select {
+  font-family: inherit;
+}
+
 *::selection {
   background-color: var(--lo-accent);
   color: var(--lo-accent-fg);

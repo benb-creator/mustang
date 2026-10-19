@@ -64,6 +64,6 @@
     margin: 16px 16px 0px 16px;
   }
   .right-page :global(input) {
-    font-size: 16px;
+    font-size: var(--font-size-normal);
   }
 </style>

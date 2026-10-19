@@ -30,7 +30,7 @@
     margin-block-start: 3px;
   }
   .chat-rooms :global(.person .name) {
-    font-size: medium;
+    font-size: var(--font-size-normal);
   }
   .last-time {
     opacity: 50%;

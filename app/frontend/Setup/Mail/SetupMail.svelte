@@ -280,7 +280,7 @@
     margin-block-end: 32px;
   }
   .setup-mail-window :global(input) {
-    font-size: 16px;
+    font-size: var(--font-size-normal);
   }
   .setup-mail-window :global(input::placeholder) {
     font-weight: 300;

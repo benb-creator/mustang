@@ -53,7 +53,7 @@
     padding: 12px 24px;
   }
   .setup-meet-window :global(input) {
-    font-size: 16px;
+    font-size: var(--font-size-normal);
   }
   .setup-meet-window :global(input::placeholder) {
     font-weight: 300;

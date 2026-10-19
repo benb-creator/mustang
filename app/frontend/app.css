@@ -13,6 +13,11 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
   color-scheme: light dark;
+
+  --font-size-smallest: 12px;
+  --font-size-small: 14px;
+  --font-size-normal: 16px;
+  --font-size-large: 24px;
 }
 
 :root {
@@ -219,16 +224,16 @@ value,
 }
 
 .font-smallest {
-  font-size: 12px;
+  font-size: var(--font-size-smallest);
 }
 .font-small {
-  font-size: 14px;
+  font-size: var(--font-size-small);
 }
 .font-normal {
-  font-size: 16px;
+  font-size: var(--font-size-normal);
 }
 .font-large {
-  font-size: 24px;
+  font-size: var(--font-size-large);
 }
 .mobile .font-smallest {
   font-size: 14px;

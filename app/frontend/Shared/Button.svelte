@@ -156,7 +156,7 @@
   }
   button.large {
     padding: 8px 24px;
-    font-size: 16px;
+    font-size: var(--font-size-normal);
     font-weight: bold;
   }
   :global(.mobile) button {

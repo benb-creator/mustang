@@ -204,7 +204,7 @@
     margin-inline-end: 16px;
   }
   .from:not(.singlechat) {
-    font-size: medium;
+    font-size: var(--font-size-normal);
     font-weight: 500;
     color: var(--fg);
   }
