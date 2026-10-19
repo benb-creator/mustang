@@ -3,6 +3,7 @@ import os
 import platform
 import re
 import socket
+import ssl
 import statistics
 import struct
 import subprocess
@@ -23,7 +24,7 @@ class EnvironmentProbe:
                "kernel": platform.release(), "cpu": self.cpu(), "cpu_cores": os.cpu_count(), "ram": self.ram(),
                "gpu": self.gpu(), "python": platform.python_version(), "ffmpeg": self.ffmpeg_version()}
         if self.desktop is not None:
-            env["display"] = self.desktop.describe_display(self.config.tool("xdpyinfo"))
+            env["display"] = self.desktop.describe_display()
         env["window"] = self.config.get("display.app_region")
         env["apps"] = {app_id: self.app_version(app_id) for app_id in app_ids}
         env["server"] = {"name": self.config.get("server.name", "Stalwart"), "version": self.server_version(),
@@ -137,8 +138,12 @@ class EnvironmentProbe:
                 return CommandRunner(self.config.get("server.snapshot.ssh")).run(command, timeout=60).strip()
             except Exception:
                 pass
+        context = ssl.create_default_context()
+        if self.config.get("server.ca_file"):
+            context.load_verify_locations(cafile=str(self.config.path(self.config.get("server.ca_file"))))
         try:
-            with urllib.request.urlopen(self.config.require("server.jmap_session_url"), timeout=10) as resp:
+            with urllib.request.urlopen(self.config.require("server.jmap_session_url"), timeout=10,
+                                        context=context) as resp:
                 return resp.headers.get("Server")
         except urllib.error.HTTPError as ex:
             return ex.headers.get("Server")

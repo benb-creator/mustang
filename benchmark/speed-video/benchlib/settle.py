@@ -87,6 +87,19 @@ class FrameDiff:
         return int(np.count_nonzero(self.changed_mask(prev, cur, self.pixel_threshold if threshold is None
                                                       else threshold)))
 
+    @staticmethod
+    def absdiff(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+        """Largest channel difference per pixel, computed in uint8 (no widening copy)."""
+        diff = np.maximum(a, b)
+        diff -= np.minimum(a, b)
+        if diff.ndim != 3:
+            return diff
+        largest = np.maximum(diff[:, :, 0], diff[:, :, 1])
+        return np.maximum(largest, diff[:, :, 2], out=largest)
+
+    def count(self, diff: np.ndarray, threshold: int) -> int:
+        return int(np.count_nonzero(diff[self.keep] > threshold if not self.keep.all() else diff > threshold))
+
     def changed_counts(self, prev: np.ndarray, cur: np.ndarray, thresholds: tuple[int, ...]) -> list[int]:
         diff = np.abs(prev.astype(np.int16) - cur.astype(np.int16))
         if diff.ndim == 3:
@@ -172,27 +185,25 @@ class FrameAnalyzer:
         previous = self.history[-1] if self.history else None
         oldest = self.history[0] if len(self.history) == self.history.maxlen else None
         self.times.append(time)
-        if previous is None:
-            self.counts.append(0)
-            self.fine.append(0)
-        else:
-            count, fine = self.diff.changed_counts(previous, frame, (self.params.pixel_threshold, 0))
-            self.counts.append(count)
-            self.fine.append(fine)
-        self.lag.append(0 if oldest is None else self.diff.changed_pixels(oldest, frame))
+        diff = None
+        count = fine = 0
+        if previous is not None:
+            diff = self.diff.absdiff(previous, frame)
+            count, fine = self.diff.count(diff, self.params.pixel_threshold), self.diff.count(diff, 0)
+        self.counts.append(count)
+        self.fine.append(fine)
+        minimum = self.params.min_changed_pixels
+        lag = 0
+        if oldest is not None and fine >= minimum and count < minimum:
+            lag = self.diff.count(self.diff.absdiff(oldest, frame), self.params.pixel_threshold)
+        self.lag.append(lag)
         for name, reference in self.references.items():
             threshold = self.reference_thresholds.get(name, self.params.reference_pixel_threshold)
             self.ref_distances[name].append(self.diff.reference_distance(frame, reference, threshold)
                                             if reference.shape == frame.shape else 1.0)
         for name, region in self.regions.items():
-            if previous is None:
-                self.region_changes[name].append(0)
-            else:
-                a, b = region.rect.crop(previous), region.rect.crop(frame)
-                diff = np.abs(a.astype(np.int16) - b.astype(np.int16))
-                if diff.ndim == 3:
-                    diff = diff.max(axis=2)
-                self.region_changes[name].append(int(np.count_nonzero(diff > self.params.pixel_threshold)))
+            changed = 0 if diff is None else int(np.count_nonzero(region.rect.crop(diff) > self.params.pixel_threshold))
+            self.region_changes[name].append(changed)
             if name in self.region_distances:
                 self.region_distances[name].append(region.distance(frame))
         self.history.append(frame)
@@ -293,6 +304,23 @@ class SettleDetector:
             if accept(i):
                 return float(times[i])
         return None
+
+
+class CompletionGate:
+    """Accepts a candidate end (a significant change followed by a quiet period) only if the app's completeness
+    confirmation (`gate`, video time) falls into that quiet period: the screen showed the final state then. The
+    state the probe read reaches the recording a few frames later (paint, capture), hence `latency_s`."""
+
+    def __init__(self, series: ChangeSeries, params: SettleParams, regions: Iterable[str], gate: float,
+                 latency_s: float = 0.1):
+        self.times = series.times
+        self.frames = np.flatnonzero(series.significant(params, regions))
+        self.gate = gate + latency_s
+
+    def accept(self, index: int) -> bool:
+        following = self.frames[np.searchsorted(self.frames, index, side="right"):]
+        next_change = float(self.times[following[0]]) if len(following) else float("inf")
+        return float(self.times[index]) <= self.gate < next_change
 
 
 class LiveSettleState:

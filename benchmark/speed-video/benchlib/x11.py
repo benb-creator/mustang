@@ -29,7 +29,8 @@ class X11Desktop:
         return result.stdout
 
     def key(self, combo: str):
-        self.xdotool("key", *combo.split())
+        """--delay 0: xdotool otherwise sleeps 12 ms after the key, which would make the logged input time late."""
+        self.xdotool("key", "--delay", 0, *combo.split())
 
     def type_text(self, text: str, delay_ms: int):
         self.xdotool("type", "--delay", delay_ms, "--file", "-", timeout=60 + len(text) * delay_ms / 1000, stdin=text)
@@ -38,9 +39,14 @@ class X11Desktop:
         self.xdotool("mousemove", "--sync", x, y)
 
     def click(self, x: int, y: int, button: int = 1, count: int = 1, hover_s: float = 0.15):
+        """One xdotool call per click with --delay 0: xdotool sleeps the delay after the last click as well (100 ms
+        by default), which would make the logged input time late and hide a fast app's first reaction."""
         self.move(x, y)
         time.sleep(hover_s)
-        self.xdotool("click", "--repeat", count, "--delay", 80, button)
+        for n in range(count):
+            if n:
+                time.sleep(0.08)
+            self.xdotool("click", "--delay", 0, button)
 
     def drag(self, x0: int, y0: int, x1: int, y1: int, duration_s: float):
         self.move(x0, y0)
@@ -192,19 +198,74 @@ class X11Desktop:
     def set_affinity(self, process: subprocess.Popen, cpus: str | None):
         pass
 
-    def describe_display(self, xdpyinfo: str = "xdpyinfo") -> dict:
+    def screenshot(self, path: Path, ffmpeg: str = "ffmpeg") -> bool:
+        """The whole X screen as PNG (diagnostics after a failed automation step)."""
+        size = self.describe_display().get("resolution")
+        if not size:
+            return False
+        result = subprocess.run([ffmpeg, "-hide_banner", "-loglevel", "error", "-f", "x11grab", "-video_size", size,
+                                 "-i", f"{self.display}+0,0", "-frames:v", "1", "-y", str(path)], env=self.env,
+                                capture_output=True, timeout=30)
+        return result.returncode == 0
+
+    def describe_display(self) -> dict:
+        from Xlib import display as xdisplay
         info = {"display": self.display, "session_type": os.environ.get("XDG_SESSION_TYPE", "x11")}
         try:
-            out = subprocess.run([xdpyinfo], env=self.env, capture_output=True, text=True, timeout=10).stdout
-            m = re.search(r"dimensions:\s+(\d+x\d+)", out)
-            if m:
-                info["resolution"] = m.group(1)
-            m = re.search(r"depth of root window:\s+(\d+)", out)
-            if m:
-                info["depth"] = int(m.group(1))
-        except (OSError, subprocess.TimeoutExpired):
-            pass
+            connection = xdisplay.Display(self.display)
+            screen = connection.screen()
+            info["resolution"] = f"{screen.width_in_pixels}x{screen.height_in_pixels}"
+            info["depth"] = int(screen.root_depth)
+            connection.close()
+        except Exception as ex:
+            info["error"] = f"{type(ex).__name__}: {ex}"
         return info
+
+
+class XvfbServer:
+    """A virtual X server for unattended runs (Linux test computer without a desktop session)."""
+
+    def __init__(self, xvfb: str, width: int, height: int, depth: int = 24, display: int | None = None,
+                 log_path: Path | None = None):
+        self.xvfb = xvfb
+        self.size = f"{width}x{height}x{depth}"
+        self.number = display if display is not None else self.free_display()
+        self.log_path = log_path
+        self.process: subprocess.Popen | None = None
+
+    @staticmethod
+    def free_display(first: int = 70) -> int:
+        number = first
+        while Path(f"/tmp/.X11-unix/X{number}").exists() or Path(f"/tmp/.X{number}-lock").exists():
+            number += 1
+        return number
+
+    @property
+    def name(self) -> str:
+        return f":{self.number}"
+
+    def start(self, timeout_s: float = 20) -> str:
+        out = open(self.log_path, "ab") if self.log_path else subprocess.DEVNULL
+        self.process = subprocess.Popen([self.xvfb, self.name, "-screen", "0", self.size, "-nolisten", "tcp"],
+                                        stdout=out, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                        start_new_session=True)
+        deadline = time.monotonic() + timeout_s
+        while not Path(f"/tmp/.X11-unix/X{self.number}").exists():
+            if self.process.poll() is not None or time.monotonic() > deadline:
+                raise X11Error(f"Xvfb {self.name} didn't start (see {self.log_path})")
+            time.sleep(0.1)
+        time.sleep(0.5)
+        return self.name
+
+    def stop(self):
+        if self.process and self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(10)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait()
+        self.process = None
 
 
 class X11MarkerWindow:
