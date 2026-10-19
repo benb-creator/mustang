@@ -121,6 +121,24 @@ class ImapSession:
                         "special_use": next((f for f in flags if f in special_use), None)})
         return out
 
+    def foreign_prefixes(self) -> list[str]:
+        """Prefixes of the other users' and the shared namespaces (RFC 2342): folders there aren't this account's."""
+        if "NAMESPACE" not in self.capabilities:
+            return []
+        text = b" ".join(x for x in self.check(self.conn.namespace()) if isinstance(x, bytes)).decode(errors="replace")
+        groups, depth, begin = [], 0, 0
+        for i, char in enumerate(text):
+            if char == "(":
+                begin = i if depth == 0 else begin
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth == 0:
+                    groups.append(text[begin:i + 1])
+            elif depth == 0 and text.startswith("NIL", i):
+                groups.append("NIL")
+        return [prefix for group in groups[1:3] for prefix in re.findall(r'\("([^"]*)"', group) if prefix]
+
     def messages(self, folder: str, batch: int = 5000) -> list[dict]:
         """uid, message_id, flags and size of every message in the folder."""
         status = self.check(self.conn.status(self.quote(folder), "(MESSAGES UIDNEXT)"))[0].decode()
@@ -153,11 +171,16 @@ class ImapSession:
         if not changes:
             return
         self.check(self.conn.select(self.quote(folder)))
+        groups: dict[tuple, list[int]] = {}
         for uid, add, remove in changes:
-            if add:
-                self.check(self.conn.uid("STORE", str(uid), "+FLAGS.SILENT", "(" + " ".join(sorted(add)) + ")"))
-            if remove:
-                self.check(self.conn.uid("STORE", str(uid), "-FLAGS.SILENT", "(" + " ".join(sorted(remove)) + ")"))
+            groups.setdefault((tuple(sorted(add)), tuple(sorted(remove))), []).append(uid)
+        for (add, remove), uids in groups.items():
+            for chunk in Chunks.of(uids, 500):
+                uid_set = ",".join(str(u) for u in chunk)
+                if add:
+                    self.check(self.conn.uid("STORE", uid_set, "+FLAGS.SILENT", "(" + " ".join(add) + ")"))
+                if remove:
+                    self.check(self.conn.uid("STORE", uid_set, "-FLAGS.SILENT", "(" + " ".join(remove) + ")"))
         self.unselect()
 
     def delete_uids(self, folder: str, uids: list[int]):
@@ -314,9 +337,11 @@ class AccountCheck:
         corpus_names = {n for n in state.corpus_folder_names.values() if n}
         expected = self.expected()
         seen: dict[str, tuple[str, int]] = {}
+        foreign_prefixes = imap.foreign_prefixes()
         for folder in folders:
             name = folder["name"]
-            if "\\noselect" in folder["flags"] or "\\nonexistent" in folder["flags"]:
+            if "\\noselect" in folder["flags"] or "\\nonexistent" in folder["flags"] or \
+                    any(name.startswith(prefix) for prefix in foreign_prefixes):
                 continue
             is_corpus = name in corpus_names or name.upper() == "INBOX"
             if not is_corpus and not folder["special_use"]:

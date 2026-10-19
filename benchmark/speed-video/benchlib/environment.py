@@ -144,11 +144,12 @@ class EnvironmentProbe:
         try:
             with urllib.request.urlopen(self.config.require("server.jmap_session_url"), timeout=10,
                                         context=context) as resp:
-                return resp.headers.get("Server")
+                header = resp.headers.get("Server")
         except urllib.error.HTTPError as ex:
-            return ex.headers.get("Server")
+            header = ex.headers.get("Server")
         except OSError:
             return None
+        return header if header and re.search(r"\d", header) else None
 
     def round_trip_ms(self) -> dict:
         targets = {}

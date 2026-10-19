@@ -225,7 +225,7 @@ class Pipeline:
             comparison_id, tasks, resume, measured, warmup, only_apps)
 
     def run_session(self, session: str, measured: int | None = None, warmup: int | None = None,
-                    resume: bool = True) -> dict:
+                    resume: bool = True, zip_folder: bool = True) -> dict:
         """All comparisons of one computer's session (e.g. C1 + C2 on Linux): one interleaved series of the
         session's apps, then analysis, results, evidence, report and the zip of the result folder."""
         comparisons = [c for c, spec in (self.config.get("comparisons") or {}).items()
@@ -235,8 +235,11 @@ class Pipeline:
         for comparison_id in comparisons:
             self.run(comparison_id, None, resume, measured, warmup)
         results = self.analyze(comparisons[0])
-        archive = self.results_folder().zip()
-        self.progress(f"result folder {self.results_folder().path} ({archive.name} next to it)")
+        if zip_folder:
+            archive = self.results_folder().zip()
+            self.progress(f"result folder {self.results_folder().path} ({archive.name} next to it)")
+        else:
+            self.progress(f"result folder {self.results_folder().path}")
         return results
 
     def recorded_comparisons(self) -> list[str]:

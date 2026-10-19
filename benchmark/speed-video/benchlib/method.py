@@ -173,7 +173,7 @@ class MethodTexts:
                     notes.append(self.w("after_fetch", messages=sum(window["full_messages"].values()),
                                         downloads=downloads))
                 if notes:
-                    parts.append(f"{side['name']}: " + "; ".join(notes))
+                    parts.append(f"{side['name']} ({side['protocol']}): " + "; ".join(notes))
         return " · ".join(parts) or self.w("none")
 
     def credits(self) -> dict:

@@ -15,6 +15,7 @@ tools:
 
 server:                             # account mode: an existing server, one test account, nothing else is touched
   name: Stalwart
+  # version: "0.16.26"              # a user account can't ask the server for its version: set it for the report
   host: <mail.example.org>          # JMAP https://<host>/.well-known/jmap, IMAP <host>:993, SMTP <host>:465 unless set:
   # jmap_session_url: https://<host>/.well-known/jmap
   # imap: {host: <host>, port: 993, tls: true}
@@ -141,7 +142,7 @@ deviations:
 
 instrumentation:
   - "The apps' own instrumentation (Parula: Chrome DevTools Protocol; Thunderbird: Marionette) finds the setup's buttons and fields, so the driver can click and type there like a user (xdotool). It never gives a time."
-  - "The last step's end is the last screen change in the recording before the moment the instrumentation confirmed, during a quiet screen, that the Inbox lists all messages; the instrumentation is asked only while the screen is still."
+  - "Every measured step ends at the last screen change in the recording before the moment the instrumentation confirmed the step's result (the next setup page; in the last step: the Inbox lists all messages). The instrumentation is asked only while the screen is still, about once per second."
   - "After the measured end the instrumentation checks completeness: the folder's message count equals the corpus and the corpus's oldest message is in the list (scrolled to). A run that fails this check counts as a wrong result."
   - "Client-side network evidence: the TCP connections of each app's processes are read from /proc ten times a second."
 

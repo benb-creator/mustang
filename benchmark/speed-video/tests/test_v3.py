@@ -39,10 +39,14 @@ def small_corpus(count=40, attachments=2) -> CorpusGenerator:
 class FakeImap:
     """Folders and messages as an IMAP server holds them; records the repairs."""
 
-    def __init__(self, folders: dict, special: dict):
+    def __init__(self, folders: dict, special: dict, shared_prefixes: list | None = None):
         self.data = folders
         self.special = special
+        self.shared_prefixes = shared_prefixes or []
         self.calls = []
+
+    def foreign_prefixes(self):
+        return self.shared_prefixes
 
     def folders(self):
         return [{"name": n, "flags": {self.special[n]} if n in self.special else set(), "delimiter": "/",
@@ -109,6 +113,15 @@ def test_account_check_finds_and_repairs_every_kind_of_difference():
     after = check.inspect(imap)
     assert not (after.duplicates or after.misplaced or after.foreign or after.flag_changes or after.extra_folders)
     assert [m.message_id for m in after.missing] == [removed]
+
+
+def test_account_check_leaves_other_users_and_shared_folders_alone():
+    generator = small_corpus()
+    imap = seeded_imap(generator)
+    imap.data["Shared Folders/team/Inbox"] = [{"uid": 1, "message_id": "<team@example.net>", "size": 5, "flags": set()}]
+    imap.shared_prefixes = ["Shared Folders/"]
+    state = AccountCheck(None, generator, lambda *_: None).inspect(imap)
+    assert state.ok and "Shared Folders/team/Inbox" not in state.folders
 
 
 def test_account_expectations_name_the_oldest_and_newest_inbox_message():
@@ -598,3 +611,40 @@ def test_linux_watcher_logs_this_process_connections(tmp_path):
     stats = next(e for e in events if e["type"] == "stats")
     assert stats["mean_interval_s"] < 0.2
     listener.close()
+
+
+def test_probe_page_names():
+    from benchlib.probe import ParulaProbe, ThunderbirdProbe
+
+    class TB(ThunderbirdProbe):
+        def __init__(self, state):
+            super().__init__(0)
+            self.fixed = state
+
+        def state(self):
+            return self.fixed
+    hub = lambda view, note=None, kind=None: TB({"view": view, "notification": note, "notificationType": kind,
+                                                 "folder": None, "tabs": ["mail3PaneTab"]})
+    assert hub("email-auto-form").page() == "email"
+    assert hub("email-auto-form", "Looking up configuration Show more").page() == "busy:email-auto-form"
+    assert hub("email-manual-config-form", "Thunderbird found the correct settings", "success").page() == "manual:success"
+    assert hub("email-password-form", "Login failed", "error").page() == "error:password"
+    assert TB({"view": None, "folder": "imap://a@b/INBOX", "tabs": []}).page() == "inbox"
+    assert TB({"view": None, "folder": None, "tabs": ["mail3PaneTab"]}).page() == "mail"
+
+    class Parula(ParulaProbe):
+        def __init__(self, state):
+            super().__init__(0)
+            self.fixed = {"headings": [], "text": "", "error": None, "radios": 0, "expanded": False, "counts": [],
+                          **state}
+
+        def state(self):
+            return self.fixed
+    assert Parula({"hash": "#/setup/initial"}).page() == "initial"
+    assert Parula({"hash": "#/setup/mail", "headings": ["Manual configuration"]}).page() == "manual"
+    assert Parula({"hash": "#/setup/mail", "headings": ["Manual configuration"], "expanded": True,
+                   "error": "We could not find a configuration for example.com"}).page() == "error:manual-full"
+    assert Parula({"hash": "#/setup/mail", "text": "a@b is working and ready"}).page() == "finalize"
+    assert Parula({"hash": "#/setup/mail", "text": "We found a configuration", "radios": 2}).page() == "found"
+    assert Parula({"hash": "#/mail", "counts": ["3000 mails"]}).inbox_listed({"inbox_messages": 3000})["complete"]
+    assert not Parula({"hash": "#/mail", "counts": ["2,800 mails"]}).inbox_listed({"inbox_messages": 3000})["complete"]

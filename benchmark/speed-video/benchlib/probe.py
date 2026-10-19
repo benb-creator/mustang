@@ -124,7 +124,8 @@ class ParulaProbe(AppProbe):
       if (!el) return null;
       const r = el.getBoundingClientRect();
       const box = el.matches('input') ? el : el.querySelector('input[type=radio], input[type=checkbox]');
-      return {x: window.screenX + r.x, y: window.screenY + r.y, w: r.width, h: r.height,
+      const d = window.devicePixelRatio || 1;
+      return {x: (window.screenX + r.x) * d, y: (window.screenY + r.y) * d, w: r.width * d, h: r.height * d,
               enabled: !el.disabled && !el.classList.contains('disabled'), text: text(el).slice(0, 200),
               value: el.value === undefined ? null : (el.type == 'password' ? null : el.value),
               checked: box && (box.type == 'radio' || box.type == 'checkbox') ? box.checked : null};
@@ -221,11 +222,12 @@ class ParulaProbe(AppProbe):
         return {top: r.top, bottom: r.bottom, subject: subject ? subject.innerText.trim() : null}; })
         .filter(r => r.subject !== null && r.bottom > box.top + 1 && r.top < box.bottom - 1)
         .sort((a, b) => a.top - b.top);
+      const d = window.devicePixelRatio || 1;
+      const screen = r => ({x: (window.screenX + r.x) * d, y: (window.screenY + r.y) * d, w: r.width * d, h: r.height * d});
       const count = [...document.querySelectorAll('.msg-count')].find(e => e.getBoundingClientRect().width > 0);
       const c = count ? count.getBoundingClientRect() : null;
       return {rows, scrollTop: list.scrollTop, scrollHeight: list.scrollHeight, clientHeight: list.clientHeight,
-              rect: {x: window.screenX + box.x, y: window.screenY + box.y, w: box.width, h: box.height},
-              count_rect: c ? {x: window.screenX + c.x, y: window.screenY + c.y, w: c.width, h: c.height} : null};
+              rect: screen(box), count_rect: c ? screen(c) : null};
     })()"""
         deadline = time.monotonic() + settle_s
         rows = self.evaluate(rows_script)

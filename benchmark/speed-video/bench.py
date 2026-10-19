@@ -58,6 +58,7 @@ class CommandLine:
         linux.add_argument("--warmup", type=int)
         linux.add_argument("--no-resume", action="store_true")
         linux.add_argument("--xvfb", action="store_true", help="start a virtual X server (display.xvfb)")
+        linux.add_argument("--no-zip", action="store_true", help="no zip next to the result folder (saves disk)")
 
         snapshot = sub.add_parser("snapshot", help="take, restore or list snapshot pairs (server + client profiles)")
         snapshot.add_argument("action", choices=["take", "restore", "list", "server-take", "server-restore"])
@@ -227,7 +228,7 @@ class CommandLine:
     def cmd_run_linux(self, pipeline, config, args):
         xvfb = self.virtual_display(config, args)
         try:
-            results = pipeline.run_session(args.session, args.runs, args.warmup, not args.no_resume)
+            results = pipeline.run_session(args.session, args.runs, args.warmup, not args.no_resume, not args.no_zip)
         finally:
             if xvfb:
                 xvfb.stop()

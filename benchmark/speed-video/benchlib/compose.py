@@ -922,7 +922,9 @@ class ValuesBuilder:
             env = (self.results.get("environment") or {}).get(comparison_id, {})
             for key in ("date", "os", "cpu", "ram", "display", "server", "rtt_ms"):
                 value = env.get(key)
-                if isinstance(value, dict):
+                if key == "server" and isinstance(value, dict):
+                    value = value.get("version")
+                elif isinstance(value, dict):
                     value = value.get("resolution") or value.get("version") or next(iter(value.values()), None)
                 if value is not None:
                     values.set_text(f"env.{comparison_id}.{key}", str(value), value)

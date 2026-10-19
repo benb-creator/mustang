@@ -252,16 +252,18 @@ cp config.linux.example.yaml config.yaml        # fill in server.host, account.e
 export BENCH_PASSWORD='…'                       # or put --password-prompt before the command
 ./bench.py seed                                 # once: 30,000 messages into the test account (resumable)
 ./bench.py check                                # optional: the account matches the corpus
-flock /workspace/lookout-scratch/heavy.lock ./bench.py run-linux    # the whole session, unattended (~hours)
+./bench.py run-linux                            # the whole session, unattended (hours)
 ```
 
 `run-linux` starts Xvfb (2560×1440), records the session of `sessions.linux` (Parula JMAP, Parula IMAP,
 Thunderbird; 1 warm-up + 5 measured runs each, interleaved A B C A B C, a fresh app profile and the account check
 before every run), analyzes every run right after it is recorded, re-records technical failures at the end of the
 series, writes `results.json`, `evidence.json` and `report.md` into the result folder and zips it. It prints the
-folder and the medians. Interrupted? `./bench.py run-linux --results <folder>` continues it. In this container the
-`flock` keeps it from running at the same time as other heavy jobs (see the RAM rules); one app and one Xvfb run
-at a time anyway.
+folder and the medians (`--no-zip` skips the zip when the folder is composed on the same machine and disk is
+short: the lossless captures are most of its size). Interrupted? `./bench.py run-linux --results <folder>`
+continues it. On a shared machine, run it under the same lock as other heavy jobs (e.g. `flock <lock file>
+./bench.py run-linux`), so nothing else competes for the CPU during the measurement; it runs one app and one Xvfb
+at a time.
 
 Then compose from the folder(s):
 
@@ -271,7 +273,7 @@ Then compose from the folder(s):
 ./bench.py compose --results <folder> --narration <voiceover dir> --variant c2 --lang en --name c2
 ./bench.py voice --name c2 --lang en                # text-to-speech for exactly the chosen lines
 ./bench.py compose --results <folder> --narration <voiceover dir> --variant c2 --lang en --name c2   # real lengths
-./bench.py method --results <folder> --narration <voiceover dir> --variant c2 --lang en --name c2  # below the video
+./bench.py method --results <folder> --narration <voiceover dir> --variant c2 --lang en --name c2 --comparisons C2
 ./bench.py encode --name c2 --lang en
 ./bench.py verify --name c2 --lang en
 ```
@@ -298,9 +300,10 @@ types there like a user (xdotool on Linux).
   with protocol "JMAP" and the server's URL.
 - The instrumentation is never the timing source. Each measured step ends at the last significant screen change in
   the recording before the moment the app's probe confirmed the step's result (the next page, or "the Inbox lists
-  all 30,000 messages"); the probe is asked only while the screen has been still for `quiet_s`, at most once per
-  `probe_interval_s`, and the screen must stay still for another `quiet_s` after the confirmation. A static
-  "Looking up…" or a list that is still loading in the background therefore never ends a step early. The message
+  all 30,000 messages"); the probe is asked only while the driver's low-resolution live view has been still for
+  `quiet_s`, at most once per `probe_interval_s` (one short DevTools or Marionette call), and the live view must
+  stay still for another `quiet_s` after the confirmation. A static "Looking up…" or a list that is still loading
+  in the background therefore never ends a step early. The message
   count's rectangle (reported by the probe) is a check region of the last step: every change inside it counts,
   however small, so the end is the frame where the count reached its final value, not an earlier, larger change.
 - After the measured end the probe checks completeness (`verify.json`): the count equals the corpus, and the
