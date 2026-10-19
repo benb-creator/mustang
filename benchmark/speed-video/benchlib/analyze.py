@@ -9,8 +9,8 @@ from PIL import Image
 from .driver import Calibration, EventLog
 from .marker import ClockFit, ClockFitError, MarkerCode, MarkerTrack
 from .references import References
-from .scenario import ScenarioLibrary
-from .settle import FrameAnalyzer, Rect, Region, SettleDetector, SettleParams
+from .scenario import ScenarioLibrary, Step
+from .settle import CompletionGate, FrameAnalyzer, Rect, Region, SettleDetector, SettleParams
 from .video import VideoError, VideoFile
 
 
@@ -28,6 +28,42 @@ class StepVerdict:
     technical = "technical"
 
     severity = {ok: 0, timeout: 1, invalid: 2, technical: 3, wrong_result: 4}
+
+
+class ListRows:
+    """When the message list first shows rows: per frame, a small grey thumbnail of the list area and its share of
+    "ink" (pixels far from the area's background). Rows are visible once the area has changed from its state at the
+    step's start and holds ink."""
+
+    size = 32
+
+    def __init__(self, rect: Rect):
+        self.rect = rect
+        self.thumbnails: list[np.ndarray] = []
+        self.ink: list[float] = []
+
+    def add(self, frame: np.ndarray):
+        area = self.rect.crop(frame)
+        grey = area[:, :, 1] if area.ndim == 3 else area
+        background = int(np.median(grey[::4, ::4]))
+        self.ink.append(float(np.count_nonzero(np.abs(grey.astype(np.int16) - background) > 40)) / max(1, grey.size))
+        h, w = grey.shape
+        ys = np.linspace(0, h - 1, self.size).astype(int)
+        xs = np.linspace(0, w - 1, self.size).astype(int)
+        self.thumbnails.append(grey[np.ix_(ys, xs)].astype(np.uint8))
+
+    def first_rows(self, times: np.ndarray, start: float, end: float, min_ink: float = 0.01,
+                   min_change: float = 0.05) -> float | None:
+        first = int(np.searchsorted(times, start, side="right"))
+        last = int(np.searchsorted(times, end, side="right"))
+        if first >= len(self.thumbnails):
+            return None
+        before = self.thumbnails[max(first - 1, 0)].astype(np.int16)
+        for i in range(first, min(last, len(self.thumbnails))):
+            changed = np.count_nonzero(np.abs(self.thumbnails[i].astype(np.int16) - before) > 24) / before.size
+            if changed >= min_change and self.ink[i] >= min_ink:
+                return float(times[i])
+        return None
 
 
 class RunAnalyzer:
@@ -89,13 +125,16 @@ class RunAnalyzer:
         meta = json.loads((run_dir / "meta.json").read_text())
         if meta.get("status") not in ("complete", "timeout"):
             raise AnalysisError(f"{run_dir} is not a complete run ({meta.get('status')}: {meta.get('error')})")
-        events = EventLog.read(run_dir / "log.jsonl")
+        events = EventLog.read(run_dir / "driver.jsonl")
         layout = meta["layout"]
         app_rect = Rect.from_dict(layout["app_in_capture"])
         marker_rect = Rect.from_dict(layout["marker_in_capture"])
         code = MarkerCode(int(layout["marker_cell"]))
         scenario = self.scenarios.get(meta["task"]).for_app(meta["app"])
-        steps = [s for s in scenario.steps if s.measure]
+        steps = self.flow_steps(events) if scenario.flow else [s for s in scenario.steps if s.measure]
+        verify = json.loads((run_dir / "verify.json").read_text()) if (run_dir / "verify.json").exists() else None
+        list_rect = self.screen_rect(verify, "list_rect", layout)
+        count_rect = self.screen_rect(verify, "count_rect", layout)
         params = {s.name: self.step_params(scenario, s, reference_run) for s in steps}
         masks = [Rect.from_dict(m) for m in scenario.masks + list(self.config.get("display.masks") or [])]
         base = SettleParams.from_dict(self.config.get("settle"), scenario.settle)
@@ -104,19 +143,25 @@ class RunAnalyzer:
         opening_region = self.opening_region(meta, scenario, rects) if use_references else None
         change_regions = {name for step in steps for name in (r.region for r in step.regions)}
         tracked = [Region(name, rects[name]) for name in change_regions]
+        if count_rect is not None:
+            tracked.append(Region("count", count_rect))
         keyed = [Region("|".join(key), r.rect, r.reference, r.tolerance, r.pixel_threshold)
                  for key, r in checks.items() if r.reference is not None]
         if opening_region is not None:
             keyed.append(opening_region)
         analyzer = FrameAnalyzer(app_rect.width, app_rect.height, base, masks, full_frames, tracked + keyed,
                                  {name: params[name].reference_pixel_threshold for name in full_frames})
+        rows = ListRows(list_rect) if list_rect is not None else None
 
         video = VideoFile(run_dir / "capture.mkv", self.config.tool("ffmpeg"), self.config.tool("ffprobe"))
         decoded = video.decoded()
         codes = []
         for frame in decoded.frames():
             codes.append(code.decode(marker_rect.crop(frame)))
-            analyzer.add(0.0, app_rect.crop(frame))
+            app_frame = app_rect.crop(frame)
+            analyzer.add(0.0, app_frame)
+            if rows is not None:
+                rows.add(app_frame)
         times = np.asarray(decoded.times, dtype=np.float64)
         if len(times) == 0:
             raise AnalysisError(f"{run_dir}: no frames")
@@ -150,7 +195,7 @@ class RunAnalyzer:
             step = next(s for s in steps if s.name == name)
             p = params[name]
             start = fit.to_video(event["t"])
-            later = [e for e in events[n + 1:] if e["type"] in ("input", "marker")]
+            later = [e for e in events[n + 1:] if e["type"] in ("input", "marker", "verify_start")]
             window_end = fit.to_video(later[0].get("t_before", later[0]["t"])) if later else recording_end
             timed_out = any(e["type"] == "step_live_timeout" and e["step"] == name for e in events)
             entry = {"name": name, "start_time": start, "window_end": window_end, "reference": name in full_frames,
@@ -169,9 +214,25 @@ class RunAnalyzer:
                     return False
                 return all(series.region_distances[f"{step_name}|end|{r.name}"][index] <= r.tolerance for r in regions)
 
-            detector = SettleDetector(p, [r.region for r in step.regions])
-            result = detector.find_end(series, start, window_end, accept if (end_checks or name in full_frames) else None,
-                                       late_margin_s=2 / fps if later else 0.0)
+            region_names = [r.region for r in step.regions]
+            if step.complete == "inbox_listed" and count_rect is not None:
+                region_names.append("count")
+                entry["regions"] = region_names
+            detector = SettleDetector(p, region_names)
+            confirmed = next((e.get("confirmed_at") for e in events[n + 1:]
+                              if e["type"] == "step_live_settled" and e["step"] == name), None)
+            if step.complete:
+                if confirmed is None:
+                    entry.update({"status": "unconfirmed", "verdict": StepVerdict.technical, "duration_s": None,
+                                  "reason": "the app's completion check never confirmed the result"})
+                    results.append(entry)
+                    break
+                gate = fit.to_video(confirmed)
+                entry["confirmed_time"] = gate
+                check = CompletionGate(series, p, region_names, gate).accept
+            else:
+                check = accept if (end_checks or name in full_frames) else None
+            result = detector.find_end(series, start, window_end, check, late_margin_s=2 / fps if later else 0.0)
             entry.update(result.to_dict())
             verdict, reason = StepVerdict.ok, None
             if result.status == "settled":
@@ -205,6 +266,19 @@ class RunAnalyzer:
                 entry["first_visible_time"] = first
                 if first is not None and first_s is None:
                     first_s = waited + first - start
+            if step.first_visible_list and rows is not None and first_s is None:
+                first = rows.first_rows(times, start, window_end)
+                entry["first_visible_time"] = first
+                if first is not None:
+                    first_s = waited + first - start
+            if step.verify_probe and verdict == StepVerdict.ok:
+                if verify is None or verify.get("step") != name:
+                    verdict, reason = StepVerdict.technical, "no completeness check (verify.json) after the step"
+                elif not verify.get("inbox_complete"):
+                    verdict, reason = StepVerdict.wrong_result, (
+                        f"completeness check failed: {verify.get('listed')} of {verify.get('expected')} listed, "
+                        f"oldest message visible: {verify.get('oldest_visible')}"
+                        + (f" ({verify['error']})" if verify.get("error") else ""))
             if step.verify and verdict == StepVerdict.ok:
                 verify_events = [e for e in events if e["type"] == "verify_start" and e["step"] == name]
                 verify_checks = [checks[(name, "verify", r.region)] for r in step.verify.regions
@@ -238,7 +312,7 @@ class RunAnalyzer:
         reasons = [f"{r['name']}: {r['reason']}" for r in results if r.get("reason")]
         dropped = int(np.count_nonzero(intervals > 1.5 / fps))
         analysis = {
-            "version": 2, "run": meta["run"], "app": meta["app"], "task": meta["task"],
+            "version": 3, "run": meta["run"], "app": meta["app"], "task": meta["task"],
             "comparison": meta["comparison"], "warmup": meta["warmup"], "order": meta.get("order"),
             "attempt": meta.get("attempt", 1), "app_version": meta.get("app_version"),
             "status": status, "failure": "technical" if status == "failed" else None,
@@ -246,6 +320,13 @@ class RunAnalyzer:
             "total_s": sum(r["duration_s"] for r in results) if status == "ok" else None,
             "censored_at_s": float(meta.get("task_timeout_s") or 0) if status == "timeout" else None,
             "first_s": first_s, "steps": results, "clock_fit": fit.to_dict(), "tail": tail,
+            "elapsed_s": (results[-1]["end_time"] - results[0]["start_time"]) if status == "ok" else None,
+            "measured_window": {"from_t": fit.to_driver(results[0]["start_time"]),
+                                "to_t": fit.to_driver(results[-1].get("end_time") or recording_end)}
+            if results else None,
+            "flow_path": meta.get("flow_path"), "user_actions": meta.get("user_actions"),
+            "verify": {k: verify.get(k) for k in ("method", "inbox_complete", "listed", "expected", "oldest_visible",
+                                                  "newest_visible")} if verify else None,
             "opening_ranges": opening,
             "measured_end_utc": self.utc_of(events, fit, results, status),
             "frames": {"count": int(len(times)), "duration_s": float(times[-1] - times[0]),
@@ -255,6 +336,26 @@ class RunAnalyzer:
         }
         (run_dir / "analysis.json").write_text(json.dumps(analysis, indent=2))
         return analysis
+
+    @staticmethod
+    def flow_steps(events: list[dict]) -> list[Step]:
+        """The measured steps a flow created at run time, with the checks it logged."""
+        return [Step.from_checks(e["step"], e.get("checks") or {}) for e in events
+                if e["type"] == "step_start" and e.get("measure", True)]
+
+    @staticmethod
+    def screen_rect(verify: dict | None, key: str, layout: dict) -> Rect | None:
+        """A rectangle the probe reported in screen pixels (the message list, the message count), inside the app
+        capture. Changes inside the count's rectangle always count, however small (a count going from 2,800 to
+        3,000 changes only a few dozen pixels)."""
+        rect = (verify or {}).get(key)
+        if not rect:
+            return None
+        app = Rect.from_dict(layout["app_region"])
+        x, y = int(rect["x"]) - app.x, int(rect["y"]) - app.y
+        width = min(int(rect["w"]), app.width - x)
+        height = min(int(rect["h"]), app.height - y)
+        return Rect(max(0, x), max(0, y), width, height) if width > 2 and height > 2 else None
 
     def opening_region(self, meta: dict, scenario, rects: dict) -> Region | None:
         check = scenario.opening_screen
@@ -306,11 +407,20 @@ class RunAnalyzer:
 
 
 class Aggregator:
-    def __init__(self, config, scenarios: ScenarioLibrary):
+    def __init__(self, config, scenarios: ScenarioLibrary, folder=None):
         self.config = config
         self.scenarios = scenarios
+        self.folder = folder
+
+    def run_counts(self) -> dict:
+        """The session's planned run counts (the result folder's manifest), else the config's."""
+        planned = (self.folder.manifest().get("runs") if self.folder is not None else None) or {}
+        return {"measured": int(planned.get("measured", self.config.get("runs.measured", 5))),
+                "warmup": int(planned.get("warmup", self.config.get("runs.warmup", 1)))}
 
     def run_dirs(self, comparison: str, task: str, app: str) -> list[Path]:
+        if self.folder is not None:
+            return [p for p in self.folder.run_dirs(app, task) if p.name != "reference"]
         root = self.config.workdir / "runs" / self.config.run_group(comparison) / task / app
         if not root.exists():
             return []
@@ -342,6 +452,9 @@ class Aggregator:
         status = analysis["status"] if analysis else ("failed" if meta.get("status") == "failed" else "not analyzed")
         failed_attempts = sorted(p.name for p in run_dir.parent.glob(f"{run_dir.name}.failed-*"))
         evidence_path = run_dir / "evidence.json"
+        server_evidence_path = run_dir / "server-evidence.json"
+        account_path = run_dir / "account.json"
+        account = json.loads(account_path.read_text()) if account_path.exists() else None
         return {"run": meta["run"], "order": meta.get("order"), "attempt": meta.get("attempt", 1),
                 "warmup": bool(meta.get("warmup")), "status": status,
                 "reason": (analysis or {}).get("reason") or meta.get("error"),
@@ -352,13 +465,20 @@ class Aggregator:
                 "closed_cleanly": meta.get("closed_cleanly"), "re_recorded_after": failed_attempts,
                 "measured_end_utc": (analysis or {}).get("measured_end_utc"),
                 "evidence": json.loads(evidence_path.read_text()) if evidence_path.exists() else None,
-                "evidence_error": meta.get("evidence_error"), "dir": str(run_dir)}
+                "server_evidence": json.loads(server_evidence_path.read_text()) if server_evidence_path.exists()
+                else None, "evidence_error": meta.get("evidence_error"),
+                "elapsed_s": (analysis or {}).get("elapsed_s"), "flow_path": meta.get("flow_path"),
+                "user_actions": meta.get("user_actions"), "action_list": meta.get("action_list"),
+                "prepare_actions": meta.get("prepare_actions"), "inbox_complete": meta.get("inbox_complete"),
+                "preparations": meta.get("preparations"),
+                "account_repairs": (account or {}).get("repairs") if account else None,
+                "dir": self.folder.relative(run_dir) if self.folder is not None else str(run_dir)}
 
     def side(self, comparison: str, task: str, app_id: str) -> dict:
         app = self.config.app(app_id)
         scenario = self.scenarios.get(task)
         app_scenario = scenario.for_app(app_id)
-        measured_count = int(self.config.get("runs.measured", 5))
+        measured_count = self.run_counts()["measured"]
         entries = [self.run_entry(d) for d in self.run_dirs(comparison, task, app_id)]
         warmups = [e for e in entries if e["warmup"]]
         measured = sorted((e for e in entries if not e["warmup"]), key=lambda e: e["order"] or 0)
@@ -369,6 +489,8 @@ class Aggregator:
         side = {"app": app_id, "name": app.get("name", app_id), "version": app.get("version"),
                 "protocol": app.get("protocol"), "os": app.get("os"),
                 "actions": app_scenario.user_action_count, "action_list": app_scenario.action_list,
+                "flow": app_scenario.flow.get("name") if app_scenario.flow else None,
+                "microsoft_ui": bool(app.get("microsoft_ui")), "cloud_sync": bool(app.get("cloud_sync")),
                 "runs": measured, "warmups": warmups, "warmups_discarded": [e["run"] for e in warmups],
                 "runs_app_killed_at_close": [e["run"] for e in entries if e["closed_cleanly"] is False],
                 "failed_runs": [{"run": e["run"], "reason": f"{e['status']}: {e['reason']}"}
@@ -409,16 +531,38 @@ class Aggregator:
         firsts = [e["first_s"] for e in ok if e["first_s"] is not None]
         side["first_s"] = {"median_s": statistics.median(firsts), "min_s": min(firsts), "max_s": max(firsts),
                            "runs": len(firsts)} if firsts else None
+        if app_scenario.flow:
+            self.flow_actions(side, chosen, ok or measured)
+        elapsed = [e["elapsed_s"] for e in ok if e.get("elapsed_s") is not None]
+        side["elapsed_s"] = {"median_s": statistics.median(elapsed), "min_s": min(elapsed), "max_s": max(elapsed)} \
+            if elapsed and valid else None
         side["steps"] = {}
-        for step in [s for s in app_scenario.steps if s.measure]:
-            step_values = [e["steps"].get(step.name) for e in ok if e["steps"].get(step.name) is not None]
+        step_names = [s.name for s in app_scenario.steps if s.measure] or \
+            list(dict.fromkeys(name for e in ok for name in e["steps"]))
+        for step in step_names:
+            step_values = [e["steps"].get(step) for e in ok if e["steps"].get(step) is not None]
             if step_values:
-                side["steps"][step.name] = {"median_s": statistics.median(step_values), "min_s": min(step_values),
-                                            "max_s": max(step_values)}
+                side["steps"][step] = {"median_s": statistics.median(step_values), "min_s": min(step_values),
+                                       "max_s": max(step_values)}
         if status == 2:
             side["median_run"] = None
         side["timeout_run"] = timeouts[len(timeouts) // 2]["run"] if status == 2 and timeouts else None
         return side
+
+    @staticmethod
+    def flow_actions(side: dict, chosen: dict | None, runs: list[dict]):
+        """A flow's user actions come from the recorded runs (each app's own setup path, e.g. autoconfig or manual);
+        the published count is the median run's, and differing runs are listed."""
+        reference = chosen or next((r for r in runs if r.get("user_actions") is not None), None)
+        if reference is None:
+            return
+        side["actions"] = reference.get("user_actions")
+        side["action_list"] = reference.get("action_list") or []
+        side["prepare_actions"] = reference.get("prepare_actions") or []
+        side["flow_path"] = reference.get("flow_path") or []
+        differing = {r["run"]: r.get("user_actions") for r in runs if r.get("user_actions") != side["actions"]}
+        if differing:
+            side["actions_differ"] = differing
 
     def effective_settle(self, app_scenario) -> dict:
         out = {"masks": list(app_scenario.masks) + list(self.config.get("display.masks") or []), "steps": {}}
@@ -448,8 +592,7 @@ class Aggregator:
             out_tasks[task] = {"title": scenario.title, "description": scenario.description,
                                "left": left, "right": right, "ratio": ratio}
         return {"os": spec.get("os"), "left": spec["left"], "right": spec["right"], "tasks": out_tasks,
-                "runs": {"measured": int(self.config.get("runs.measured", 5)),
-                         "warmup": int(self.config.get("runs.warmup", 1))},
+                "runs": self.run_counts(),
                 "settle": vars(SettleParams.from_dict(self.config.get("settle")))}
 
 
@@ -485,7 +628,10 @@ class ReportWriter:
                  "- Apps recorded one after another, never at the same time; run order interleaved (A B A B …). A run "
                  "that failed for a technical reason is recorded again at the end of the series (listed below); "
                  "timeouts and differing results are never recorded again.",
-                 "- Server and client state restored from the same snapshot before every run.",
+                 ("- Before every run the test account was checked against the corpus (every message by its "
+                  "Message-ID, folder and flags) and repaired over IMAP where an earlier run had changed it; every "
+                  "run starts with a fresh app profile." if r.get("server_mode", "account") == "account" else
+                  "- Server and client state restored from the same snapshot before every run."),
                  "- Screen recording (lossless, 60 fps) runs during every measured run of every app; ffmpeg pinned "
                  "to its own CPU core where the OS allows it. The mouse pointer is moved out of the recorded area "
                  "after every click and not recorded.",
@@ -531,6 +677,25 @@ class ReportWriter:
                 for side_name in ("left", "right"):
                     s = t[side_name]
                     lines.append(f"- **{s['name']}** ({s['protocol']}): actions: " + "; ".join(s["action_list"]))
+                    if s.get("flow_path"):
+                        lines.append("  - setup path: " + "; ".join(s["flow_path"]))
+                    if s.get("prepare_actions"):
+                        lines.append("  - not counted (benchmark preparation): " + "; ".join(s["prepare_actions"]))
+                    preparations = sorted({p for x in s["runs"] for p in x.get("preparations") or []})
+                    if preparations:
+                        lines.append("  - before the setup: " + "; ".join(preparations))
+                    if s.get("actions_differ"):
+                        lines.append(f"  - runs with another action count: {s['actions_differ']}")
+                    if s.get("elapsed_s"):
+                        e = s["elapsed_s"]
+                        lines.append(f"  - wall-clock time from the first submit to the measured end (incl. the "
+                                     f"driver's reaction time between steps): median {self.seconds(e['median_s'])} "
+                                     f"(min {self.seconds(e['min_s'])}, max {self.seconds(e['max_s'])})")
+                    repairs = [f"{x['run']}: " + ", ".join(f"{p['what']} ({p.get('count', p.get('folder', ''))})"
+                                                         for p in x["account_repairs"])
+                               for x in s["runs"] if x.get("account_repairs")]
+                    if repairs:
+                        lines.append("  - account repaired before: " + "; ".join(repairs))
                     lines.append(f"  - status: {s['status']} ({self.status_text[s['status']]})"
                                  + (f": {s['status_reason']}" if s.get("status_reason") else ""))
                     lines.append("  - measured runs in run order: " + "; ".join(self.run_line(x) for x in s["runs"])
@@ -567,7 +732,13 @@ class ReportWriter:
                 lines.append("")
             evidence = comparison.get("evidence")
             if evidence:
-                lines += [f"### {comparison_id}: server log evidence", ""]
+                kind = "network evidence (client side)" if evidence.get("kind") == "client" else "server log evidence"
+                lines += [f"### {comparison_id}: {kind}", ""]
                 lines += [f"- {line}" for line in evidence.get("lines", [])]
+                lines.append("")
+            server_evidence = comparison.get("server_evidence")
+            if server_evidence:
+                lines += [f"### {comparison_id}: server log evidence", ""]
+                lines += [f"- {line}" for line in server_evidence.get("lines", [])]
                 lines.append("")
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")

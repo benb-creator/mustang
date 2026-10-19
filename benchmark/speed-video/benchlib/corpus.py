@@ -299,15 +299,20 @@ class CorpusGenerator:
                                                                                          min(s.large_from, s.attachment_max))
         return int(math.exp(r.uniform(math.log(low), math.log(max(high, low + 1)))))
 
+    def subject(self, folder: str, index: int, envelope: Envelope | None = None) -> str:
+        """The message's Subject as written: its thread's subject plus the terms planted in subjects."""
+        subject = (envelope or self.envelope(folder, index)).subject
+        for term in self.planted_at.get((folder, index), []):
+            if term.field == "subject":
+                subject = f"{subject} – {term.term}"
+        return subject
+
     def generate(self, folder: str, index: int) -> CorpusMessage:
         env = self.envelope(folder, index)
         r = self.rng(folder, "body", index)
         text = TextGenerator(r)
         planted = self.planted_at.get((folder, index), [])
-        subject = env.subject
-        for term in planted:
-            if term.field == "subject":
-                subject = f"{subject} – {term.term}"
+        subject = self.subject(folder, index, env)
         sent = self.folders[folder].role == "sent"
         if sent and env.parent:
             parent_env = self.envelope(*env.parent)

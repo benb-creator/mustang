@@ -133,11 +133,19 @@ class LiveMonitor:
     def wait_settled(self, since: float, quiet_s: float, timeout_s: float, label: str,
                      expect_change: bool = True, reference: np.ndarray | None = None,
                      reference_tolerance: float = 0.01, regions: list[LiveRegion] | None = None,
-                     no_reaction_s: float | None = None, grace_s: float | None = None) -> tuple[str, dict]:
+                     no_reaction_s: float | None = None, grace_s: float | None = None,
+                     complete=None, probe_interval_s: float = 1.0) -> tuple[str, dict]:
         """Returns ("settled" | "timeout" | "no-reaction", info). With a reference or regions, a quiet screen only
         counts once it matches them; after `grace_s` of stillness without a match the gate opens anyway (the
-        offline analysis then decides), so a strict live match can't turn into a timeout."""
+        offline analysis then decides), so a strict live match can't turn into a timeout.
+
+        `complete` (the app probe's check) is asked only while the screen is quiet, at most every
+        `probe_interval_s`; after a confirmation the screen must stay quiet for another `quiet_s`, else the
+        confirmation doesn't count and the gate waits for the next quiet period."""
         regions = list(regions or [])
+        confirmed_at = None
+        last_probe = None
+        probes = 0
         with self.lock:
             self.watch_regions = regions
         deadline = since + timeout_s
@@ -154,12 +162,28 @@ class LiveMonitor:
                             first_change = first_change or t
                 info = {"live_end": last_change, "live_first_change": first_change, "live_quiet_s": quiet_s,
                         "live_reference": reference is not None, "live_regions": len(regions)}
-                if last_change is not None and now - last_change >= quiet_s:
+                if confirmed_at is not None and (last_change is None or last_change < confirmed_at):
+                    if now - confirmed_at >= quiet_s:
+                        return "settled", {**info, "live_matched": True, "confirmed_at": confirmed_at,
+                                           "probes": probes}
+                elif confirmed_at is not None:
+                    confirmed_at = None
+                if complete is not None and confirmed_at is None and \
+                        ((last_change is not None and now - last_change >= quiet_s) or
+                         (last_change is None and not expect_change and now - since >= quiet_s)) and \
+                        (last_probe is None or now - last_probe >= probe_interval_s or
+                         (last_change is not None and last_probe < last_change)):
+                    last_probe = time.perf_counter()
+                    probes += 1
+                    if complete():
+                        confirmed_at = last_probe
+                    continue
+                if complete is None and last_change is not None and now - last_change >= quiet_s:
                     if self.matches(reference, reference_tolerance, regions):
                         return "settled", {**info, "live_matched": True}
                     if grace_s is not None and now - last_change >= grace_s:
                         return "settled", {**info, "live_matched": False}
-                if last_change is None and not expect_change and now - since >= quiet_s:
+                if complete is None and last_change is None and not expect_change and now - since >= quiet_s:
                     return "settled", {**info, "live_end": None}
                 if last_change is None and expect_change and no_reaction_s is not None and now - since >= no_reaction_s:
                     return "no-reaction", info

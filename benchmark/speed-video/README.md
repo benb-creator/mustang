@@ -17,38 +17,66 @@ messages) stay available with the corpus profile `multi-folder`. Each scenario f
 list; the report publishes them.
 
 ```
-bench.py corpus     manifest | time | write        deterministic test corpus (profile inbox-30k or multi-folder)
-bench.py seed       import | verify | wipe         JMAP Email/import (or IMAP APPEND) into the benchmark account
-bench.py snapshot   take | restore | list | server-take | server-restore
-bench.py calibrate  window | points | references | crop   window, click points and regions, reference images
+bench.py seed                                    account mode: seed the corpus into the test account (IMAP APPEND,
+                                                 pipelined; resumable and idempotent)
+bench.py check [--repair]                        account mode: compare the account with the corpus (and repair)
+bench.py fetch-parula [--dir tools/parula]       the current public Parula .deb, unpacked without root
+bench.py run-linux [--results <folder>]          the whole Linux session (C1 + C2): runs, analysis, results, zip
+bench.py corpus     manifest | time | write      deterministic test corpus (profile inbox-30k or multi-folder)
 bench.py env        record OS, CPU, RAM, GPU, display, app and server versions, round-trip time
 bench.py run        warm-up + 5 measured runs per app and task, interleaved A B A B, with capture
-bench.py analyze    settle detection and checks per run, medians, results.json, report.md
-bench.py compose    short video: hook, "Go!", race, hold, cards, narration timeline, subtitles, audio
+bench.py analyze    --results <folder>: settle detection and checks per run, medians, results.json, evidence.json,
+                    report.md
+bench.py compose    --results <folder>[,<folder>]: short video (hook, "Go!", race, hold, cards, timeline, subtitles)
 bench.py voice      text-to-speech for the lines the composition chose
-bench.py method     method texts below the video (YouTube description, website expander), EN and DE
+bench.py method     --results …: method texts below the video (YouTube description, website expander), EN and DE
 bench.py encode     WebM VP9 + Opus, MP4 H.264 + AAC, YouTube master (H.264, 2160p), publication gate
 bench.py verify     ffprobe checks of the encoded files
-bench.py all        env, run, analyze, compose, encode, verify for one comparison
+bench.py snapshot | calibrate | seed import/verify/wipe   admin mode only (a dedicated instance, see below)
 ```
 
-Every stage reads and writes files under `workdir`, so each one can be re-run on its own (`run` resumes
-completed runs; `analyze --force` re-analyzes them).
+A session writes one **result folder** (`results-<os>-<yyyymmdd-hhmm>/`, see "Result folder format") with every
+run, the captures and all evidence, plus a zip of it; `analyze`, `compose` and `method` read result folders, so
+the Linux folder made here and the Windows folder Ben sends are composed the same way. `run` and `run-linux`
+continue an interrupted folder with `--results <folder>` (completed runs are kept).
+
+## Account mode (default): an existing server, one test account
+
+The benchmark needs only a host name, an e-mail address and a password (`server.host`, `account.email`,
+`BENCH_PASSWORD` or `--password-prompt`). The endpoints follow from the host (JMAP
+`https://<host>/.well-known/jmap`, IMAP `<host>:993`, SMTP `<host>:465`; each can be set in the config). Nothing
+but that one account is ever read or changed; no SSH, no server administration, no server logs.
+
+- `bench.py seed` (once): appends the corpus over IMAP with many APPENDs in flight on one connection (non-
+  synchronizing literals, LITERAL+), the normal user path of every IMAP server; Stalwart's default user limits
+  allow it (its JMAP upload quota of 50 MB / 1,000 uploads per hour doesn't). Every pass first reads which corpus
+  messages the account already holds (by Message-ID), so an interrupted seeding continues where it stopped and
+  never duplicates. It refuses an account that holds other mail (`--delete-foreign` deletes it; the account must
+  be a dedicated test account). Tested against a Stalwart with default settings: 30,000 messages (0.5 GB) in 52 s.
+- The server needs a valid TLS certificate; a test server's own CA goes into `server.ca_file`.
+- Before every run (`start_state.server`), the account check compares every message by its Message-ID, folder
+  (Inbox → INBOX, the others by their special-use attribute) and flags with the corpus and repairs differences
+  over IMAP: messages moved back, duplicates and messages that aren't from the corpus (e.g. spam that arrived)
+  deleted, flags restored (an app that marked a message read), folders an app created deleted, missing messages
+  appended. The result is the run's `account.json`; a run whose account still differs after the repair fails.
+- `bench.py check [--repair]` runs the same check by hand.
 
 ## Prerequisites
 
-Linux (C1, C2):
-- An **X11 session** (Xorg). Wayland sessions can't be captured with ffmpeg `x11grab` or driven with xdotool;
-  on GNOME pick "GNOME on Xorg" at login. Turn off notifications, screen saver, screen lock and automatic updates
-  for the benchmark user. Fixed display resolution 2560×1440, 100 % scaling: two 1280×940 app windows plus the
-  bands above and below them fill a 2560×1440 video. Close every other app during the runs.
-- Python 3.10+ with `pip install -r requirements.txt` (numpy, Pillow, PyYAML, python-xlib).
+Linux (C1, C2) — run in this container by us (Ben, round 4), or on any Linux computer:
+- An X11 display: `display.xvfb: true` starts a virtual X server (Xvfb, 2560×1440) for unattended runs; with
+  `false`, an X11 session (Xorg, not Wayland: ffmpeg `x11grab` and xdotool need X11) with a fixed 2560×1440
+  resolution, 100 % scaling, no notifications, screen saver or automatic updates. Two 1280×940 app windows plus
+  the bands above and below them fill a 2560×1440 video.
+- Python 3.10+ with `pip install -r requirements.txt` (numpy, Pillow, PyYAML, websocket-client, python-xlib).
 - ffmpeg ≥ 7 with `x11grab`, `libx264`, `libvpx-vp9`, `libopus`, `drawtext` (freetype), `loudnorm`, `ebur128`;
   the static builds from https://github.com/BtbN/FFmpeg-Builds have all of them. `xdotool`, `taskset`
-  (util-linux), the DejaVu fonts.
-- **Parula from the `.deb` package** (`sudo apt install ./parula_<version>_amd64.deb`, installs to `/opt/Parula`;
-  no auto-updater, unlike the AppImage). Thunderbird from the official tarball, extracted to
-  `tools/thunderbird/`, with `tools/thunderbird/distribution/policies.json` = `{"policies": {"DisableAppUpdate": true}}`.
+  (util-linux), `ss` (iproute2), the DejaVu fonts.
+- **Parula from the official `.deb`** of the current release (github.com/mustang-im/mustang/releases), unpacked
+  without root: `bench.py fetch-parula --dir tools/parula` downloads it and runs `dpkg -x` into
+  `tools/parula/root` (or install it with `apt` to `/opt/Parula` and change the config's paths).
+  Thunderbird from the official tarball, extracted to `tools/thunderbird/`, with
+  `tools/thunderbird/distribution/policies.json` = `{"policies": {"DisableAppUpdate": true}}`.
 
 Windows (C3, C4), **untested** — written without access to a Windows machine:
 - Python 3.10+ (`pip install -r requirements.txt`; python-xlib is skipped), ffmpeg ≥ 7 with `ddagrab`
@@ -60,9 +88,11 @@ Windows (C3, C4), **untested** — written without access to a Windows machine:
   `AttachThreadInput` + `SetForegroundWindow`); if that fails, the run fails and nothing is typed.
 - A dedicated Windows user for benchmarking: client snapshots replace that user's app data folders.
 
-## The dedicated benchmark Stalwart instance (on the public host)
+## Admin mode (optional): a dedicated Stalwart instance
 
-Run a separate Stalwart instance only for the benchmark, with its own data directory, so snapshots can stop,
+Only when someone can administer a separate benchmark instance (`server.mode: admin`, the default when the config
+has `server.snapshot` or `server.log`): storage snapshots, password rotation and server-log evidence. Run a separate
+Stalwart instance only for the benchmark, with its own data directory, so snapshots can stop,
 copy and restore it without touching anything else:
 
 1. Install the same Stalwart binary to e.g. `/opt/stalwart-bench/bin/stalwart` with its own config
@@ -140,12 +170,15 @@ documentId = [2001, 2002], details = ["Uid", "BodySection { peek: true, sections
 JMAP `Email/get` (Stalwart's JMAP email ids encode the same document id). Config: `server.log.path`
 (`/opt/stalwart-bench/logs/evidence.*`), read over `server.snapshot.ssh`. The benchmark computer's address as the
 server sees it is found by a probe request with a unique path at the start of each `run` (or set
-`server.log.benchmark_ips`). The evidence: `runs/<C>/<T>/<app>/<run>/evidence.json` (and `server-log.txt`),
-summarized per comparison in `results.json` (`evidence`) and the report. The summaries name networks (owner,
+`server.log.benchmark_ips`). The evidence: `runs/<app>/<T>/<run>/server-evidence.json` (and `server-log.txt`),
+summarized per comparison in `results.json` (`server_evidence`) and the report. The summaries name networks (owner,
 ASN, prefix), never single addresses, and never the benchmark computer's address; the raw lines stay in the run
 directory.
 
-## Setup on the benchmark machine
+## Admin mode and calibrated scenarios: setup on the benchmark machine
+
+Only for admin mode (snapshots) and for scenarios with calibrated `steps` (T2–T7, apps without a `flow`). The Linux
+T1 runs need none of this.
 
 ```sh
 cp config.linux.example.yaml config.yaml            # or config.windows.example.yaml; fill in the <…> values
@@ -210,32 +243,119 @@ opening screen (`opening_screen` in the scenario), which the video then hides be
 Add `display.masks` or per-scenario `masks` for regions that change on their own (a clock, relative dates); the
 report lists every mask, region and setting per app and step.
 
-## First videos (T1), command by command
+## Linux tests: run here (C1 + C2), step by step
 
 ```sh
-# Linux, C1 and C2 (config with corpus.profile inbox-30k and tasks [T1])
-./bench.py env --comparison C2
-./bench.py run --comparison C2 --tasks T1           # 1 warm-up + 5 measured runs per app, A B A B
-./bench.py analyze --comparison C2                  # work/results/results.json, report.md, facts.json template
-# set the person-checked facts in work/results/facts.json (see below)
-./bench.py compose --narration <voiceover dir> --variant c2 --lang en --name c2
+cd benchmark/speed-video
+cp config.linux.example.yaml config.yaml        # fill in server.host, account.email, the tool and app paths
+./bench.py fetch-parula --dir tools/parula      # the current release's .deb, unpacked (dpkg -x), version recorded
+export BENCH_PASSWORD='…'                       # or put --password-prompt before the command
+./bench.py seed                                 # once: 30,000 messages into the test account (resumable)
+./bench.py check                                # optional: the account matches the corpus
+flock /workspace/lookout-scratch/heavy.lock ./bench.py run-linux    # the whole session, unattended (~hours)
+```
+
+`run-linux` starts Xvfb (2560×1440), records the session of `sessions.linux` (Parula JMAP, Parula IMAP,
+Thunderbird; 1 warm-up + 5 measured runs each, interleaved A B C A B C, a fresh app profile and the account check
+before every run), analyzes every run right after it is recorded, re-records technical failures at the end of the
+series, writes `results.json`, `evidence.json` and `report.md` into the result folder and zips it. It prints the
+folder and the medians. Interrupted? `./bench.py run-linux --results <folder>` continues it. In this container the
+`flock` keeps it from running at the same time as other heavy jobs (see the RAM rules); one app and one Xvfb run
+at a time anyway.
+
+Then compose from the folder(s):
+
+```sh
+./bench.py analyze --comparison C2 --results <folder> [--force]           # again, e.g. after a code change
+# set the person-checked facts in <folder>/facts.json (see below)
+./bench.py compose --results <folder> --narration <voiceover dir> --variant c2 --lang en --name c2
 ./bench.py voice --name c2 --lang en                # text-to-speech for exactly the chosen lines
-./bench.py compose --narration <voiceover dir> --variant c2 --lang en --name c2   # again, with the real lengths
-./bench.py method --narration <voiceover dir> --variant c2 --lang en --name c2    # YouTube text + expander
+./bench.py compose --results <folder> --narration <voiceover dir> --variant c2 --lang en --name c2   # real lengths
+./bench.py method --results <folder> --narration <voiceover dir> --variant c2 --lang en --name c2  # below the video
 ./bench.py encode --name c2 --lang en
 ./bench.py verify --name c2 --lang en
 ```
 
-`run --comparison C2` records the whole session of its computer (`sessions.linux`: Parula JMAP, Parula IMAP,
-Thunderbird, interleaved A B C A B C), so C1 and C2 use the same Parula runs and `analyze` writes both comparisons.
-The same with `--lang de`, and for C1 (`--variant c1`). On Windows the same with `config.windows.example.yaml`
-for C3 and C4. The combined cut merges both machines' results: copy the Windows `work/runs/C3`, `C4` and
-`results.json` to the Linux machine and pass both files (`compose --results work/results/results.json,
-windows-results.json --variant combined`); merging refuses results whose run counts or corpus differ. The
-narration files, `variants/variants.json`, `variants/compose.json` and the method templates come from the
-voice-over directory (`--narration <dir>`).
+The same with `--lang de`, and for C1 (`--variant c1`); C1 and C2 come from the same session and the same Parula
+JMAP runs. Ben's Windows folder (C3, C4) is composed the same way; the combined cut merges both:
+`compose --results <linux folder>,<windows folder> --variant combined` (merging refuses folders whose run counts or
+corpus differ; each test shows its own machine).
 
-### Facts set by a person (`work/results/facts.json`)
+## Instrumentation (finding the UI, checking completeness)
+
+No calibration: the apps' own debugging interfaces find the elements of each setup page, and the driver clicks and
+types there like a user (xdotool on Linux).
+- Parula (Electron) is started with `--remote-debugging-port`; `benchlib/probe.py` `ParulaProbe` reads its page
+  through the Chrome DevTools Protocol (`benchlib/cdp.py`): which setup page is shown, the screen position of
+  buttons and fields, the Inbox's message count ("30000 mails").
+- Thunderbird is started with `-marionette -remote-allow-system-access` (and `marionette.port` in user.js);
+  `ThunderbirdProbe` reads its Account Hub (shadow DOM), the folder tree and the thread pane's count ("30,000
+  Messages") through Marionette (`benchlib/marionette.py`).
+- The account setup is a flow (`benchlib/flows.py`, `scenarios/T1.yaml` `flow:`): the app's own default path —
+  the configuration it finds (autoconfig), or, when the server's domain offers none for that app, its manual setup
+  (recorded per run as `flow_path`, and every input of it is a counted user action). Parula 0.9.39 doesn't find JMAP
+  by itself (Stalwart's autoconfig lists IMAP, POP3 and SMTP), so Parula's JMAP setup is always its manual setup
+  with protocol "JMAP" and the server's URL.
+- The instrumentation is never the timing source. Each measured step ends at the last significant screen change in
+  the recording before the moment the app's probe confirmed the step's result (the next page, or "the Inbox lists
+  all 30,000 messages"); the probe is asked only while the screen has been still for `quiet_s`, at most once per
+  `probe_interval_s`, and the screen must stay still for another `quiet_s` after the confirmation. A static
+  "Looking up…" or a list that is still loading in the background therefore never ends a step early. The message
+  count's rectangle (reported by the probe) is a check region of the last step: every change inside it counts,
+  however small, so the end is the frame where the count reached its final value, not an earlier, larger change.
+- After the measured end the probe checks completeness (`verify.json`): the count equals the corpus, and the
+  corpus's oldest message is in the list (Parula: the list scrolled to its end; Thunderbird: the message found by
+  its Message-ID and scrolled to). A run that fails it is a differing result (status 3).
+- Disclosed in the manifest (`instrumentation`) and the report. Benchmark-only inputs (Parula: pausing the setup
+  screen's background video with its own Pause button, so the screen can settle, and clicking back into the e-mail
+  field) are logged as `prepare` and not counted.
+
+## Network evidence (client side)
+
+Every run of every app logs the TCP connections of the app's process tree ten times a second (`network.jsonl`;
+Linux: `/proc`, byte counters from `ss -tni`), together with the mail server's addresses as this computer resolves
+them at the start of the run. `analyze` summarizes each run (`evidence.json`: connections to the mail server on
+its mail ports, bytes received over them, connections on mail ports to other addresses, every other remote network
+by owner, ASN and prefix from RDAP and RIPEstat, cached) and each comparison (`env.<C>.left_direct_only`,
+`right_direct_only`; for an app with `cloud_sync: true` also `right_direct_connections`, `right_inbox_complete`,
+`right_remote_owner`, `right_remote_asn`). `direct_only` = the app connected to the mail server in every measured run
+and to no other address on a mail port with more than a probe's few bytes (an app that guesses host names
+probes other addresses; that isn't mail data) and to no proxy. Raw addresses stay in `network.jsonl`; the
+summaries publish networks, never single addresses, and never this computer's public address.
+
+## Result folder format
+
+```
+results-<os>-<yyyymmdd-hhmm>/                 os = linux | windows
+  manifest.json      format "parula-speed-results", version 1, tool (git commit, dirty), config (secrets removed,
+                     the account address reduced to its domain), server (mode, host, endpoints), corpus (profile,
+                     counts, oldest/newest subject, digest), environment per session, apps, deviations, procedures,
+                     instrumentation, sessions, comparisons, run plan (order, app, run, warm-up) and run counts
+  facts.json         person-set facts (template; never filled in by the pipeline)
+  runs/<app>/<task>/<run>/     run = warmup-1, run-1 … run-5; run-N.failed-K = a failed attempt recorded again
+    meta.json        status (complete | timeout | failed + reason), app version, order, attempt, setup path,
+                     user actions (count and list), benchmark-only inputs, inbox_complete, timestamps
+    driver.jsonl     every input, marker, step start, live-gate result and probe answer (monotonic clock)
+    capture.mkv      the lossless capture (app area + sync-marker strip), capture.json how it was made
+    changes.npz      per-frame change measures (analysis), analysis.json the run's analysis (steps, durations,
+                     clock fit, first rows visible, tail, measured window, wall-clock elapsed)
+    network.jsonl    connections of the app's processes, evidence.json their summary
+    verify.json      the completeness check after the measured end
+    account.json     the account check and repair before the run
+    screenshots/     on a failed run: the screen and the app's UI state
+    app-output.log, ffmpeg.log, error.txt (secrets redacted)
+  results.json       per comparison and task: left/right medians, min, max, status, runs in run order, actions,
+                     setup path, first rows visible, wall-clock elapsed, evidence summary, environment, corpus
+  evidence.json      the evidence facts per comparison (the narration's env.<C>.* values)
+  report.md          the human-readable report
+  logs/              session logs (secrets redacted)
+results-<os>-<yyyymmdd-hhmm>.zip
+```
+All JSON is self-describing (keys named as above; times in seconds; UTC as ISO 8601 or epoch seconds where noted).
+The password never appears in any file: typed text that is a secret is logged as `<secret>`, error texts are
+redacted, and the config holds only the name of the environment variable.
+
+### Facts set by a person (`<result folder>/facts.json`)
 
 `analyze` creates the template; the pipeline never fills it. Per comparison:
 `right_protocol_default: 1` after checking our own T1 recording that the right-hand app's own account setup chose
@@ -269,13 +389,16 @@ for review. In variants with the data-path card, new Outlook's pane shows footag
 
 ## What a run does
 
-Restore the server snapshot (`seeded` for T1) and the app's client snapshot (fresh profile for T1); start the app
-and bring it to the task's start state (live-only capture, not recorded); start the recording; show 5 sync markers;
+Check and repair the test account (account mode) or restore the server snapshot (admin mode); reset the app's
+profile (fresh for T1); start the network log; start the app and attach its probe; bring it to the task's start
+state (live-only capture, not recorded); start the recording; show 5 sync markers;
 for each step do its actions — the timer starts at the step's last input event; after a click the pointer moves
 out of the recorded area — and wait until the live low-resolution stream has been still for `quiet_s` (the same
 quiet period the analysis uses) and matches the step's references; run the step's verify actions; show 5 sync
 markers; record the scenario's tail (T1: 30 s, to show what the app does after the list is complete); show 5
-markers; stop the recording; run the finishing sequence; close the app; collect the server log of the run.
+markers; stop the recording; run the finishing sequence; close the app; stop the network log (admin mode: collect
+the server log of the run). A flow decides its steps while it runs (the page the app shows); the analysis reads
+them back from `driver.jsonl`.
 
 Runs are interleaved: warm-up A, warm-up B, then A B A B … for 5 measured runs each. Each run is analyzed right
 after it is recorded (`runs.analyze_after_each`). A run that failed for a technical reason (window not found,
@@ -299,7 +422,8 @@ again; so is a differing result.
   channel difference to the previous frame exceeds 8; changes below 150 pixels (caret, cursor blink) and masked
   regions are ignored, except inside the step's check regions, where every change counts; slow fades are found
   by comparing with the frame 6 frames earlier. A step ends at the last significant change before at least
-  `quiet_s` without one, at a frame that matches the step's references and regions. Duration = time of that frame
+  `quiet_s` without one, at a frame that matches the step's references and regions — or, for a flow step, in the
+  quiet period during which the app's probe confirmed the step's result (see "Instrumentation"). Duration = time of that frame
   − the logged input event mapped onto the video. Missing frames inside a measured step (a gap of more than
   `max_gap_frames`, or more than 2 frame intervals before the end frame) fail the run.
 - Per task: the sum of its measured steps (typing between steps isn't waiting time). Reported value: the median of
@@ -316,15 +440,18 @@ list keeps loading in the background would have ended 1.2–2.0 s too early.
 
 ## Fairness rules (binding)
 
-- Same computer, OS install, display resolution, window size, network, server and account snapshot. Default
+- Same computer, OS install, display resolution, window size, network, server and test account. Default
   settings of each app; every deviation goes into `deviations` in the config and from there into the report and
   the method text; procedures (e.g. the account removal in new Outlook) into `procedures`.
 - Apps are recorded one after another, never at the same time, interleaved A B A B; the video shows them side by
   side, synchronized at the start of each task, and says so in its footnote. If the panes would finish on screen
   in another order than their timers stop (typing between the setup steps), each pane shows only its waiting
   periods back to back and the footnote says "typing cut out".
-- Before each run, server and client state are restored from the same snapshot. One warm-up run per app and
-  task is discarded (disclosed). Then 5 measured runs; the median is reported with min and max; the video shows
+- Before each run the test account is checked against the corpus and repaired (account mode) or the server
+  snapshot is restored (admin mode), and the app starts from a fresh profile. One warm-up run per app and task is
+  discarded (disclosed).
+- Both apps get the same instrumentation treatment: their probes are asked only while the screen is still, about
+  once per second, and the same typing speed and click timing (xdotool with no extra delay) apply to every app. Then 5 measured runs; the median is reported with min and max; the video shows
   the median run, never the best one.
 - Screen recording runs during all measured runs of all apps; ffmpeg is pinned to its own core in the same way
   for every app.
@@ -383,11 +510,19 @@ corpus from the seed.
 
 ```sh
 python -m pytest tests/                                     # settle detection incl. completion regions, fades,
-                                                           # gaps; clock fit; censored medians and statuses;
-                                                           # snapshot guards; server-log parsing and evidence;
+                                                           # gaps and the completion gate; clock fit; censored
+                                                           # medians and statuses; snapshot guards; server-log
+                                                           # parsing; account check and repair; network log
+                                                           # parsing and evidence; result folder; live gate with
+                                                           # a probe; setup flows with a fake app probe;
                                                            # narration, spoken durations, method templates,
                                                            # speech; corpus profiles and determinism
 BENCH_VOICEOVER=<voice-over dir> python -m pytest tests/   # also every real variant and method template
 tests/e2e_fake.py --work /tmp/e2e --tools <dir with ffmpeg, Xvfb, xdotool>
-tests/snapshot_check.py --config config.yaml [--protocol-level]
+tests/snapshot_check.py --config config.yaml [--protocol-level]       # admin mode only
 ```
+
+The real apps are tested end to end against a local Stalwart instance in account mode with a smaller corpus
+(3,000 messages): `seed`, `run-linux --runs 2 --warmup 1`, `compose --results <folder>`. A local test server's own
+CA goes into `server.ca_file` (the probes make Thunderbird trust it; Parula needs `NODE_EXTRA_CA_CERTS` in its
+`env`), and its non-standard ports into `server.imap` / `server.smtp` / `server.jmap_session_url`.

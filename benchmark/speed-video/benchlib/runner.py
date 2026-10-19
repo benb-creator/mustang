@@ -48,7 +48,7 @@ class RunPlan:
 
 class RunExecutor:
     def __init__(self, config, desktop, scenarios: ScenarioLibrary, server_snapshots=None, client_profiles=None,
-                 progress=print, server_log=None, versions=None):
+                 progress=print, server_log=None, versions=None, folder=None, account=None):
         self.config = config
         self.desktop = desktop
         self.scenarios = scenarios
@@ -57,23 +57,31 @@ class RunExecutor:
         self.progress = progress
         self.server_log = server_log
         self.versions = versions
+        self.folder = folder
+        self.account = account
         self.layout = CaptureLayout.from_config(config)
         self.references = References(config.workdir)
         self.rotation = PasswordRotation(config)
 
     def run_dir(self, comparison: str, task: str, app_id: str, run_id: str) -> Path:
+        if self.folder is not None:
+            return self.folder.run_dir(app_id, task, run_id)
         return self.config.workdir / "runs" / self.config.run_group(comparison) / task / app_id / run_id
 
     def variables(self) -> TextVariables:
+        server = self.account.server if self.account else None
+        imap = server.imap_settings if server else (self.config.get("server.imap") or {})
+        smtp = server.smtp_settings if server else (self.config.get("server.smtp") or {})
         values = {
             "account.email": str(self.config.get("account.email", "")),
             "account.username": str(self.config.get("account.username") or self.config.get("account.email", "")),
             "account.name": str(self.config.get("account.display_name", "")),
             "server.host": str(self.config.get("server.host", "")),
-            "server.imap_host": str(self.config.get("server.imap.host", "")),
-            "server.imap_port": str(self.config.get("server.imap.port", "")),
-            "server.smtp_host": str(self.config.get("server.smtp.host", "")),
-            "server.smtp_port": str(self.config.get("server.smtp.port", "")),
+            "server.imap_host": str(imap.get("host", "")),
+            "server.imap_port": str(imap.get("port", "")),
+            "server.smtp_host": str(smtp.get("host", "")),
+            "server.smtp_port": str(smtp.get("port", "")),
+            "server.jmap_url": str(server.jmap_session_url if server else self.config.get("server.jmap_session_url", "")),
         }
         planted = (self.config.get("corpus") or {}).get("planted") or [{"term": "kumquat"}]
         values["search.term"] = str(self.config.get("corpus_facts.search_term") or planted[0]["term"])
@@ -114,7 +122,7 @@ class RunExecutor:
         return float(scenario.timeout_s or self.config.get("settle.task_timeout_s", 7200))
 
     def driver(self, app: AppProcess, app_id: str, log: EventLog, app_scenario, scenario,
-               reference_run: bool = False) -> ScenarioDriver:
+               reference_run: bool = False, probe=None, verify_path: Path | None = None) -> ScenarioDriver:
         settle = self.settle(app_scenario)
         driver = ScenarioDriver(
             self.desktop, app, self.calibration(app_id), self.variables(), log,
@@ -122,17 +130,24 @@ class RunExecutor:
             step_timeout_s=float(self.config.get("settle.step_timeout_s", 300)),
             task_timeout_s=self.task_timeout_s(scenario), park=self.park_point(),
             no_reaction_s=settle.no_reaction_s, grace_s=None if reference_run else settle.roi_grace_s,
-            server_log=self.server_log)
+            server_log=self.server_log, probe=probe, expected=self.account.expected if self.account else None,
+            verify_path=verify_path, probe_interval_s=float(self.config.get("settle.probe_interval_s", 1.0)))
         if reference_run:
             driver.quiet_by_step = {s.name: SettleParams.from_dict(self.config.get("settle"), app_scenario.settle,
                                                                    s.settle).reference_quiet_s
                                     for s in app_scenario.steps if s.measure}
         return driver
 
-    def restore(self, app_id: str, start_state: dict):
+    def restore(self, app_id: str, start_state: dict, run_dir: Path):
         server_state = start_state.get("server")
         client_state = start_state.get("client")
-        if server_state and self.server_snapshots:
+        if self.account is not None and server_state:
+            report = self.account.check.run(repair=True)
+            (run_dir / "account.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
+            if not report["ok"]:
+                raise RunError(f"The test account still differs from the corpus after the repair: "
+                               f"{report.get('after') or report.get('before')}")
+        elif server_state and self.server_snapshots:
             self.server_snapshots.restore(server_state)
         if client_state and self.client_profiles:
             self.client_profiles.restore(app_id, client_state)
@@ -152,8 +167,56 @@ class RunExecutor:
             regions = self.references.regions(app_id, task, step, "end", rects, load=not reference_run)
             driver.live_regions[step.name] = [recording.live_region(r) for r in regions]
 
+    def network_watcher(self, run_dir: Path, app: AppProcess, app_id: str):
+        if not self.config.get("evidence.network", True) or self.desktop.platform != "linux":
+            return None
+        from .netwatch import LinuxConnectionWatcher, NetworkLog
+        log = NetworkLog(run_dir / "network.jsonl")
+        if self.account is not None:
+            addresses = self.account.mail_server()
+            for host, values in (addresses.get("hosts") or {}).items():
+                log.write("resolve", host=host, addresses=values)
+            log.write("mail_server", **{k: addresses[k] for k in ("addresses", "ports", "mail_only_ports")})
+        names = app.spec.get("process_names") or []
+        env = app.spec.get("process_env")
+        watcher = LinuxConnectionWatcher(
+            log, app_id, lambda: [app.process.pid] if app.process else [],
+            (lambda: self.desktop.matching_pids(names, env)) if names else None,
+            float(self.config.get("evidence.poll_hz", 10)), ss=self.config.tool("ss"))
+        watcher.start()
+        return watcher
+
+    def capture_record(self, run_dir: Path, recording: FFmpegCapture):
+        record = {"version": 1, "command": recording.command(), "fps": recording.fps,
+                  "layout": self.layout.to_dict(), "cpus": recording.cpus, "draw_mouse": recording.draw_mouse,
+                  "encoder": recording.encoder, "file": "capture.mkv"}
+        (run_dir / "capture.json").write_text(json.dumps(record, indent=2))
+
+    def diagnostics(self, run_dir: Path, probe, label: str):
+        shots = run_dir / "screenshots"
+        shots.mkdir(exist_ok=True)
+        try:
+            if hasattr(self.desktop, "screenshot"):
+                self.desktop.screenshot(shots / f"{label}.png", self.config.tool("ffmpeg"))
+        except Exception:
+            pass
+        if probe is not None:
+            probe.dump(shots / f"{label}-ui.json")
+
+    @staticmethod
+    def user_actions(log_path: Path, variables: TextVariables) -> dict:
+        from .scenario import Action
+        events = [e for e in EventLog.read(log_path) if e["type"] == "input" and e.get("phase") == "step"]
+        actions = [Action(e["action"], e.get("arg")) for e in events]
+        listing = [variables.redact(a.describe()) for a in actions]
+        return {"user_actions": sum(a.user_action_count for a in actions), "action_list": listing,
+                "prepare_actions": [variables.redact(Action(e["action"], e.get("arg")).describe())
+                                    for e in EventLog.read(log_path) if e["type"] == "input"
+                                    and e.get("phase") == "prepare" and e["action"] != "launch"]}
+
     def execute(self, comparison: str, task: str, app_id: str, run_id: str, warmup: bool, order: int,
                 reference_run: bool = False, record: bool = True, attempt: int = 1) -> Path:
+        from .probe import Probes
         scenario = self.scenarios.get(task)
         app_scenario = scenario.for_app(app_id)
         run_dir = self.run_dir(comparison, task, app_id, run_id)
@@ -168,28 +231,35 @@ class RunExecutor:
         if self.versions:
             meta["app_version"] = self.versions(app_id)
         (run_dir / "meta.json").write_text(json.dumps(meta, indent=2))
-        log = EventLog(run_dir / "log.jsonl")
+        log = EventLog(run_dir / "driver.jsonl")
         app = AppProcess(app_id, app_spec, self.desktop, self.layout.app_region, log, run_dir / "app-output.log")
-        driver = self.driver(app, app_id, log, app_scenario, scenario, reference_run)
+        probe = Probes.create(app_spec.get("probe"))
+        driver = self.driver(app, app_id, log, app_scenario, scenario, reference_run, probe, run_dir / "verify.json")
         marker = None
         recording = None
+        watcher = None
         marks = {}
         started_utc = time.time()
         log.clock("start")
         try:
-            self.restore(app_id, scenario.start_state)
+            self.restore(app_id, scenario.start_state, run_dir)
             if self.rotation.enabled and scenario.start_state.get("server"):
                 driver.variables.values["account.password"] = self.rotation.rotate()
                 meta["password_rotated"] = True
             log.write("restored", start_state=scenario.start_state)
+            watcher = self.network_watcher(run_dir, app, app_id)
             if app_scenario.prepare:
                 preview = self.capture(None, run_dir / "ffmpeg-prepare.log")
                 driver.live = preview.start()
                 try:
                     driver.do_actions(app_scenario.prepare, "prepare")
+                    if probe.method != "none":
+                        probe.attach(app, float(app_spec.get("probe", {}).get("timeout_s", 120)))
+                        meta["preparations"] = probe.prepare(self.account.server if self.account else None)
                 finally:
                     preview.stop()
             recording = self.capture(run_dir / "capture.mkv" if record else None, run_dir / "ffmpeg.log")
+            self.capture_record(run_dir, recording)
             self.live_checks(driver, recording, app_id, task, app_scenario, reference_run)
             driver.live = recording.start()
             x, y = self.layout.marker_screen_position
@@ -198,7 +268,12 @@ class RunExecutor:
             driver.marker_burst("start")
             marks["recording"] = time.time()
             try:
-                driver.run_steps(app_scenario)
+                if app_scenario.flow:
+                    from .flows import Flows
+                    meta["flow_path"] = Flows.run(app_scenario.flow, driver, probe,
+                                                  app_scenario.flow.get("final") or {})
+                else:
+                    driver.run_steps(app_scenario)
                 meta["status"] = "complete"
             except StepTimeout as ex:
                 meta["status"] = "timeout"
@@ -213,6 +288,8 @@ class RunExecutor:
             time.sleep(0.3)
             recording.stop()
             recording = None
+            if driver.verify_result is not None:
+                meta["inbox_complete"] = driver.verify_result.get("inbox_complete")
             if app_scenario.finish:
                 try:
                     driver.do_actions(app_scenario.finish, "finish")
@@ -233,19 +310,25 @@ class RunExecutor:
             meta["error"] = driver.variables.redact(f"{type(ex).__name__}: {ex}")
             (run_dir / "error.txt").write_text(driver.variables.redact(traceback.format_exc()))
             self.progress(f"    run failed: {meta['error']}")
+            self.diagnostics(run_dir, probe, "failure")
         finally:
             if recording:
                 recording.stop()
             if marker:
                 marker.close()
+            probe.close()
             meta["closed_cleanly"] = app.close()
             log.write("closed")
+            if watcher is not None:
+                watcher.stop()
+                watcher.log.close()
             log.clock("end")
             log.close()
             meta["finished"] = datetime.now(timezone.utc).isoformat()
+            meta.update(self.user_actions(run_dir / "driver.jsonl", driver.variables))
             if self.server_log is not None and self.server_log.enabled:
                 try:
-                    events = EventLog.read(run_dir / "log.jsonl")
+                    events = EventLog.read(run_dir / "driver.jsonl")
                     offset = EventLog.utc_offset(events)
                     removal = next((e["t"] for e in events if e["type"] == "input" and e.get("phase") == "finish"), None)
                     if removal is not None and offset is not None:
@@ -294,12 +377,12 @@ class Orchestrator:
         return True
 
     def run_comparison(self, comparison_id: str, tasks: list[str] | None = None, resume: bool = True,
-                       measured: int | None = None, warmup: int | None = None):
+                       measured: int | None = None, warmup: int | None = None, only_apps: list[str] | None = None):
         spec = self.config.comparison(comparison_id)
         measured = int(measured if measured is not None else self.config.get("runs.measured", 5))
         warmup = int(warmup if warmup is not None else self.config.get("runs.warmup", 1))
         retries = int(self.config.get("runs.retries", 2))
-        apps = self.config.group_apps(comparison_id)
+        apps = [a for a in self.config.group_apps(comparison_id) if not only_apps or a in only_apps]
         for task in tasks or spec["tasks"]:
             queue = [(app_id, run_id, is_warmup, 1) for app_id, run_id, is_warmup in
                      RunPlan.interleaved(apps, measured, warmup)]
@@ -337,5 +420,5 @@ class Orchestrator:
         out = self.config.workdir / "evidence" / self.config.run_group(comparison_id) / task
         out.mkdir(parents=True, exist_ok=True)
         server_log.collect(out, started, time.time(), {})
-        (out / "evidence.json").rename(out / "after-series.json")
+        (out / "server-evidence.json").rename(out / "after-series.json")
         (out / "server-log.txt").rename(out / "after-series-server-log.txt")

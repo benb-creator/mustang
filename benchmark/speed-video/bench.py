@@ -2,15 +2,19 @@
 """Parula speed benchmark and screen-capture pipeline. Run `bench.py --help` and see README.md."""
 
 import argparse
+import getpass
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from benchlib.account import AccountCheck, AccountSeeder, AccountServer  # noqa: E402
 from benchlib.config import Config  # noqa: E402
 from benchlib.corpus import CorpusGenerator, CorpusSpec  # noqa: E402
+from benchlib.resultfolder import ResultFolder  # noqa: E402
 from benchlib.seed import Seeder  # noqa: E402
 from benchlib.stages import Calibrator, Pipeline, SnapshotBuilder  # noqa: E402
 
@@ -23,6 +27,8 @@ class CommandLine:
     def __init__(self):
         parser = argparse.ArgumentParser(description=__doc__)
         parser.add_argument("--config", default="config.yaml", help="benchmark config (YAML)")
+        parser.add_argument("--password-prompt", action="store_true",
+                            help="ask for the test account's password instead of reading account.password_env")
         sub = parser.add_subparsers(dest="command", required=True)
 
         corpus = sub.add_parser("corpus", help="generate the corpus manifest, or time a full generation")
@@ -30,10 +36,28 @@ class CommandLine:
         corpus.add_argument("--messages-out", help="also write one JSON line per message")
         corpus.add_argument("--dir", help="for 'write': directory for <folder>/<n>.eml files")
 
-        seed = sub.add_parser("seed", help="import the corpus into the benchmark account, verify, or wipe")
-        seed.add_argument("action", choices=["import", "verify", "wipe"])
+        seed = sub.add_parser("seed", help="seed the corpus into the test account (account mode: once, resumable, "
+                                           "idempotent); admin mode: import, verify or wipe")
+        seed.add_argument("action", nargs="?", choices=["import", "verify", "wipe"], default="import")
         seed.add_argument("--protocol", choices=["jmap", "imap"], default="jmap")
-        seed.add_argument("--resume", action="store_true", help="continue an interrupted import")
+        seed.add_argument("--resume", action="store_true", help="admin mode: continue an interrupted import")
+        seed.add_argument("--delete-foreign", action="store_true",
+                          help="account mode: delete messages that aren't from the corpus (the account must be a "
+                               "dedicated test account)")
+
+        fetch = sub.add_parser("fetch-parula", help="download the current public Parula .deb and unpack it (no root)")
+        fetch.add_argument("--dir", default="tools/parula")
+
+        check = sub.add_parser("check", help="account mode: compare the test account with the corpus")
+        check.add_argument("--repair", action="store_true", help="repair differences over IMAP")
+
+        linux = sub.add_parser("run-linux", help="the whole Linux session (C1 + C2): runs, analysis, results, zip")
+        linux.add_argument("--session", default="linux")
+        linux.add_argument("--results", help="an existing result folder to continue")
+        linux.add_argument("--runs", type=int)
+        linux.add_argument("--warmup", type=int)
+        linux.add_argument("--no-resume", action="store_true")
+        linux.add_argument("--xvfb", action="store_true", help="start a virtual X server (display.xvfb)")
 
         snapshot = sub.add_parser("snapshot", help="take, restore or list snapshot pairs (server + client profiles)")
         snapshot.add_argument("action", choices=["take", "restore", "list", "server-take", "server-restore"])
@@ -57,16 +81,21 @@ class CommandLine:
 
         env = sub.add_parser("env", help="record the test environment")
         env.add_argument("--comparison", required=True)
+        env.add_argument("--results", help="result folder")
 
         run = sub.add_parser("run", help="record warm-up and measured runs, interleaved")
         run.add_argument("--comparison", required=True)
+        run.add_argument("--results", help="result folder to continue (default: a new one)")
         run.add_argument("--tasks")
         run.add_argument("--no-resume", action="store_true")
         run.add_argument("--runs", type=int)
         run.add_argument("--warmup", type=int)
+        run.add_argument("--apps", help="only these apps of the session (to debug a flow)")
+        run.add_argument("--xvfb", action="store_true", help="start a virtual X server (display.xvfb)")
 
         analyze = sub.add_parser("analyze", help="settle detection per run, medians, results.json, report.md")
-        analyze.add_argument("--comparison", required=True)
+        analyze.add_argument("--comparison", help="default: every comparison with runs in the result folder")
+        analyze.add_argument("--results", required=True, help="result folder")
         analyze.add_argument("--force", action="store_true")
 
         compose = sub.add_parser("compose", help="side-by-side video, cards, timeline, subtitles, audio")
@@ -75,7 +104,8 @@ class CommandLine:
         compose.add_argument("--narration", help="the voice-over directory, or a narration.<lang>.json")
         compose.add_argument("--variant", help="c1, c2, c3, c4, combined, … (variants/variants.json)")
         compose.add_argument("--name", default="speed")
-        compose.add_argument("--results", help="comma-separated results.json files to merge (e.g. Linux + Windows)")
+        compose.add_argument("--results", required=True,
+                             help="comma-separated result folders to merge (e.g. Linux + Windows)")
 
         method = sub.add_parser("method", help="method texts below the video: YouTube description, website expander")
         method.add_argument("--narration", required=True, help="the voice-over directory (with method/)")
@@ -83,7 +113,7 @@ class CommandLine:
         method.add_argument("--lang", default="en")
         method.add_argument("--name", default="speed")
         method.add_argument("--comparisons")
-        method.add_argument("--results", help="comma-separated results.json files to merge")
+        method.add_argument("--results", required=True, help="comma-separated result folders to merge")
         method.add_argument("--allow-missing", action="store_true", help="draft: render missing values as '–'")
 
         voice = sub.add_parser("voice", help="text-to-speech for the lines a composition chose (voice-script.json)")
@@ -118,8 +148,14 @@ class CommandLine:
     def main(self, argv=None) -> int:
         args = self.parser.parse_args(argv)
         config = Config.load(args.config)
-        pipeline = Pipeline(config, self.progress)
-        handler = getattr(self, "cmd_" + args.command)
+        if args.password_prompt:
+            os.environ[str(config.get("account.password_env", "BENCH_PASSWORD"))] = getpass.getpass(
+                f"Password of {config.get('account.email')}: ")
+        folder = None
+        if getattr(args, "results", None) and args.command in ("run", "analyze", "env", "run-linux"):
+            folder = ResultFolder.open(args.results)
+        pipeline = Pipeline(config, self.progress, folder)
+        handler = getattr(self, "cmd_" + args.command.replace("-", "_"))
         result = handler(pipeline, config, args)
         if result is not None:
             print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
@@ -153,6 +189,11 @@ class CommandLine:
                 "digest": manifest["digest"]}
 
     def cmd_seed(self, pipeline, config, args):
+        if pipeline.server_mode == "account":
+            if args.action != "import":
+                raise SystemExit("Account mode: `seed` imports (resumable); `check` verifies; there is no wipe")
+            generator = CorpusGenerator(CorpusSpec.from_dict(config.get("corpus")))
+            return AccountSeeder(AccountServer.from_config(config), generator, self.progress).seed(args.delete_foreign)
         seeder = Seeder(config, self.progress)
         if args.action == "import":
             seeder.seed(args.protocol, args.resume)
@@ -161,6 +202,43 @@ class CommandLine:
             return seeder.verify(args.protocol)
         seeder.wipe()
         return None
+
+    def cmd_fetch_parula(self, pipeline, config, args):
+        from benchlib.install import ParulaRelease
+        return ParulaRelease(config.path(args.dir), self.progress).install()
+
+    def cmd_check(self, pipeline, config, args):
+        generator = CorpusGenerator(CorpusSpec.from_dict(config.get("corpus")))
+        return AccountCheck(AccountServer.from_config(config), generator, self.progress).run(repair=args.repair)
+
+    def virtual_display(self, config, args):
+        """Starts Xvfb (display.xvfb or --xvfb) and points the config at it; returns it to stop it later."""
+        if not (args.xvfb or config.get("display.xvfb")):
+            return None
+        from benchlib.x11 import XvfbServer
+        screen = str(config.get("display.screen", "2560x1440")).split("x")
+        log = config.workdir / "xvfb.log"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        xvfb = XvfbServer(config.tool("Xvfb"), int(screen[0]), int(screen[1]), log_path=log)
+        config.data.setdefault("display", {})["display"] = xvfb.start()
+        self.progress(f"Xvfb on {xvfb.name} ({config.get('display.screen', '2560x1440')})")
+        return xvfb
+
+    def cmd_run_linux(self, pipeline, config, args):
+        xvfb = self.virtual_display(config, args)
+        try:
+            results = pipeline.run_session(args.session, args.runs, args.warmup, not args.no_resume)
+        finally:
+            if xvfb:
+                xvfb.stop()
+        summary = {"result_folder": str(pipeline.results_folder().path)}
+        for comparison_id, comparison in results["comparisons"].items():
+            for task_id, task in comparison["tasks"].items():
+                summary[f"{comparison_id} {task_id}"] = {side: {"median_s": task[side]["median_s"],
+                                                                "status": task[side]["status"],
+                                                                "actions": task[side]["actions"]}
+                                                         for side in ("left", "right")}
+        return summary
 
     def cmd_snapshot(self, pipeline, config, args):
         apps = split(args.apps) or []
@@ -195,15 +273,29 @@ class CommandLine:
         return pipeline.environment(args.comparison)
 
     def cmd_run(self, pipeline, config, args):
-        pipeline.run(args.comparison, split(args.tasks), not args.no_resume, args.runs, args.warmup)
-        return None
+        xvfb = self.virtual_display(config, args)
+        try:
+            pipeline.run(args.comparison, split(args.tasks), not args.no_resume, args.runs, args.warmup,
+                         split(args.apps))
+        finally:
+            if xvfb:
+                xvfb.stop()
+        return {"result_folder": str(pipeline.results_folder().path)}
 
     def cmd_analyze(self, pipeline, config, args):
-        results = pipeline.analyze(args.comparison, args.force)
+        comparisons = [args.comparison] if args.comparison else pipeline.recorded_comparisons()
         summary = {}
-        for task_id, task in results["comparisons"][args.comparison]["tasks"].items():
-            summary[task_id] = {side: task[side]["median_s"] for side in ("left", "right")}
-            summary[task_id]["ratio"] = task["ratio"]
+        analyzed_groups = set()
+        for comparison_id in comparisons:
+            group = config.run_group(comparison_id)
+            if group in analyzed_groups:
+                continue
+            analyzed_groups.add(group)
+            results = pipeline.analyze(comparison_id, args.force)
+            for cid, comparison in results["comparisons"].items():
+                for task_id, task in comparison["tasks"].items():
+                    summary[f"{cid} {task_id}"] = {side: task[side]["median_s"] for side in ("left", "right")}
+                    summary[f"{cid} {task_id}"]["ratio"] = task["ratio"]
         return summary
 
     def cmd_compose(self, pipeline, config, args):
@@ -227,7 +319,8 @@ class CommandLine:
         pipeline.environment(args.comparison)
         pipeline.run(args.comparison, split(args.tasks), True, None, None)
         pipeline.analyze(args.comparison)
-        pipeline.compose([args.comparison], args.lang, args.narration, args.variant, args.name)
+        pipeline.compose([args.comparison], args.lang, args.narration, args.variant, args.name,
+                         [str(pipeline.results_folder().path)])
         pipeline.encode(args.name, args.lang, None)
         return pipeline.verify(args.name, args.lang)
 

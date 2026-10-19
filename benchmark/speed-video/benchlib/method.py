@@ -26,6 +26,11 @@ class MethodTexts:
                "logins": "{n} logins", "from": "from {owner} ({asn}, {prefix})",
                "fetched": "{messages} messages fetched in full ({gb} GB) before the account was removed",
                "after_removal": "{n} logins from outside the test computer after the account was removed",
+               "connections": "{n} connection(s) to the mail server", "no_connections": "no connection to the mail "
+                                                                                       "server",
+               "also": "also {n} connection(s) to {owner} ({asn}, {prefix})", "inbox_complete": "Inbox complete",
+               "inbox_incomplete": "Inbox not complete", "no_network": "no network evidence",
+               "after_download": "{mb} MB more from the mail server after the list was complete, until the app was closed",
                "none": "none"},
         "de": {"warmup": "Aufwärmlauf, verworfen", "not_done": "nicht fertig in {limit}",
                "failed": "nicht gültig: {reason}",
@@ -40,6 +45,11 @@ class MethodTexts:
                "logins": "{n} Anmeldungen", "from": "von {owner} ({asn}, {prefix})",
                "fetched": "{messages} Mails vollständig abgerufen ({gb} GB), bevor das Konto entfernt wurde",
                "after_removal": "{n} Anmeldungen von außerhalb des Testrechners, nachdem das Konto entfernt wurde",
+               "connections": "{n} Verbindung(en) zum Mailserver", "no_connections": "keine Verbindung zum Mailserver",
+               "also": "außerdem {n} Verbindung(en) zu {owner} ({asn}, {prefix})",
+               "inbox_complete": "Posteingang vollständig", "inbox_incomplete": "Posteingang nicht vollständig",
+               "no_network": "keine Netzwerk-Belege",
+               "after_download": "{mb} MB mehr vom Mailserver nach der vollständigen Liste bis zum Schließen der App",
                "none": "keine"},
     }
 
@@ -87,8 +97,35 @@ class MethodTexts:
         return " · ".join(f"{s['name']} ({s['actions']}): " + "; ".join(s["action_list"]) for s in (task["left"],
                                                                                                     task["right"]))
 
+    def client_evidence_block(self, comparison: dict, evidence: dict) -> str:
+        lines = []
+        for side_name, data in evidence["sides"].items():
+            name = comparison["tasks"][evidence["task"]][side_name]["name"]
+            if not data["runs_with_evidence"]:
+                lines.append(f"• {name}: {self.w('no_network')}")
+                continue
+            for run in data["runs"]:
+                count = run.get("direct_connections") or 0
+                parts = [self.w("connections", n=count) if count else self.w("no_connections")]
+                for network in run.get("remote_networks", []):
+                    if network.get("connections"):
+                        parts.append(self.w("also", n=network["connections"], owner=network.get("owner"),
+                                            asn=network.get("asn") or "–", prefix=network.get("prefix") or "–"))
+                if run.get("inbox_complete") is not None:
+                    parts.append(self.w("inbox_complete" if run["inbox_complete"] else "inbox_incomplete"))
+                lines.append(f"• {name} {run['run']}: " + ", ".join(parts))
+        return "\n".join(lines)
+
     def evidence_block(self, comparison: dict) -> str:
         evidence = comparison.get("evidence") or {}
+        if evidence.get("kind") == "client":
+            block = self.client_evidence_block(comparison, evidence)
+            if comparison.get("server_evidence"):
+                block += "\n" + self.server_evidence_block(comparison, comparison["server_evidence"])
+            return block
+        return self.server_evidence_block(comparison, evidence)
+
+    def server_evidence_block(self, comparison: dict, evidence: dict) -> str:
         if not evidence.get("sides"):
             return self.w("no_evidence")
         lines = []
@@ -127,7 +164,10 @@ class MethodTexts:
                     notes.append(self.w("after_screen", frames=tail["significant_frames"], recorded=tail["recorded_s"])
                                  if tail.get("significant_frames") else self.w("after_quiet",
                                                                                recorded=tail["recorded_s"]))
-                window = ((run.get("evidence") or {}).get("windows") or {}).get("after_steps")
+                after = (run.get("evidence") or {}).get("direct_bytes_after_measured_end")
+                if after is not None:
+                    notes.append(self.w("after_download", mb=self.values.number(after / 1e6, 1)))
+                window = ((run.get("server_evidence") or {}).get("windows") or {}).get("after_steps")
                 if window:
                     downloads = sum(s.get("downloads", 0) for s in window["sources"])
                     notes.append(self.w("after_fetch", messages=sum(window["full_messages"].values()),

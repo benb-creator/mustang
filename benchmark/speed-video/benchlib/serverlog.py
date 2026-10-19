@@ -6,7 +6,6 @@ The benchmark instance needs a log tracer for these events (Stalwart 0.16, check
 `imap.fetch` names the fetched messages by Stalwart document id and the fetched items; Stalwart's JMAP email ids
 encode the same document id, so message sizes come from one JMAP `Email/get`."""
 
-import ipaddress
 import json
 import math
 import re
@@ -18,6 +17,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+
+from .evidence import NetworkOwners
 
 
 class ServerLogError(Exception):
@@ -146,61 +147,6 @@ class FetchKinds:
         return any(str(item).startswith(("BodySection", "Rfc822", "Binary", "Body")) for item in details or [])
 
 
-class IpOwners:
-    """Owner and network of an IP address: RDAP (rdap.org) for the registrant, RIPEstat for the origin AS."""
-
-    def __init__(self, cache_path: Path, timeout_s: float = 20):
-        self.cache_path = Path(cache_path)
-        self.timeout_s = timeout_s
-        self.cache = json.loads(self.cache_path.read_text()) if self.cache_path.exists() else {}
-
-    def fetch_json(self, url: str) -> dict:
-        request = urllib.request.Request(url, headers={"Accept": "application/json, application/rdap+json",
-                                                       "User-Agent": "parula-speed-benchmark"})
-        with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
-            return json.loads(response.read())
-
-    def lookup(self, ip: str) -> dict:
-        if ip in self.cache:
-            return self.cache[ip]
-        address = ipaddress.ip_address(ip)
-        if address.is_private or address.is_loopback or address.is_link_local:
-            info = {"ip": ip, "owner": "private network", "asn": None, "as_holder": None, "prefix": None,
-                    "source": "address range"}
-        else:
-            info = {"ip": ip, "owner": None, "asn": None, "as_holder": None, "prefix": None, "source": "RDAP, RIPEstat",
-                    "looked_up": datetime.now(timezone.utc).isoformat()}
-            try:
-                rdap = self.fetch_json(f"https://rdap.org/ip/{ip}")
-                info["network_name"] = rdap.get("name")
-                info["owner"] = self.registrant(rdap) or rdap.get("name")
-            except (urllib.error.URLError, OSError, ValueError) as ex:
-                info["rdap_error"] = str(ex)
-            try:
-                network = self.fetch_json(f"https://stat.ripe.net/data/network-info/data.json?resource={ip}")["data"]
-                asns = network.get("asns") or []
-                info["prefix"] = network.get("prefix")
-                if asns:
-                    info["asn"] = f"AS{asns[0]}"
-                    overview = self.fetch_json(f"https://stat.ripe.net/data/as-overview/data.json?resource=AS{asns[0]}")
-                    info["as_holder"] = overview["data"].get("holder")
-            except (urllib.error.URLError, OSError, ValueError, KeyError) as ex:
-                info["ripestat_error"] = str(ex)
-        self.cache[ip] = info
-        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        self.cache_path.write_text(json.dumps(self.cache, indent=2))
-        return info
-
-    @staticmethod
-    def registrant(rdap: dict) -> str | None:
-        for entity in rdap.get("entities") or []:
-            if "registrant" in (entity.get("roles") or []):
-                for item in (entity.get("vcardArray") or [None, []])[1]:
-                    if item and item[0] == "fn":
-                        return item[3]
-        return None
-
-
 @dataclass
 class SourceSummary:
     ip: str
@@ -265,7 +211,7 @@ class ServerLog:
         self.account = str(config.get("account.username") or config.get("account.email") or "")
         self.cloud_asns = {f"AS{str(a).upper().removeprefix('AS')}" for a in spec.get("cloud_asns", [8075])}
         self.cloud_owner = re.compile(spec.get("cloud_owner_pattern", "Microsoft"), re.I)
-        self.owners = IpOwners(config.workdir / "evidence" / "ip-owners.json")
+        self.owners = NetworkOwners(config.workdir / "evidence" / "ip-owners.json")
         self.configured_ips = set(spec.get("benchmark_ips") or [])
         self.probe_file = config.workdir / "evidence" / "benchmark-ips.json"
         self.probed_ips: set[str] = set(json.loads(self.probe_file.read_text())) if self.probe_file.exists() else set()
@@ -422,7 +368,7 @@ class ServerLog:
                     "marks": {k: self.iso(v) for k, v in marks.items()},
                     "windows": {name: self.report([e for e in events if a <= e.utc < b], sizes)
                                 for name, (a, b) in windows.items()}}
-        (run_dir / "evidence.json").write_text(json.dumps(evidence, indent=2), encoding="utf-8")
+        (run_dir / "server-evidence.json").write_text(json.dumps(evidence, indent=2), encoding="utf-8")
         return evidence
 
     def wait_quiet(self, quiet_s: float, timeout_s: float, watch: str = "logins", poll_s: float = 30) -> dict:
@@ -455,11 +401,11 @@ class EvidenceSummary:
 
     @staticmethod
     def window(run: dict, name: str) -> dict | None:
-        evidence = run.get("evidence") or {}
+        evidence = run.get("server_evidence") or {}
         return (evidence.get("windows") or {}).get(name)
 
     def side(self, side_name: str, side: dict) -> dict:
-        runs = [r for r in side["runs"] if r.get("evidence")]
+        runs = [r for r in side["runs"] if r.get("server_evidence")]
         per_run = []
         for r in runs:
             until = self.window(r, "until_removal") or {}

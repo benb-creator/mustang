@@ -1,84 +1,67 @@
-# Benchmark config for the Linux comparisons C1 (Parula JMAP vs Parula IMAP) and C2 (Parula JMAP vs Thunderbird IMAP).
-# Copy to config.yaml and fill in the placeholders (<…>). Relative paths are relative to this file.
-# Secrets come only from environment variables: export BENCH_ACCOUNT_PASSWORD=...
+# Benchmark config for the Linux comparisons C1 (Parula JMAP vs Parula IMAP) and C2 (Parula JMAP vs Thunderbird IMAP),
+# one interleaved session on one Linux computer (README: "Linux tests: run here"). Copy to config.yaml and fill in
+# the placeholders (<…>). Relative paths are relative to this file. The password comes only from the environment
+# (export BENCH_PASSWORD=…) or from `bench.py --password-prompt …`; it is never written anywhere.
 
-workdir: ./work                     # runs, snapshots, references, results, compose output (needs tens of GB)
+workdir: ./work                     # corpus cache, address-owner cache, compose output
+results_dir: ./results              # result folders results-linux-<yyyymmdd-hhmm>/ (+ .zip), several GB each
 
 tools:
   ffmpeg: ffmpeg                    # ffmpeg >= 7 with x11grab, libx264, libvpx-vp9, libopus, drawtext, loudnorm
   ffprobe: ffprobe
   xdotool: xdotool
-  xdpyinfo: xdpyinfo
+  Xvfb: Xvfb                        # only with display.xvfb
+  ss: ss                            # iproute2; byte counters per connection for the network evidence
 
-server:
+server:                             # account mode: an existing server, one test account, nothing else is touched
   name: Stalwart
-  host: <bench.mail.example.org>
-  version_command: /opt/stalwart-bench/bin/stalwart --version   # run on the server through snapshot.ssh
-  jmap_session_url: https://<bench.mail.example.org>/.well-known/jmap
-  imap: {host: <bench.mail.example.org>, port: 993, tls: true}
-  smtp: {host: <bench.mail.example.org>, port: 465}
-  snapshot:
-    method: storage                 # storage (stop, copy data dir, start) | protocol (wipe + re-import) | none
-    ssh: <bench@bench.mail.example.org>
-    instance_dir: /opt/stalwart-bench                   # must contain the file BENCHMARK-INSTANCE
-    data_dir: /opt/stalwart-bench/data                  # inside instance_dir; must contain the file BENCHMARK-DATA
-    snapshot_dir: /opt/stalwart-bench/snapshots         # inside instance_dir
-    stop: sudo systemctl stop stalwart-bench
-    start: sudo systemctl start stalwart-bench
-    # running_check: "systemctl is-active --quiet stalwart-bench"   # default: a process with instance_dir in its command line
-    wipe_allowed_for: <bench@example.org>
-  password_rotation:                # after every restore a new random password of the same length (typed by the driver)
-    admin_user: <admin@example.org>  # a Stalwart administrator of the benchmark instance
-    admin_password_env: BENCH_ADMIN_PASSWORD              # protocol level only wipes exactly this user
-  log:                              # the evidence tracer's log on the server (README: "Server log evidence")
-    path: /opt/stalwart-bench/logs/evidence.*
-    # benchmark_ips: [<203.0.113.7>]  # the benchmark computer's address(es) as the server sees them; also probed
-    final_watch_min: 0              # keep watching the log after the last run of a series
+  host: <mail.example.org>          # JMAP https://<host>/.well-known/jmap, IMAP <host>:993, SMTP <host>:465 unless set:
+  # jmap_session_url: https://<host>/.well-known/jmap
+  # imap: {host: <host>, port: 993, tls: true}
+  # smtp: {host: <host>, port: 465}
 
 account:
-  email: <bench@example.org>
-  username: <bench@example.org>
+  email: <bench@example.org>        # a dedicated test account: seeding refuses an account with other mail
   display_name: Robin Sample
-  password_env: BENCH_ACCOUNT_PASSWORD
+  password_env: BENCH_PASSWORD
 
 corpus:
-  profile: inbox-30k                # 30,000 messages in the Inbox, 300 of them with one 1,000,000-byte attachment;
-                                    # multi-folder: the corpus of T2–T7 (benchlib/corpus.py CorpusSpec)
+  profile: inbox-30k                # 30,000 messages in the Inbox, 300 of them with one 1,000,000-byte attachment
   seed: 20261018
   owner_name: Robin Sample
-  owner_address: <bench@example.org>
-
-corpus_facts:
-  search_term: kumquat
-  move_folder: Projects/Move-me
+  owner_address: robin.sample@example.com
 
 display:
   platform: linux
-  display: ":0"                     # an X11 (Xorg) session; Wayland sessions can't be captured with x11grab
-  layout: 2560x1440                 # name of the calibration set
+  xvfb: true                        # run-linux starts its own Xvfb (2560x1440); false: use `display` (an X11 session)
+  screen: 2560x1440
+  display: ":0"
+  layout: 2560x1440
   app_region: {x: 0, y: 0, width: 1280, height: 940}   # 2 panes of this size + the bands fill 2560x1440
   marker: {cell: 12, position: below, gap: 4}   # sync marker strip just outside the app region (cropped later)
-  # pointer_park: {x: 2400, y: 1300}   # the pointer goes here after every click (default: right of the capture)
-  masks: []                         # rectangles (relative to the app region) ignored by settle detection, e.g. a clock
+  masks: []
 
 capture:
   fps: 60
   cpus: "11"                        # ffmpeg pinned to this core (taskset); keep the apps off it if you can
   draw_mouse: false                 # the pointer is parked outside the capture after each click and not recorded
   live_scale: 4
-  tail_s: 0                         # seconds recorded after the last step (scenarios set their own, T1: 30)
+  tail_s: 0                         # scenarios set their own (T1: 30 s after the list is complete)
 
 settle:
-  pixel_threshold: 8                # a pixel counts as changed if a channel differs by more than this
-  min_changed_pixels: 150           # smaller changes (caret, cursor blink) are ignored, except inside check regions
-  quiet_s: 1.0                      # a step ends at the last change before this much stillness (live gate and analysis)
-  step_timeout_s: 300
+  pixel_threshold: 8
+  min_changed_pixels: 150
+  quiet_s: 1.0                      # a step ends at the last change before this much stillness
+  probe_interval_s: 1.0             # the completeness probe is asked at most this often, only while the screen is quiet
+  step_timeout_s: 7200
   task_timeout_s: 7200              # time limit per task; a run that reaches it counts as "not done within the limit"
-  no_reaction_s: 60                 # no screen change this long after an input: the run failed (a missed click?)
-  roi_grace_s: 20                   # the live gate moves on after this much stillness even without a region match
-  max_gap_frames: 3                 # a longer gap between captured frames inside a measured step fails the run
-  reference_quiet_s: 4.0            # quiet period of the calibration run that makes the reference images
-  reference_tolerance: 0.02         # fraction of differing pixels still accepted as "same state as the reference"
+  no_reaction_s: 60
+  max_gap_frames: 3
+
+evidence:
+  network: true                     # network.jsonl per run (connections of each app's process tree, 10 Hz)
+  poll_hz: 10
+  task: T1
 
 runs: {measured: 5, warmup: 1, retries: 2, analyze_after_each: true}
 
@@ -90,21 +73,24 @@ apps:
     name: Parula
     protocol: JMAP
     os: Linux
-    launch: [/opt/Parula/parula]    # installed from the .deb (sudo apt install ./parula_<version>_amd64.deb)
-    # Separate profile: ~/.parula and ~/.config/Parula move with HOME. The user's GTK and font settings and the
-    # font cache stay the user's, so Parula looks and starts like Thunderbird, which runs with the real HOME.
-    env: {HOME: "{profile}/home", XDG_CACHE_HOME: "{home}/.cache"}
+    # The official .deb of the current release, unpacked without root: bench.py fetch-parula --dir tools/parula.
+    # --remote-debugging-port: the instrumentation (DevTools) that finds the setup's elements and checks the Inbox.
+    # In a container without user namespaces, GPU and a large /dev/shm add: --no-sandbox --disable-gpu
+    # --disable-dev-shm-usage (listed as deviations below).
+    launch: ["{config_dir}/tools/parula/root/opt/Parula/parula", --remote-debugging-port=29222]
+    env: {HOME: "{profile}/home", XDG_CACHE_HOME: "{home}/.cache", LANG: en_US.UTF-8}
     create_dirs: ["{profile}/home"]
     profile:
       dirs: ["{profile}/home"]
       links:
         "{profile}/home/.config/gtk-3.0": "{home}/.config/gtk-3.0"
         "{profile}/home/.config/fontconfig": "{home}/.config/fontconfig"
+    probe: {type: cdp, port: 29222, timeout_s: 120}
     window: {class: "[Pp]arula", timeout_s: 120}
-    close: {key: ctrl+q, timeout_s: 60}
-    process_names: ["^/opt/Parula/"]
+    close: {key: ctrl+q, timeout_s: 30}
+    process_names: ["opt/Parula/parula"]
     process_env: {HOME: "{profile}/home"}   # only the benchmark profile's processes, never your own Parula
-    version_from: {asar: /opt/Parula/resources/app.asar}
+    version_from: {asar: "{config_dir}/tools/parula/root/opt/Parula/resources/app.asar"}
   parula-imap:
     <<: *parula
     protocol: IMAP
@@ -112,7 +98,11 @@ apps:
     name: Thunderbird
     protocol: IMAP
     os: Linux
-    launch: ["{config_dir}/tools/thunderbird/thunderbird", -profile, "{profile}/tb", -no-remote]
+    # -marionette -remote-allow-system-access: the instrumentation (Marionette) that finds the Account Hub's elements
+    # and checks the Inbox; marionette.port in user.js.
+    launch: ["{config_dir}/tools/thunderbird/thunderbird", -profile, "{profile}/tb", -no-remote, -marionette,
+             -remote-allow-system-access]
+    env: {LANG: en_US.UTF-8, MOZ_CRASHREPORTER_DISABLE: "1"}
     profile:
       dirs: ["{profile}/tb"]
       files:
@@ -126,6 +116,9 @@ apps:
           user_pref("app.donation.eoy.version.viewed", 999);
           user_pref("mail.inappnotifications.enabled", false);
           user_pref("mailnews.start_page.enabled", false);
+          user_pref("marionette.port", 28828);
+          user_pref("widget.gtk.overlay-scrollbars.enabled", false);
+    probe: {type: marionette, port: 28828, timeout_s: 120}
     window: {class: "thunderbird", timeout_s: 120}
     close: {key: ctrl+q, timeout_s: 60}
     process_names: ["{profile}/tb"]
@@ -135,18 +128,26 @@ sessions:                           # one interleaved series per computer (A B C
   linux: {apps: [parula-jmap, parula-imap, thunderbird]}    # Parula JMAP runs, so the combined cut shows one median
 
 comparisons:
-  C1: {os: Linux, left: parula-jmap, right: parula-imap, tasks: [T1], session: linux}   # T2–T7: corpus multi-folder
+  C1: {os: Linux, left: parula-jmap, right: parula-imap, tasks: [T1], session: linux}
   C2: {os: Linux, left: parula-jmap, right: thunderbird, tasks: [T1], session: linux}
 
 deviations:
-  - "Server: an additional log of logins, fetches and downloads (Stalwart debug level for these events), the same in every run of every app; the test account gets a new random password of the same length before every run."
   - "Thunderbird: start page switched off (mailnews.start_page.enabled = false), so no web page loads during the measurement."
   - "Thunderbird: user.js also switches off pop-ups that would appear during capture: update checks, the default-client question, the telemetry and rights notices, donation and in-app notifications. Install-wide app updates disabled with distribution/policies.json (DisableAppUpdate)."
-  - "Parula: installed from the .deb package (no auto-update)."
+  - "Thunderbird: started with Marionette (-marionette -remote-allow-system-access) for the instrumentation."
+  - "Thunderbird: classic scrollbars instead of GTK overlay scrollbars (widget.gtk.overlay-scrollbars.enabled = false), as Parula shows them: an overlay scrollbar fades in and out whenever the window is inspected, which would keep the screen from settling."
+  - "Parula: installed from the .deb package; started with --remote-debugging-port for the instrumentation."
+  - "Parula: the background video of its setup screens was paused with the screens' own Pause button before typing (so the screen can settle); this click and the click back into the e-mail field are not counted as user actions."
+
+instrumentation:
+  - "The apps' own instrumentation (Parula: Chrome DevTools Protocol; Thunderbird: Marionette) finds the setup's buttons and fields, so the driver can click and type there like a user (xdotool). It never gives a time."
+  - "The last step's end is the last screen change in the recording before the moment the instrumentation confirmed, during a quiet screen, that the Inbox lists all messages; the instrumentation is asked only while the screen is still."
+  - "After the measured end the instrumentation checks completeness: the folder's message count equals the corpus and the corpus's oldest message is in the list (scrolled to). A run that fails this check counts as a wrong result."
+  - "Client-side network evidence: the TCP connections of each app's processes are read from /proc ten times a second."
 
 procedures:
-  - "Every run starts from a fresh app profile and the same server snapshot (`seeded`, taken right after the import)."
-  - "Neither app keeps the password in the desktop keyring: Parula stores it encrypted in its own profile, Thunderbird in its profile's logins.json; both profiles are reset before every run."
+  - "Before every run the test account is checked against the corpus (every message by its Message-ID, folder and flags) and repaired over IMAP if an earlier run changed it; every run starts with a fresh app profile."
+  - "Neither app keeps the password in the desktop keyring: Parula stores it encrypted in its own profile, Thunderbird in its profile's logins.json; both profiles are new in every run."
 
 publish:
   page_url: <https://parula.app/…>
@@ -156,13 +157,9 @@ publish:
 compose:
   font_regular: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
   font_bold: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
-  voice_dir: ./voice                # voice/<lang>/<segment-id>.wav, <segment-id>.before|during|after.wav, countdown-go.wav
+  voice_dir: ./voice
   min_hold_s: 2.0
-  race_budget_s: 30                 # only for narrations without variants/compose.json
-  # music: ./music/bed.wav          # optional, ducked under the voice, faded out at the end; needs music_license
-  # music_license: {title: "…", author: "…", license: "CC0 1.0", url: "https://…", content_id: "none known"}
-  # sfx_start: ./sfx/start.wav      # optional start beep at "Go!" and finish chime per pane (the same for both)
-  # sfx_finish: ./sfx/finish.wav
+  race_budget_s: 30
 
 speech:                             # bench.py voice: text-to-speech for the chosen lines (see benchlib/speech.py)
   en:
@@ -187,4 +184,4 @@ encode:
   webm_crf: 30
   mp4_crf: 18
   youtube_crf: 12
-  youtube_height: 2160              # lanczos upscale of the 2560x1440 master for YouTube's 4K encoding ladder
+  youtube_height: 2160

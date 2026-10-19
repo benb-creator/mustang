@@ -140,8 +140,15 @@ class PaneRun:
     opening: list = field(default_factory=list)
 
     @classmethod
-    def load(cls, config, comparison: str, task: str, side_name: str, side: dict, run_id: str) -> "PaneRun":
-        run_dir = config.workdir / "runs" / config.run_group(comparison) / task / side["app"] / run_id
+    def load(cls, config, comparison: str, task: str, side_name: str, side: dict, run_id: str,
+             result_folder: str | None = None) -> "PaneRun":
+        entry = next((r for r in side.get("runs", []) if r["run"] == run_id), {})
+        if result_folder and entry.get("dir"):
+            run_dir = Path(result_folder) / entry["dir"]
+        elif entry.get("dir") and Path(entry["dir"]).is_absolute():
+            run_dir = Path(entry["dir"])
+        else:
+            run_dir = config.workdir / "runs" / config.run_group(comparison) / task / side["app"] / run_id
         meta = json.loads((run_dir / "meta.json").read_text())
         analysis = json.loads((run_dir / "analysis.json").read_text())
         series = ChangeSeries.load(run_dir / "changes.npz")
@@ -150,10 +157,12 @@ class PaneRun:
             steps.append((s["start_time"], s["duration_s"] if s.get("duration_s") is not None else s["limit_s"]))
         label = " · ".join(str(x) for x in (f"{side['name']} {side.get('version') or ''}".strip(), side.get("protocol"),
                                             side.get("os")) if x)
-        app = config.app(side["app"])
+        microsoft = side.get("microsoft_ui")
+        if microsoft is None:
+            microsoft = config.app(side["app"]).get("microsoft_ui")
         return cls(side_name, side["app"], run_dir / "capture.mkv", Rect.from_dict(meta["layout"]["app_in_capture"]),
                    steps, analysis["status"] == "timeout", float(series.times[-1]), label, side["name"],
-                   bool(app.get("microsoft_ui")), series.times, analysis.get("opening_ranges") or [])
+                   bool(microsoft), series.times, analysis.get("opening_ranges") or [])
 
     @property
     def first(self) -> float:
@@ -472,8 +481,9 @@ class Composer:
         if any(s["status"] in (1, 3) for s in sides) or any(s["status"] == 0 and not s.get("median_run")
                                                               for s in sides):
             return self.neutral_race(segment, index, task)
+        folder = self.results["comparisons"][comparison_id].get("result_folder")
         panes = [PaneRun.load(self.config, comparison_id, task_id, name, s,
-                              s["median_run"] if s["status"] == 0 else s["timeout_run"])
+                              s["median_run"] if s["status"] == 0 else s["timeout_run"], folder)
                  for name, s in zip(("left", "right"), sides)]
         footage_allowed = self.footage_allowed(comparison_id)
         mode = self.race_mode(panes)

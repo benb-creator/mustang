@@ -240,7 +240,8 @@ class ScenarioDriver:
                  log: EventLog, marker=None, live=None, type_delay_ms: int = 40, quiet_s: float = 1.0,
                  step_timeout_s: float = 300.0, task_timeout_s: float | None = None,
                  park: tuple[int, int] | None = None, no_reaction_s: float | None = 60.0,
-                 grace_s: float | None = 20.0, server_log=None):
+                 grace_s: float | None = 20.0, server_log=None, probe=None, expected: dict | None = None,
+                 verify_path: Path | None = None, probe_interval_s: float = 1.0):
         self.desktop = desktop
         self.app = app
         self.calibration = calibration
@@ -260,6 +261,12 @@ class ScenarioDriver:
         self.live_references: dict = {}
         self.live_regions: dict = {}
         self.quiet_by_step: dict = {}
+        self.probe = probe
+        self.expected = dict(expected or {})
+        self.verify_path = verify_path
+        self.probe_interval_s = probe_interval_s
+        self.waited = 0.0
+        self.verify_result: dict | None = None
 
     def show_marker(self, label: str) -> float:
         code = self.next_marker_code
@@ -289,7 +296,8 @@ class ScenarioDriver:
                 self.log.write("input", t=t_after, **fields)
                 if i == trigger_index:
                     kind = "verify_start" if phase == "verify" else "step_start"
-                    trigger_time = self.log.write(kind, t=t_after, step=step.name, measure=step.measure)
+                    trigger_time = self.log.write(kind, t=t_after, step=step.name, measure=step.measure,
+                                                  checks=step.checks)
         return trigger_time
 
     def loggable_arg(self, action: Action):
@@ -298,29 +306,81 @@ class ScenarioDriver:
         return action.arg
 
     def run_steps(self, scenario: AppScenario):
-        waited = 0.0
         for step in scenario.steps:
-            trigger = step.trigger_index if step.measure else -1
-            since = self.do_actions(step.actions, "step", step, trigger)
-            if not step.measure:
-                continue
-            limit = float(step.timeout_s or self.step_timeout_s)
-            if self.task_timeout_s is not None:
-                limit = min(limit, max(0.0, self.task_timeout_s - waited))
-            status, info = self.live.wait_settled(
-                since, self.quiet_by_step.get(step.name, self.quiet_s), limit, step.name, reference=self.live_references.get(step.name),
-                regions=self.live_regions.get(step.name), no_reaction_s=self.no_reaction_s, grace_s=self.grace_s)
-            self.log.write(f"step_live_{status.replace('-', '_')}", step=step.name, limit_s=limit, **info)
-            if status == "timeout":
-                raise StepTimeout(step.name, limit)
-            if status == "no-reaction":
-                raise NoReaction(f"Step '{step.name}': no screen change within {self.no_reaction_s:.0f} s after "
-                                 f"its input (a missed click or key?)")
-            waited += (info.get("live_end") or EventLog.now()) - since
-            if step.verify:
-                self.do_actions(step.verify.actions, "verify", step, Step("verify", step.verify.actions).trigger_index)
-                self.live.wait_settled(EventLog.now(), self.quiet_s, max(step.verify.within_s, self.quiet_s) + 5,
-                                       f"{step.name}:verify", expect_change=False)
+            self.run_step(step)
+
+    def run_step(self, step: Step):
+        """The step's actions; its last input starts the step's timer, which runs until the screen settles (and,
+        with `complete`, until the app's probe confirms the result during a quiet period)."""
+        trigger = step.trigger_index if step.measure else -1
+        since = self.do_actions(step.actions, "step", step, trigger)
+        if not step.measure:
+            return
+        limit = float(step.timeout_s or self.step_timeout_s)
+        if self.task_timeout_s is not None:
+            limit = min(limit, max(0.0, self.task_timeout_s - self.waited))
+        complete = self.completion_check(step) if step.complete else None
+        status, info = self.live.wait_settled(
+            since, self.quiet_by_step.get(step.name, self.quiet_s), limit, step.name,
+            reference=self.live_references.get(step.name), regions=self.live_regions.get(step.name),
+            no_reaction_s=self.no_reaction_s, grace_s=self.grace_s, complete=complete,
+            probe_interval_s=self.probe_interval_s)
+        self.log.write(f"step_live_{status.replace('-', '_')}", step=step.name, limit_s=limit, **info)
+        if status == "timeout":
+            raise StepTimeout(step.name, limit)
+        if status == "no-reaction":
+            raise NoReaction(f"Step '{step.name}': no screen change within {self.no_reaction_s:.0f} s after "
+                             f"its input (a missed click or key?)")
+        self.waited += (info.get("live_end") or EventLog.now()) - since
+        if step.verify:
+            self.do_actions(step.verify.actions, "verify", step, Step("verify", step.verify.actions).trigger_index)
+            self.live.wait_settled(EventLog.now(), self.quiet_s, max(step.verify.within_s, self.quiet_s) + 5,
+                                   f"{step.name}:verify", expect_change=False)
+        if step.verify_probe:
+            self.probe_verify(step)
+
+    def completion_check(self, step: Step):
+        """The probe's check of a step's result: `inbox_listed`, or {"pages": [...], "fail": [...]} = the app shows
+        one of these pages (a page starting with a `fail` prefix also ends the step; the flow then stops)."""
+        def check() -> bool:
+            t_before = EventLog.now()
+            try:
+                if step.complete == "inbox_listed":
+                    result = self.probe.inbox_listed(self.expected)
+                else:
+                    page = self.probe.page()
+                    failed = any(page.startswith(prefix) for prefix in step.complete.get("fail", []))
+                    result = {"complete": page in step.complete.get("pages", []) or failed, "page": page,
+                              "failed": failed}
+            except Exception as ex:
+                result = {"complete": False, "error": self.variables.redact(f"{type(ex).__name__}: {ex}")}
+            self.log.write("probe", step=step.name, check=step.complete, t_before=t_before, **result)
+            return bool(result.get("complete"))
+        return check
+
+    def probe_verify(self, step: Step):
+        """After the measured end: the probe checks completeness (e.g. all messages listed, the oldest one
+        reachable). Not waiting time; its screen changes come after the step's analysis window."""
+        self.log.write("verify_start", step=step.name, method=self.probe.method)
+        try:
+            result = self.probe.verify(self.expected)
+        except Exception as ex:
+            result = {"version": 1, "method": self.probe.method, "inbox_complete": False,
+                      "error": self.variables.redact(f"{type(ex).__name__}: {ex}")}
+        result["step"] = step.name
+        self.verify_result = result
+        if self.verify_path is not None:
+            self.verify_path.write_text(json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        self.log.write("verify_end", step=step.name, inbox_complete=result.get("inbox_complete"))
+
+    def point(self, name) -> tuple[int, int]:
+        """A named UI element found by the app's probe, else a calibrated point."""
+        if self.probe is not None and isinstance(name, str) and self.probe.method != "none":
+            element = self.probe.wait_for(name, timeout_s=30)
+            if element.get("hit") is False:
+                raise DriverError(f"Element '{name}' is covered by another element at its center")
+            return element.center
+        return self.calibration.absolute(name)
 
     def perform(self, action: Action) -> float:
         kind = action.kind
@@ -337,12 +397,12 @@ class ScenarioDriver:
             delay = int(action.options.get("delay_ms", self.type_delay_ms))
             self.desktop.type_text(self.variables.expand(str(action.arg)), delay)
         elif kind in ("click", "double_click", "right_click"):
-            x, y = self.calibration.absolute(action.arg)
+            x, y = self.point(action.arg)
             button = 3 if kind == "right_click" else 1
             self.desktop.click(x, y, button, 2 if kind == "double_click" else 1,
                                float(action.options.get("hover_s", 0.15)))
         elif kind == "scroll":
-            x, y = self.calibration.absolute(action.arg)
+            x, y = self.point(action.arg)
             self.desktop.scroll(x, y, int(action.options.get("clicks", 5)))
         elif kind == "drag":
             x0, y0 = self.calibration.absolute(action.arg)

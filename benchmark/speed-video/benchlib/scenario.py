@@ -49,7 +49,13 @@ class Action:
     def describe(self) -> str:
         if self.kind == "type":
             text = str(self.arg)
-            return "type the password" if "password" in text else f"type “{text}”"
+            if "password" in text:
+                return "type the password"
+            names = {"${account.email}": "the e-mail address", "${account.name}": "the name",
+                     "${account.username}": "the user name", "${server.jmap_url}": "the server's JMAP URL",
+                     "${server.imap_host}": "the IMAP server's host name", "${server.imap_port}": "the IMAP port",
+                     "${server.smtp_host}": "the SMTP server's host name", "${server.smtp_port}": "the SMTP port"}
+            return f"type {names[text]}" if text in names else f"type “{text}”"
         if self.kind == "key":
             repeat = int(self.options.get("repeat", 1))
             return f"key {self.arg}" + (f" ×{repeat}" if repeat > 1 else "")
@@ -106,6 +112,23 @@ class Step:
     first_visible: RegionCheck | None = None
     verify: Verify | None = None
     after_end: str = "report"
+    complete: str | dict | None = None
+    verify_probe: bool = False
+    first_visible_list: bool = False
+
+    @property
+    def checks(self) -> dict:
+        """What the analysis needs to know about a step that a flow created at run time (logged with step_start)."""
+        return {"complete": self.complete, "verify_probe": self.verify_probe, "after_end": self.after_end,
+                "first_visible_list": self.first_visible_list, "settle": self.settle,
+                "timeout_s": self.timeout_s, "expect": self.expect}
+
+    @classmethod
+    def from_checks(cls, name: str, checks: dict) -> "Step":
+        return cls(name, [], True, dict(checks.get("settle") or {}), checks.get("expect", "none"),
+                   checks.get("timeout_s"), after_end=str(checks.get("after_end", "report")),
+                   complete=checks.get("complete"), verify_probe=bool(checks.get("verify_probe")),
+                   first_visible_list=bool(checks.get("first_visible_list")))
 
     @property
     def region_names(self) -> set[str]:
@@ -139,6 +162,7 @@ class AppScenario:
     tail_s: float | None = None
     finish_required: bool = False
     opening_screen: RegionCheck | None = None
+    flow: dict | None = None
 
     @property
     def user_action_count(self) -> int:
@@ -216,6 +240,7 @@ class Scenario:
                 tail_s=spec.get("tail_s"),
                 finish_required=bool(spec.get("finish_required", False)),
                 opening_screen=RegionCheck.parse(spec["opening_screen"]) if spec.get("opening_screen") else None,
+                flow=dict(spec["flow"]) if spec.get("flow") else None,
             )
         title = raw.get("title") or {}
         if isinstance(title, str):

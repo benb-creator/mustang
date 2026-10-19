@@ -5,6 +5,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from .account import AccountServer, AccountSession
 from .analyze import Aggregator, ReportWriter, RunAnalyzer
 from .compose import Composer, ShortSettings, ValuesBuilder
 from .config import ConfigError
@@ -12,10 +13,12 @@ from .corpus import CorpusGenerator, CorpusSpec
 from .driver import AppProcess, Calibration, EventLog, ScenarioDriver
 from .encode import EncodeError, Encoder
 from .environment import EnvironmentProbe
+from .evidence import NetworkOwners, RunEvidence, SessionEvidence
 from .method import MethodTexts
 from .narration import Narration
 from .references import References
-from .runner import Desktops, Orchestrator, RunExecutor
+from .resultfolder import ResultFolder
+from .runner import Desktops, Orchestrator, RunExecutor, RunPlan
 from .scenario import ScenarioLibrary
 from .seed import Seeder
 from .serverlog import EvidenceSummary, ServerLog
@@ -67,12 +70,21 @@ class NarrationFiles:
 
 
 class Pipeline:
-    def __init__(self, config, progress=print):
+    def __init__(self, config, progress=print, folder: ResultFolder | None = None):
         self.config = config
-        self.progress = progress
+        self.console = progress
         self.scenarios = ScenarioLibrary(config.scenario_dir)
+        self.folder = folder
         self._desktop = None
         self._server_log = None
+        self._account = None
+
+    def progress(self, message: str):
+        """To the console and, once there is a result folder, to its logs/session.log."""
+        self.console(message)
+        if self.folder is not None:
+            with open(self.folder.logs_dir / "session.log", "a", encoding="utf-8") as log:
+                log.write(f"{datetime.now(timezone.utc).isoformat(timespec='seconds')} {message}\n")
 
     @property
     def desktop(self):
@@ -80,7 +92,26 @@ class Pipeline:
             self._desktop = Desktops.create(self.config)
         return self._desktop
 
+    @property
+    def server_mode(self) -> str:
+        """`account` (default): an existing server and one test account. `admin`: the older mode with storage
+        snapshots, SSH and server logs (default when the config has `server.snapshot` or `server.log`)."""
+        default = "admin" if self.config.get("server.snapshot") or self.config.get("server.log") else "account"
+        return str(self.config.get("server.mode", default))
+
+    def account(self) -> AccountSession | None:
+        """Account mode (the default): an existing server, one test account, nothing else."""
+        if self.server_mode != "account" or not self.config.get("server.host"):
+            return None
+        if self._account is None:
+            self._account = AccountSession(AccountServer.from_config(self.config),
+                                           CorpusGenerator(CorpusSpec.from_dict(self.config.get("corpus"))),
+                                           self.progress)
+        return self._account
+
     def server_snapshots(self):
+        if self.server_mode == "account":
+            return None
         spec = self.config.get("server.snapshot") or {}
         method = spec.get("method", "storage")
         if method == "none":
@@ -93,7 +124,7 @@ class Pipeline:
 
     @property
     def server_log(self) -> ServerLog | None:
-        if self._server_log is None and self.config.get("server.log.path"):
+        if self._server_log is None and self.config.get("server.log.path") and self.server_mode != "account":
             ssh = self.config.get("server.log.ssh", self.config.get("server.snapshot.ssh"))
             self._server_log = ServerLog(self.config, CommandRunner(ssh, self.config.get("server.snapshot.ssh_options")),
                                          self.progress)
@@ -102,9 +133,46 @@ class Pipeline:
     def app_version(self, app_id: str) -> str | None:
         return EnvironmentProbe(self.config).app_version(app_id).get("version")
 
+    def results_folder(self) -> ResultFolder:
+        if self.folder is None:
+            os_name = "windows" if self.config.get("display.platform", "linux") == "windows" else "linux"
+            parent = self.config.path(self.config.get("results_dir") or self.config.workdir)
+            parent.mkdir(parents=True, exist_ok=True)
+            self.folder = ResultFolder.create(parent, os_name)
+            self.progress(f"result folder: {self.folder.path}")
+            self.write_manifest()
+        return self.folder
+
+    def write_manifest(self):
+        account = self.account()
+        generator = CorpusGenerator(CorpusSpec.from_dict(self.config.get("corpus")))
+        corpus = {**self.corpus_facts(), "spec": generator.spec.to_dict()}
+        if account is not None:
+            corpus.update({k: v for k, v in account.expected.items() if not k.endswith("message_id")})
+        cached = self.config.workdir / "corpus" / "manifest.json"
+        if cached.exists():
+            data = json.loads(cached.read_text())
+            if data.get("spec") == generator.spec.to_dict():
+                corpus.update({"digest": data["digest"], "total_bytes": data["total_bytes"]})
+        apps = {}
+        for app_id in self.config.get("apps") or {}:
+            spec = self.config.app(app_id)
+            apps[app_id] = {k: spec.get(k) for k in ("name", "protocol", "os") if spec.get(k)}
+        self.results_folder().write_manifest(
+            tool={"name": "parula-speed-benchmark", **ResultFolder.tool_version(Path(__file__).resolve().parent)},
+            config=self.config.redacted(),
+            server={"mode": self.server_mode, "host": self.config.get("server.host"),
+                    "email_domain": str(self.config.get("account.email", "")).rpartition("@")[2] or None,
+                    "endpoints": account.server.endpoints() if account else None},
+            corpus=corpus, apps=apps, deviations=self.deviations("en"),
+            procedures=list(self.config.get("procedures") or []),
+            instrumentation=list(self.config.get("instrumentation") or []),
+            sessions=self.config.get("sessions") or {}, comparisons=self.config.get("comparisons") or {})
+
     def executor(self) -> RunExecutor:
         return RunExecutor(self.config, self.desktop, self.scenarios, self.server_snapshots(),
-                           ClientProfiles(self.config), self.progress, self.server_log, self.app_version)
+                           ClientProfiles(self.config), self.progress, self.server_log, self.app_version,
+                           self.results_folder(), self.account())
 
     def corpus_facts(self) -> dict:
         generator = CorpusGenerator(CorpusSpec.from_dict(self.config.get("corpus")))
@@ -123,52 +191,88 @@ class Pipeline:
                 "move_messages": folders.get(move, {}).get("count"),
                 "search_hits": expected["planted"][term]["count"] if term in expected["planted"] else None}
 
-    def environment_path(self, comparison_id: str) -> Path:
-        return self.config.workdir / "results" / f"environment-{self.config.run_group(comparison_id)}.json"
-
     def environment(self, comparison_id: str) -> dict:
         spec = self.config.comparison(comparison_id)
         env = EnvironmentProbe(self.config, self.desktop).collect(self.config.group_apps(comparison_id))
         env.update(spec.get("environment") or {})
-        path = self.environment_path(comparison_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(env, indent=2))
+        folder = self.results_folder()
+        environments = folder.manifest().get("environment") or {}
+        environments[self.config.run_group(comparison_id)] = env
+        folder.write_manifest(environment=environments)
         return env
 
+    def stored_environment(self, comparison_id: str) -> dict | None:
+        return ((self.results_folder().manifest().get("environment") or {})
+                .get(self.config.run_group(comparison_id)))
+
     def run(self, comparison_id: str, tasks: list[str] | None, resume: bool, measured: int | None,
-            warmup: int | None):
-        if not self.environment_path(comparison_id).exists():
+            warmup: int | None, only_apps: list[str] | None = None):
+        if self.stored_environment(comparison_id) is None:
             self.environment(comparison_id)
         if self.server_log is not None:
             self.progress(f"benchmark computer as the server sees it: {', '.join(sorted(self.server_log.probe()))}")
+        apps = self.config.group_apps(comparison_id)
+        measured_n = int(measured if measured is not None else self.config.get("runs.measured", 5))
+        warmup_n = int(warmup if warmup is not None else self.config.get("runs.warmup", 1))
+        plan = self.results_folder().manifest().get("plan") or {}
+        for task in tasks or self.config.comparison(comparison_id)["tasks"]:
+            plan[f"{self.config.run_group(comparison_id)}/{task}"] = [
+                {"order": n + 1, "app": app, "run": run, "warmup": is_warmup}
+                for n, (app, run, is_warmup) in enumerate(RunPlan.interleaved(apps, measured_n, warmup_n))]
+        self.results_folder().write_manifest(plan=plan, runs={"measured": measured_n, "warmup": warmup_n})
         analyzer = RunAnalyzer(self.config, self.scenarios) if self.config.get("runs.analyze_after_each", True) else None
         Orchestrator(self.config, self.executor(), self.progress, analyzer).run_comparison(
-            comparison_id, tasks, resume, measured, warmup)
+            comparison_id, tasks, resume, measured, warmup, only_apps)
+
+    def run_session(self, session: str, measured: int | None = None, warmup: int | None = None,
+                    resume: bool = True) -> dict:
+        """All comparisons of one computer's session (e.g. C1 + C2 on Linux): one interleaved series of the
+        session's apps, then analysis, results, evidence, report and the zip of the result folder."""
+        comparisons = [c for c, spec in (self.config.get("comparisons") or {}).items()
+                       if self.config.run_group(c) == session]
+        if not comparisons:
+            raise ConfigError(f"No comparison belongs to session '{session}'")
+        for comparison_id in comparisons:
+            self.run(comparison_id, None, resume, measured, warmup)
+        results = self.analyze(comparisons[0])
+        archive = self.results_folder().zip()
+        self.progress(f"result folder {self.results_folder().path} ({archive.name} next to it)")
+        return results
+
+    def recorded_comparisons(self) -> list[str]:
+        """The config's comparisons whose apps have runs in the result folder."""
+        folder = self.results_folder()
+        recorded = {p.name for p in folder.runs_dir.iterdir()} if folder.runs_dir.exists() else set()
+        return [c for c, spec in (self.config.get("comparisons") or {}).items()
+                if spec["left"] in recorded and spec["right"] in recorded]
 
     def analyze(self, comparison_id: str, force: bool = False) -> dict:
         analyzer = RunAnalyzer(self.config, self.scenarios)
-        root = self.config.workdir / "runs" / self.config.run_group(comparison_id)
-        for meta_path in sorted(root.glob("*/*/*/meta.json")):
-            run_dir = meta_path.parent
-            if run_dir.name == "reference" or ".failed-" in run_dir.name:
-                continue
-            meta = json.loads(meta_path.read_text())
-            if meta.get("status") not in ("complete", "timeout") or (not force and (run_dir / "analysis.json").exists()):
-                continue
-            result = analyzer.analyze_safely(run_dir)
-            self.progress(f"  {run_dir.relative_to(self.config.workdir)}: {result['status']} "
-                          + (f"{result['total_s']:.3f} s" if result.get("total_s") is not None else "")
-                          + (f" ({result['reason']})" if result.get("reason") else ""))
+        folder = self.results_folder()
+        owners = NetworkOwners(self.config.workdir / "evidence" / "ip-owners.json")
+        tasks = {t for c in self.config.group_comparisons(comparison_id) for t in self.config.comparison(c)["tasks"]}
+        for app_id in self.config.group_apps(comparison_id):
+            for task in sorted(tasks):
+                for run_dir in folder.run_dirs(app_id, task):
+                    meta = json.loads((run_dir / "meta.json").read_text())
+                    if meta.get("status") in ("complete", "timeout") and (force or not (run_dir / "analysis.json").exists()):
+                        result = analyzer.analyze_safely(run_dir)
+                        self.progress(f"  {folder.relative(run_dir)}: {result['status']} "
+                                      + (f"{result['total_s']:.3f} s" if result.get("total_s") is not None else "")
+                                      + (f" ({result['reason']})" if result.get("reason") else ""))
+                    if (run_dir / "network.jsonl").exists():
+                        RunEvidence(run_dir, owners, set(self.config.get("evidence.proxy_ports") or [1080, 3128])
+                                    ).summarize()
         results = None
         for comparison in self.config.group_comparisons(comparison_id):
             results = self.write_results(comparison)
         return results
 
     def results_path(self) -> Path:
-        return self.config.workdir / "results" / "results.json"
+        return self.results_folder().results_path
 
     def facts(self, results_dir: Path) -> dict:
-        """Person-set facts (never from the measurement): `results/facts.json`, created as a template."""
+        """Person-set facts (never from the measurement): `facts.json` next to results.json, created as a template."""
         path = results_dir / "facts.json"
         if not path.exists():
             template = {"_help": "Set by a person after checking the recordings; 1 = confirmed. Never filled in by "
@@ -179,10 +283,10 @@ class Pipeline:
             path.write_text(json.dumps(template, indent=2, ensure_ascii=False))
         return json.loads(path.read_text())
 
-    def evidence(self, comparison_id: str, comparison: dict) -> dict | None:
+    def server_evidence(self, comparison_id: str, comparison: dict) -> dict | None:
         task_id = self.config.get("server.log.evidence_task", "T1")
         task = comparison["tasks"].get(task_id) or next(iter(comparison["tasks"].values()), None)
-        if task is None or not any(r.get("evidence") for side in ("left", "right") for r in task[side]["runs"]):
+        if task is None or not any(r.get("server_evidence") for side in ("left", "right") for r in task[side]["runs"]):
             return None
         task_id = next(t for t, v in comparison["tasks"].items() if v is task)
         cloud = {side for side in ("left", "right") if self.config.app(comparison[side]).get("cloud_sync")}
@@ -202,17 +306,23 @@ class Pipeline:
         return None
 
     def write_results(self, comparison_id: str) -> dict:
-        path = self.results_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        results = json.loads(path.read_text()) if path.exists() else {"version": 2, "comparisons": {},
+        folder = self.results_folder()
+        path = folder.results_path
+        results = json.loads(path.read_text()) if path.exists() else {"version": 3, "comparisons": {},
                                                                        "environment": {}}
-        comparison = Aggregator(self.config, self.scenarios).comparison(comparison_id)
-        comparison["evidence"] = self.evidence(comparison_id, comparison)
+        comparison = Aggregator(self.config, self.scenarios, folder).comparison(comparison_id)
+        task_id = self.config.get("evidence.task", "T1")
+        cloud_apps = {a for a in self.config.get("apps") or {} if self.config.app(a).get("cloud_sync")}
+        client = SessionEvidence({comparison_id: comparison}, cloud_apps).summarize(task_id)
+        comparison["evidence"] = client["comparisons"].get(comparison_id)
+        comparison["server_evidence"] = self.server_evidence(comparison_id, comparison)
+        if comparison["evidence"] is not None and comparison["server_evidence"]:
+            comparison["evidence"]["values"] = {**comparison["server_evidence"]["values"],
+                                                **comparison["evidence"]["values"]}
         comparison["corpus"] = self.corpus_facts()
         results["comparisons"][comparison_id] = comparison
-        env_path = self.environment_path(comparison_id)
-        if env_path.exists():
-            env = json.loads(env_path.read_text())
+        env = self.stored_environment(comparison_id)
+        if env is not None:
             for side in ("left", "right"):
                 app = env.get("apps", {}).get(comparison[side], {})
                 for task in comparison["tasks"].values():
@@ -222,11 +332,19 @@ class Pipeline:
         results["runs"] = comparison["runs"]
         results["settle"] = comparison["settle"]
         results["corpus"] = comparison["corpus"]
-        results["facts"] = self.facts(path.parent)
+        results["server_mode"] = self.server_mode
+        results["result_folder"] = folder.name
+        results["facts"] = self.facts(folder.path)
         results["generated"] = datetime.now(timezone.utc).isoformat()
         path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
+        evidence = {"version": 1, "generated": results["generated"], "comparisons": {}, "env": {}}
+        for cid, data in results["comparisons"].items():
+            if data.get("evidence"):
+                evidence["comparisons"][cid] = data["evidence"]
+                evidence["env"].update({f"{cid}.{k}": v for k, v in data["evidence"]["values"].items()})
+        folder.evidence_path.write_text(json.dumps(evidence, indent=2, ensure_ascii=False))
         ReportWriter(results, self.deviations("en"), list(self.config.get("procedures") or [])).write(
-            path.parent / "report.md")
+            folder.report_path)
         return results
 
     def deviations(self, language: str) -> list[str]:
@@ -234,17 +352,23 @@ class Pipeline:
         return deviations.get(language) or deviations.get("en") or [] if isinstance(deviations, dict) else deviations
 
     def merged_results(self, results_paths: list[str] | None) -> dict:
+        """results.json of one or several result folders (e.g. Linux + Windows); each comparison remembers its
+        folder, so the composer finds the captures."""
         paths = [Path(p) for p in results_paths] if results_paths else [self.results_path()]
         merged = None
+        first = None
         for path in paths:
-            data = json.loads(path.read_text())
-            data["facts"] = {**(data.get("facts") or {}), **self.facts(path.parent)}
+            folder = ResultFolder.open(path if path.is_dir() else path.parent)
+            data = json.loads((folder.results_path if path.is_dir() else path).read_text())
+            data["facts"] = {**(data.get("facts") or {}), **self.facts(folder.path)}
+            for comparison in data["comparisons"].values():
+                comparison["result_folder"] = str(folder.path)
             if merged is None:
-                merged = data
+                merged, first = data, folder.path
                 continue
             for key in ("runs", "corpus"):
                 if data.get(key) != merged.get(key):
-                    raise ConfigError(f"{path}: '{key}' differs from {paths[0]} ({data.get(key)} vs "
+                    raise ConfigError(f"{folder.path}: '{key}' differs from {first} ({data.get(key)} vs "
                                       f"{merged.get(key)}); results of different setups can't share one video")
             merged["comparisons"].update(data["comparisons"])
             merged["environment"].update(data.get("environment") or {})
@@ -420,7 +544,7 @@ class Calibrator:
         crop = Rect.from_dict(meta["layout"]["app_in_capture"])
         rects = Calibration(self.calibration(app_id).path, Rect.from_dict(meta["layout"]["app_region"])).region_rects()
         app_scenario = self.pipeline.scenarios.get(task).for_app(app_id)
-        events = EventLog.read(run_dir / "log.jsonl")
+        events = EventLog.read(run_dir / "driver.jsonl")
         from .marker import ClockFit
         f = analysis["clock_fit"]
         fit = ClockFit(f["slope"], f["offset"], f["residuals_s"], f["points"], f["rejected_codes"])

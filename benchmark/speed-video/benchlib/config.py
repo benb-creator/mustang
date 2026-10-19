@@ -25,11 +25,64 @@ class Config:
         path = Path(path).resolve()
         with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-        config = cls(data, path.parent)
+        config = cls(cls.environment_values(data), path.parent)
         for key, reason in cls.removed.items():
             if config.get(key) is not None:
                 raise ConfigError(f"{path}: '{key}' is no longer used ({reason}); remove it")
+        config.apply_server_defaults()
         return config
+
+    @classmethod
+    def environment_values(cls, value):
+        """`${NAME}` (upper case) in a string value is replaced by the environment variable NAME, so the host and the
+        account's address can come from the environment like the password (e.g. a secrets file)."""
+        if isinstance(value, dict):
+            return {k: cls.environment_values(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [cls.environment_values(v) for v in value]
+        if isinstance(value, str) and "${" in value:
+            def lookup(m):
+                if m.group(1) not in os.environ:
+                    raise ConfigError(f"Environment variable {m.group(1)} (used as ${{{m.group(1)}}}) is not set")
+                return os.environ[m.group(1)]
+            return re.sub(r"\$\{([A-Z_][A-Z0-9_]*)\}", lookup, value)
+        return value
+
+    def apply_server_defaults(self):
+        """In account mode only the host name is needed; the endpoints follow from it unless set."""
+        server = self.data.get("server")
+        if not isinstance(server, dict) or not server.get("host"):
+            return
+        host = str(server["host"])
+        server.setdefault("jmap_session_url", f"https://{host}/.well-known/jmap")
+        server.setdefault("imap", {})
+        server["imap"].setdefault("host", host)
+        server["imap"].setdefault("port", 993)
+        server["imap"].setdefault("tls", True)
+        server.setdefault("smtp", {})
+        server["smtp"].setdefault("host", host)
+        server["smtp"].setdefault("port", 465)
+
+    secret_keys = ("password", "secret", "token", "api_key")
+
+    def redacted(self) -> dict:
+        """The config for the manifest: no secrets (they only ever come from the environment anyway) and the
+        test account's address reduced to its domain."""
+        def clean(value, key=""):
+            if isinstance(value, dict):
+                return {k: clean(v, k) for k, v in value.items()}
+            if isinstance(value, list):
+                return [clean(v, key) for v in value]
+            if isinstance(value, str) and any(s in key.lower() for s in self.secret_keys) and not key.endswith("_env"):
+                return "<redacted>"
+            return value
+        data = clean(copy.deepcopy(self.data))
+        account = data.get("account")
+        if isinstance(account, dict):
+            for key in ("email", "username"):
+                if account.get(key):
+                    account[key] = "<redacted>@" + str(account[key]).rpartition("@")[2]
+        return data
 
     def get(self, dotted: str, default=None):
         node = self.data

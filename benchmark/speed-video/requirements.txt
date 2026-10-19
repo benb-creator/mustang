@@ -1,4 +1,5 @@
 numpy>=1.24
 Pillow>=10
 PyYAML>=6
+websocket-client>=1.6
 python-xlib>=0.33; sys_platform == "linux"

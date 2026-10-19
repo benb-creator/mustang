@@ -281,7 +281,7 @@ def test_evidence_summary_values(tmp_path):
     parula_window = log.report(events[:3], None)
     outlook_window = log.report(events[3:], {2001: 1e8, 2002: 1e8, 2003: 1e8, 2005: 1e8})
     after = log.report([], None)
-    run = lambda window, removal=None: {"run": "run-1", "evidence": {"windows": {
+    run = lambda window, removal=None: {"run": "run-1", "server_evidence": {"windows": {
         "until_removal": window, **({"after_removal": removal} if removal else {})}}}
     sides = {"left": {"name": "Parula", "runs": [run(parula_window)]},
              "right": {"name": "new Outlook", "runs": [run(outlook_window, after)]}}

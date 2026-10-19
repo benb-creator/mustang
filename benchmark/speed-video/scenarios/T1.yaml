@@ -2,68 +2,42 @@
 # messages of the corpus (profile inbox-30k: 30,000) and the list has settled. Typing is not waiting time: each
 # step's timer starts at its last action (the "continue"-type key or click) and runs until the screen settles.
 #
-# "All listed" is checked, not assumed (an Inbox shows its first page long before the rest of the list is loaded):
-# - regions: calibrated rectangles whose content must match the calibration run's final state, e.g. the folder
-#   pane's message count of the Inbox (bench.py calibrate points --app <id> asks for each region's corners).
-#   Changes inside these regions always count as screen changes, however small.
+# "All listed" is checked, not assumed (an Inbox shows its first page long before the rest of the list is loaded).
+# Apps with a `flow` find their setup's elements through the app's instrumentation (no calibration); the probe's
+# completeness check opens the live gate during a quiet screen, the measured end comes from the recording, and
+# after it the probe verifies that all messages are listed and the oldest is reachable (README, "Instrumentation").
+# Apps with `steps` use calibrated points and regions (bench.py calibrate …):
+# - regions: calibrated rectangles whose content must match the calibration run's final state;
 # - verify: after the measured end, End jumps to the end of the list; within 3 s the region list.bottom must show
-#   what it showed in the calibration run (the corpus's oldest message). Not waiting time, not a user action.
-# - first_visible: the time the first rows appear (list.top), reported as "first messages visible".
+#   what it showed in the calibration run (the corpus's oldest message). Not waiting time, not a user action;
+# - first_visible: the time the first rows appear (list.top), reported as "first messages visible";
 # - after_end fail: a significant screen change after the measured end makes the run invalid.
-# Point and region names are calibrated per app. Verify every flow against the installed app version during
-# calibration (one reference run per app, then look at the reference images); the report publishes these lists.
 id: T1
 title: {en: "New account: Inbox lists all messages", de: "Neues Konto: Posteingang listet alle Mails"}
 description: "Fresh app profile and the seeded server state; from the first continue of the account setup until the Inbox lists all messages and has settled"
 start_state: {server: seeded, client: fresh}
 timeout_s: 7200
 apps:
+  # Linux apps: the account setup is found programmatically (`flow`, benchlib/flows.py): the app's probe (Parula:
+  # DevTools, Thunderbird: Marionette) tells which page is shown and where its elements are; the driver clicks and
+  # types there like a user. The last step ends when the screen is quiet and the probe confirms that the Inbox lists
+  # all messages (`final.complete`); after the measured end the probe checks that the oldest message is reachable
+  # (`final.verify`). Every input of the flow is a counted user action except the "prepare" ones (disclosed).
   parula-jmap:
-    prepare: [launch, {wait_settled: {quiet_s: 2.0, timeout_s: 120}}]
+    prepare: [launch]                 # its first screens play a video: the flow waits for the page and pauses it
     tail_s: 30
-    steps:
-      - name: find-config
-        actions: [{type: "${account.email}"}, {key: Return}, {type: "${account.password}"}, {key: Return}]
-      - name: check-login
-        actions: [{click: button.continue}]
-      - name: open-inbox
-        actions: [{click: button.continue}]
-        regions: [{region: inbox.count}]
-        first_visible: {region: list.top}
-        verify: {actions: [{key: End}], regions: [{region: list.bottom}], within_s: 3}
-        after_end: fail
+    flow: {name: parula-setup, protocol: jmap,
+           final: {complete: inbox_listed, verify: true, after_end: fail, first_visible: true}}
   parula-imap:
-    prepare: [launch, {wait_settled: {quiet_s: 2.0, timeout_s: 120}}]
+    prepare: [launch]
     tail_s: 30
-    steps:
-      - name: find-config
-        actions: [{type: "${account.email}"}, {key: Return}, {type: "${account.password}"}, {key: Return}]
-      - name: check-login
-        actions: [{click: protocol.imap}, {click: button.continue}]
-      - name: open-inbox
-        actions: [{click: button.continue}]
-        regions: [{region: inbox.count}]
-        first_visible: {region: list.top}
-        verify: {actions: [{key: End}], regions: [{region: list.bottom}], within_s: 3}
-        after_end: fail
+    flow: {name: parula-setup, protocol: imap,
+           final: {complete: inbox_listed, verify: true, after_end: fail, first_visible: true}}
   thunderbird:
     prepare: [launch, {wait_settled: {quiet_s: 2.0, timeout_s: 120}}]
     tail_s: 30
-    steps:
-      - name: find-config
-        actions: [{type: "${account.name}"}, {key: Tab}, {type: "${account.email}"}, {key: Tab},
-                  {type: "${account.password}"}, {key: Return}]
-      - name: check-login
-        actions: [{click: button.done}]
-      - name: finish
-        actions: [{click: button.finish}]
-      - name: open-inbox
-        # Thunderbird shows the new account's start page; a click on its Inbox is its own way to the list.
-        actions: [{click: folder.inbox}]
-        regions: [{region: inbox.count}]
-        first_visible: {region: list.top}
-        verify: {actions: [{key: End}], regions: [{region: list.bottom}], within_s: 3}
-        after_end: fail
+    flow: {name: thunderbird-setup,
+           final: {complete: inbox_listed, verify: true, after_end: fail, first_visible: true}}
   outlook-classic:
     prepare: [launch, {wait_settled: {quiet_s: 3.0, timeout_s: 180}}]
     tail_s: 30

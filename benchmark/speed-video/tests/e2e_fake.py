@@ -252,7 +252,7 @@ class E2E:
 
     def truth(self, run_dir: Path, app_id: str) -> dict:
         """Ground truth per measured step: the fake app's final (and first) draw minus the driver's input event."""
-        events = EventLog.read(run_dir / "log.jsonl")
+        events = EventLog.read(run_dir / "driver.jsonl")
         starts = [e for e in events if e["type"] == "step_start"]
         t_open = next(e["t"] for e in events if e["type"] == "restored")
         t_close = next(e["t"] for e in events if e["type"] == "closed")
@@ -279,6 +279,7 @@ class E2E:
         try:
             config = Config.load(self.write_files())
             pipeline = Pipeline(config)
+            self.pipeline = pipeline
             started = time.monotonic()
             print("calibrate references (long quiet period)", flush=True)
             saved = Calibrator(pipeline).references_for("CF")
@@ -336,7 +337,7 @@ class E2E:
                 self.check(abs(median_total - statistics.median(totals)) < 1e-9,
                            f"{task_id} {side}: median run {s['median_run']} has the median total {median_total:.3f} s")
                 for r in s["runs"]:
-                    run_dir = config.workdir / "runs" / "CF" / task_id / s["app"] / r["run"]
+                    run_dir = self.pipeline.results_folder().run_dir(s["app"], task_id, r["run"])
                     truth = self.truth(run_dir, s["app"])
                     analysis = json.loads((run_dir / "analysis.json").read_text())
                     for step in analysis["steps"]:
@@ -349,7 +350,7 @@ class E2E:
                                                 - truth[step["name"]]["first"])
                         if task_id == "TF2" and step["name"] == "open":
                             self.check_without_region(run_dir, step, truth[step["name"]]["final"], config)
-                            live = [e for e in EventLog.read(run_dir / "log.jsonl")
+                            live = [e for e in EventLog.read(run_dir / "driver.jsonl")
                                     if e["type"] == "step_live_settled" and e["step"] == "open"]
                             self.check(bool(live) and live[0].get("live_matched") is True,
                                        f"TF2 {side} {r['run']}: the live gate saw the completion region match")
