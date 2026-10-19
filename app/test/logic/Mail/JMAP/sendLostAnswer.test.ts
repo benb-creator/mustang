@@ -68,7 +68,7 @@ function setup() {
   let account = new JMAPAccount();
   account.accountID = "e";
   account.emailAddress = "mail-alice@example.com";
-  account.session = { apiUrl: "http://jmap.example.com/jmap/", capabilities: {}, accounts: {}, primaryAccounts: {} } as any as TJMAPSession;
+  account.session = { apiUrl: "http://jmap.example.com/jmap/", capabilities: {}, accounts: {}, primaryAccounts: {}, state: "s1" } as any as TJMAPSession;
   account.errorCallback = ex => { throw ex };
   account.httpPost = async (url: string, request: any) => server.answer(request);
   for (let [id, specialFolder] of [["a", SpecialFolder.Inbox], ["d", SpecialFolder.Drafts], ["e", SpecialFolder.Sent]] as [string, SpecialFolder][]) {
