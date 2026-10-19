@@ -6,6 +6,7 @@ import { SMIMEPublicKey } from "./SMIMEPublicKey";
 import { SMIMEPrivateKey } from "./SMIMEPrivateKey";
 import { Oid, UTCTime, Attributes, DigestInfo, SignedData, Certificate, RSAPublicKey, Null, OctetString, EnvelopedData, SMIMECapabilities } from "./SMIMEASN1";
 import { decrypt, padFF, padRandom, encrypt } from "./SMIMERSAES";
+import { splitMIMEHeaders, kLineBreak, newBoundary } from "../MIME";
 import { UserError, assert } from "../../../util/util";
 import { gt } from "../../../../l10n/l10n";
 
@@ -29,19 +30,9 @@ export class SMIMESend {
     let mime = await CreateMIME.getMIME(mail);
     let mimeAsText = new TextDecoder().decode(mime);
     if (mail.signedByKeyID) {
-      // Only the body and its own Content-* headers are signed, not the
-      // message headers. Without the transfer encoding, every reader shows
-      // the raw quoted-printable text.
-      let pos = mimeAsText.indexOf("\r\n\r\n");
-      // Split on CRLF, but keep folded continuation lines (those starting with
-      // whitespace) attached to their header.
-      let headers = mimeAsText.slice(0, pos).split(/\r\n(?![ \t])/);
-      let contentHeaders = headers.filter(header => /^Content-/i.test(header));
-      let otherHeaders = headers.filter(header => !/^Content-/i.test(header));
-      if (!contentHeaders.some(header => /^Content-Type: /i.test(header))) {
-        contentHeaders.unshift("Content-Type: text/plain");
-      }
-      mimeAsText = contentHeaders.join("\r\n") + mimeAsText.slice(pos);
+      // Only the body and the Content-* headers are signed, not the other headers.
+      let { content, otherHeaders } = await SMIMESend.splitOffContent(mimeAsText);
+      mimeAsText = content;
       let messageDigest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(mimeAsText)));
       // DER SET OF requires the elements sorted by their encoding (X.690
       // section 11.6). With these fixed value sizes, that is the order below:
@@ -109,7 +100,7 @@ export class SMIMESend {
       for (let cert of privateKey.chain) {
         signedData.content.certificates.push(Certificate.decodePEM(cert.certificate, { label: "CERTIFICATE" }));
       }
-      let boundary = "----" + crypto.randomUUID().replace(/-/g, "");
+      let boundary = newBoundary();
       mimeAsText = [
         `Content-Type: multipart/signed; protocol="application/pkcs7-signature"; micalg=sha-256; boundary="${boundary}"`,
         ...otherHeaders,
@@ -125,23 +116,12 @@ export class SMIMESend {
         ... SignedData.encodeToBase64(signedData).match(/.{1,76}/g),
         `--${boundary}--`,
         '',
-      ].join("\r\n");
-      pos = mimeAsText.indexOf("\r\n\r\n");
+      ].join(kLineBreak);
     }
     if (mail.shouldEncrypt) {
-      // Only the body and its own Content-* headers are encrypted, not the
-      // message headers.
-      let pos = mimeAsText.indexOf("\r\n\r\n");
-      // Split on CRLF, but keep folded continuation lines (those starting with
-      // whitespace) attached to their header.
-      let headers = mimeAsText.slice(0, pos).split(/\r\n(?![ \t])/);
-      let contentHeaders = headers.filter(header => /^Content-/i.test(header));
-      let otherHeaders = headers.filter(header => !/^Content-/i.test(header));
-      if (!contentHeaders.some(header => /^Content-Type: /i.test(header))) {
-        contentHeaders.unshift("Content-Type: text/plain");
-      }
-      mimeAsText = contentHeaders.join("\r\n") + mimeAsText.slice(pos);
-      mime = new TextEncoder().encode(mimeAsText);
+      // Only the body and the Content-* headers are encrypted, not the other headers.
+      let { content, otherHeaders } = await SMIMESend.splitOffContent(mimeAsText);
+      mime = new TextEncoder().encode(content);
       let recipientKeys = mail.allRecipients().contents.map(puid =>
         getPublicKeyForPersonUID(puid, SMIMEPublicKey));
       assert(recipientKeys.every(key => key), gt`Cannot encrypt to all recipients using S/MIME`);
@@ -205,10 +185,27 @@ export class SMIMESend {
         '',
         ...base64.match(/.{1,76}/g),
         '',
-      ].join("\r\n");
+      ].join(kLineBreak);
     }
     result.sendRawMIME = mimeAsText;
     return result;
+  }
+
+  static async splitOffContent(mime: string): Promise<{ content: string, otherHeaders: string[] }> {
+    let { headers, body } = await splitMIMEHeaders(mime);
+    let contentHeaders = headers.filter(header => header.key.startsWith("content-")).map(header => header.line);
+    let otherHeaders = headers.filter(header => !header.key.startsWith("content-")).map(header => header.line);
+    if (!headers.some(header => header.key == "content-type")) {
+      contentHeaders.unshift("Content-Type: text/plain");
+    }
+    return {
+      content: [
+        ...contentHeaders,
+        "",
+        body,
+      ].join(kLineBreak),
+      otherHeaders,
+    };
   }
 }
 

@@ -47,9 +47,7 @@ export class JMAPFolder extends Folder {
   /** Lists messages in this folder. Updates are efficient.
    * But doesn't download their contents. @see downloadMessages() */
   async listMessages(): Promise<ArrayColl<JMAPEMail>> {
-    if (!this.account.isLoggedIn) {
-      await this.account.login(false);
-    }
+    await this.account.ensureLoggedIn();
 
     await this.readFolder();
     let lock = await this.listMessagesLock.lock();
@@ -205,11 +203,11 @@ export class JMAPFolder extends Folder {
         let changedThisFolder = changedByFolder.get(folder.id);
         if (!(addedThisFolder || changedThisFolder ||
               removed.hasItems ||
-              changes.destroyed?.length && [SpecialFolder.Trash, SpecialFolder.Spam].includes(folder.specialFolder))) {
+              changes.destroyed?.length && (folder.messages.hasItems || [SpecialFolder.Trash, SpecialFolder.Spam].includes(folder.specialFolder)))) {
           continue;
         }
         /** To avoid reading all messages of all folders, we handle
-         * - permanent deletes only from Trash / Spam (`DeleteStrategy.MoveToTrash`)
+         * - permanent deletes only from folders that we already read, and Trash / Spam (`DeleteStrategy.MoveToTrash`)
          * - moves only from folders that we already read
          * - new messages only in folders that we already listed
          * This is a tradeoff. */
@@ -503,14 +501,16 @@ export class JMAPFolder extends Folder {
 
   async moveFolderHere(folder: JMAPFolder) {
     await super.moveFolderHere(folder);
-    await this.account.makeSingleCall("Mailbox/set", {
+    let response = await this.account.makeSingleCall("Mailbox/set", {
       accountId: this.account.accountID,
       update: {
         [folder.id]: {
           parentId: this.id,
         },
       },
-    });
+    }) as TJMAPChangeResponse<TJMAPFolder>;
+    checkChangeError(response);
+    await folder.save();
     await this.account.listFolders();
   }
 
