@@ -18,7 +18,7 @@ import { getComputerOn } from './util/backend-wrapper';
 import JPCWebSocket from '../../lib/jpc-ws';
 import { production, webMail } from './build';
 import { retryOnTransientError } from './util/netUtil';
-import { backgroundError, catchErrors, logError, showError } from '../frontend/Util/error';
+import { catchErrors, logErrorToServer, minorError, showError } from './util/error';
 import { assert, sleep } from './util/util';
 
 // Set before anything reads it. Not in `app.ts` to break import cycle.
@@ -110,7 +110,7 @@ export function loginOnStartup(startupErrorCallback: (ex: Error) => void): void 
     })().catch(errorWithAccountName(account, startupErrorCallback));
   }
   // #if [!WEBMAIL && !MOBILE]
-  RAGSearchEMail.indexEMails().catch(backgroundError);
+  RAGSearchEMail.indexEMails().catch(minorError);
   // #endif
 
   checkWakeUp();
@@ -162,7 +162,7 @@ function errorWithAccountName(account: Account, errorCallback: (ex: Error) => vo
 function backgroundErrorInAccount(ex: Error, account: Account) {
   account.errors.add(ex);
   addAccountName(ex, account);
-  logError(ex);
+  logErrorToServer(ex);
 }
 
 /** The account name is shown to the user, but must not end up in `ex.message`:

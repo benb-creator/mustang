@@ -193,7 +193,7 @@
   import { goBack } from "../../AppsBar/selectedApp";
   import { appGlobal } from "../../../logic/app";
   import { UserError, assert } from "../../../logic/util/util";
-  import { backgroundError, catchErrors, showUserError } from "../../Util/error";
+  import { minorError, catchErrors, showUserError } from "../../Util/error";
   import CloseButton from "./CloseButton.svelte";
   import MailAutocomplete from "./MailAutocomplete.svelte";
   import AttachmentsPane from "./Attachments/AttachmentsPane.svelte";
@@ -256,7 +256,7 @@
     }
 
     loadText()
-      .catch(backgroundError);
+      .catch(minorError);
   }
 
   let loading = false;
@@ -322,11 +322,11 @@
 
   let fileSelector: FileSelector;
   async function onAddAttachment() {
-    let file = await fileSelector.selectFile();
-    if (!file) {
+    let files = await fileSelector.selectFiles();
+    if (!files?.length) {
       return;
     }
-    addFilesAsAttachments(mail, [file]);
+    addFilesAsAttachments(mail, files);
   }
 
   function onFilesDrop(event: CustomEvent) {
