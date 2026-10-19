@@ -201,7 +201,7 @@ class ConnectionTracker:
 
 class WindowsConnectionWatcher:
     """Polls the TCP table at `poll_hz` and writes the app's process tree's connections to a network log
-    (`benchlib.netwatch.NetworkLog`: `header(**fields)`, `write(type, **fields)`)."""
+    (`benchlib.netwatch.NetworkLog`: `header(os_name, app_id, source, poll_hz, root_pids)`, `write(type, **fields)`)."""
 
     def __init__(self, log, app_id: str, root_pids, process_names: list[str], poll_hz: float = 10,
                  watched_addresses: set[str] | None = None, tcp_table=None, process_table=None, clock=time.perf_counter):
@@ -236,10 +236,9 @@ class WindowsConnectionWatcher:
         return events
 
     def start(self):
-        now = self.clock()
-        self.log.header(version=1, os="windows", app=self.app_id, source="iphlpapi", poll_hz=self.poll_hz,
-                        root_pids=sorted(self.current_roots()), process_names=sorted(self.process_names),
-                        utc_offset=time.time() - now, watched_addresses=sorted(self.tracker.watched))
+        self.log.header("windows", self.app_id, "iphlpapi", self.poll_hz, sorted(self.current_roots()))
+        self.log.write("watch", t=self.clock(), utc=time.time(), process_names=sorted(self.process_names),
+                       watched_addresses=sorted(self.tracker.watched))
         self.thread = threading.Thread(target=self.loop, daemon=True)
         self.thread.start()
 

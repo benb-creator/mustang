@@ -155,7 +155,8 @@ class CommandLine:
             if source.exists():
                 (logs / name).write_text(source.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
         (session.folder.path / "prerequisites.json").write_text(json.dumps(result, indent=2, ensure_ascii=False))
-        zip_path = session.folder.finish(zip=True)
+        ReadmeFirst.write(session.folder.path, session.folder.path.with_suffix(".zip"), problem is None, problem)
+        zip_path = session.folder.zip()
         text = ReadmeFirst.write(session.folder.path, zip_path, problem is None, problem)
         progress("")
         for line in text.splitlines():

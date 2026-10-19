@@ -228,11 +228,12 @@ class SetupFlow:
 
 
 class ParulaSetupFlow(SetupFlow):
-    """Parula 0.9.39 with JMAP: the server's autoconfig offers no JMAP, so JMAP is set up through Parula's own
-    "Manual setup" (protocol JMAP, the server's JMAP URL). Parula's setup pages play a background video, which never
-    lets the screen settle: it is paused with its own Pause button (preparation, not a user action), and the click on
-    "Add email address", which opens a page with a new video, is a user action without a measured wait (a local page
-    switch); the email field gets its focus back after that pause, also as preparation."""
+    """Parula 0.9.39 with JMAP, the same steps as the Linux flow (benchlib/flows.py): address and password, Return
+    (Parula looks for a configuration), then its "Manual setup" with protocol JMAP and the server's JMAP URL,
+    because the server's autoconfig offers no JMAP. The setup pages play a background video, which never lets the
+    screen settle: the session pauses the first one before recording, the flow pauses the one of the mail setup page
+    with its own Pause button and clicks back into the address field (preparation, not user actions); "Add email
+    address" opens that page, a local page switch without a measured wait."""
 
     app_kind = "parula"
     start_pages = ["import-accounts", "import-addressbooks", "first-account", "setup-mail"]
@@ -240,17 +241,9 @@ class ParulaSetupFlow(SetupFlow):
     def __init__(self, protocol: str = "jmap"):
         self.protocol = protocol
 
-    @staticmethod
-    def pause_video(ctx: WindowsFlowContext) -> bool:
-        if ctx.probe.element("button.pause", timeout_s=3) is None:
-            return False
-        ctx.click("button.pause", counted=False)
-        ctx.path("video-paused")
-        return True
-
     def run(self, ctx: WindowsFlowContext):
+        after_find = ["found-config", "manual", "manual-url", "manual-url-full", "no-config", "ready"]
         page = ctx.page(self.start_pages, timeout_s=120)
-        self.pause_video(ctx)
         if page == "import-accounts":
             ctx.path("skip-import-accounts")
             ctx.click("button.skip", measure="skip-import", until=self.start_pages[1:])
@@ -262,32 +255,45 @@ class ParulaSetupFlow(SetupFlow):
         if page == "first-account":
             ctx.click("button.add_email")
             ctx.page(["setup-mail"])
-            if self.pause_video(ctx):
-                ctx.click("field.email", counted=False)
+        if ctx.probe.element("button.pause", timeout_s=3) is not None:
+            ctx.click("button.pause", counted=False)
+            ctx.click("field.email", counted=False)
+            ctx.path("video-paused")
         ctx.type("account.email", into="field.email")
         ctx.key("Return")
         ctx.type("account.password", into="field.password")
-        if self.protocol == "jmap":
-            self.manual_jmap(ctx)
-        else:
-            ctx.key("Return", measure="find-config", until=["found-config", "no-config"])
-            if ctx.page(["found-config", "no-config"]) == "no-config":
-                raise ctx.failure("Parula found no configuration for the address")
-            if ctx.probe.element("radio.imap", timeout_s=2) is not None:
-                ctx.click("radio.imap")
-            ctx.click("button.next", measure="check-login", until=["ready"])
-        ctx.page(["ready"], timeout_s=30)
+        ctx.key("Return", measure="find-config", until=after_find)
+        page = ctx.page(after_find, timeout_s=120)
+        if page == "found-config":
+            if self.protocol == "imap" or ctx.probe.element("radio.jmap", timeout_s=2) is not None:
+                ctx.path("configuration found")
+                if ctx.probe.element(f"radio.{self.protocol}", timeout_s=2) is not None:
+                    ctx.click(f"radio.{self.protocol}")
+                ctx.click("button.next", measure="check-config", until=["ready"])
+            else:
+                ctx.path("found configuration offers no JMAP: manual setup")
+                ctx.click("button.manual", measure="manual-setup", until=["manual", "manual-url", "manual-url-full"])
+                page = ctx.page(["manual", "manual-url", "manual-url-full"], timeout_s=30)
+        if page in ("manual", "manual-url", "manual-url-full", "no-config"):
+            self.manual_jmap(ctx, page)
+        ctx.page(["ready"], timeout_s=300)
         ctx.click("button.next", measure="open-inbox", until=["mail"], final=True)
 
-    def manual_jmap(self, ctx: WindowsFlowContext):
-        ctx.path("manual-jmap")
-        ctx.click("button.manual", measure="manual-setup", until=["manual", "manual-url"])
-        if ctx.page(["manual", "manual-url"]) == "manual":
+    def manual_jmap(self, ctx: WindowsFlowContext, page: str):
+        if page in ("manual", "no-config"):
             ctx.click("combo.protocol")
-            ctx.click("option.jmap", measure="choose-jmap", until=["manual-url"])
-        ctx.type("server.jmap_url", into="field.url")
-        ctx.click("button.next", measure="manual-url", until=["manual-url-full"])
-        ctx.click("button.next", measure="check-login", until=["ready"])
+            ctx.key("j")
+            ctx.key("Return")
+            page = ctx.page(["manual-url", "manual-url-full"], timeout_s=30)
+        url_field = ctx.locate("field.url")
+        if (url_field.value or "") != ctx.driver.variables.values.get("server.jmap_url"):
+            ctx.click("field.url")
+            ctx.key("ctrl+a")
+            ctx.type("server.jmap_url")
+            ctx.path("typed the JMAP URL")
+        if page == "manual-url":
+            ctx.click("button.next", measure="show-details", until=["manual-url-full"])
+        ctx.click("button.next", measure="check-config", until=["ready"])
 
 
 class OutlookClassicSetupFlow(SetupFlow):

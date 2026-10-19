@@ -301,7 +301,7 @@ def test_element_map_is_consistent_for_every_app():
         app_map = UiaAppMap.load(ELEMENTS, kind)
         assert app_map.process_names
         for name, source in app_map.sources.items():
-            assert source in ("parula-source", "assumed"), (kind, name)
+            assert source in ("parula-source", "docs", "assumed"), (kind, name)
             query = app_map.query(name)
             if query.names:
                 assert set(query.names) == {"en", "de"}, (kind, name)
@@ -335,28 +335,26 @@ def parula_pages(lang: str):
     t = {"en": {"first": "Set up your first account", "add": "Add email address", "setup": "Set up existing email address",
                 "pw": "Your password", "manual": "Manual setup", "next": "Next", "mc": "Manual configuration",
                 "auth": "Authentication method", "ready": f"{EMAIL} is working and ready", "mails": "{0} mails",
-                "imp": "Import accounts", "skip": "Skip"},
+                "imp": "Import accounts", "skip": "Skip",
+                "found": "We received the configuration from your email provider."},
          "de": {"first": "Richten Sie Ihr erstes Konto ein", "add": "E-Mail-Adresse hinzufügen",
                 "setup": "Vorhandene E-Mail-Adresse einrichten", "pw": "Ihr Passwort", "manual": "Manuelles Setup",
                 "next": "Weiter", "mc": "Manuelle Konfiguration", "auth": "Authentifizierungs-Methode",
                 "ready": f"{EMAIL} funktioniert und ist bereit", "mails": "{0} Mails", "imp": "Konten importieren",
-                "skip": "Überspringen"}}[lang]
+                "skip": "Überspringen", "found": "Wir haben die Konfiguration von Ihrem E-Mail-Anbieter erhalten."}}[lang]
     count = {"n": 0}
     pages = {
-        "import-accounts": [element("Text", t["imp"]), element("Button", t["skip"], y=600),
-                            element("Button", "Pause", y=900)],
-        "first-account": [element("Text", t["first"]), element("Button", t["add"], y=100),
-                          element("Button", "Pause", y=900)],
-        "setup-mail": [element("Text", t["setup"]), element("Edit", "you@example.com", y=100, focused=True),
+        "import-accounts": [element("Text", t["imp"]), element("Button", t["skip"], y=600)],
+        "first-account": [element("Text", t["first"]), element("Button", t["add"], y=100)],
+        "setup-mail": [element("Text", t["setup"]), element("Edit", "you@example.com", y=100),
                        element("Edit", t["pw"], y=150, is_password=True), element("Button", t["manual"], y=600),
-                       element("Button", t["next"], x=300, y=600), element("Button", "Pause", y=900)],
+                       element("Button", t["next"], x=300, y=600), element("Button", "Pause", y=900, focused=True)],
+        "found-config": [element("Text", t["found"]), element("Text", "IMAP mail.example.org", y=60),
+                         element("Button", t["manual"], y=600), element("Button", t["next"], x=300, y=600)],
         "manual": [element("Text", t["mc"]), element("ComboBox", "", y=100), element("Edit", "", x=300, y=100),
                    element("Button", t["next"], x=300, y=600)],
-        "manual-open": [element("Text", t["mc"]), element("ComboBox", "", y=100),
-                        element("ListItem", "IMAP", y=130), element("ListItem", "JMAP (alpha)", y=160),
-                        element("Button", t["next"], x=300, y=600)],
         "manual-url": [element("Text", t["mc"]), element("Text", "URL", x=10, y=80), element("ComboBox", "", y=100),
-                       element("Edit", "", x=300, y=100), element("Button", t["next"], x=300, y=600)],
+                       element("Edit", "", x=300, y=100, value=""), element("Button", t["next"], x=300, y=600)],
         "manual-url-full": [element("Text", t["mc"]), element("Text", "URL", x=10, y=80),
                             element("Text", t["auth"], x=10, y=200), element("ComboBox", "", y=100),
                             element("Edit", "", x=300, y=100), element("Button", t["next"], x=300, y=600)],
@@ -375,20 +373,23 @@ def test_parula_flow_sets_up_jmap_manually_and_waits_for_the_full_inbox(tmp_path
     app.on_click = {
         ("import-accounts", t["skip"]): lambda n: app.show("first-account"),
         ("first-account", t["add"]): lambda n: app.show("setup-mail"),
-        ("setup-mail", t["manual"]): lambda n: app.show("manual"),
-        ("manual", ""): lambda n: app.show("manual-open") if n.info.control_type == "ComboBox" else None,
-        ("manual-open", "JMAP (alpha)"): lambda n: app.show("manual-url"),
+        ("found-config", t["manual"]): lambda n: app.show("manual"),
         ("manual-url", t["next"]): lambda n: app.show("manual-url-full"),
         ("manual-url-full", t["next"]): lambda n: app.show("ready"),
         ("ready", t["next"]): lambda n: app.show("mail"),
     }
+    selected = []
 
-    def focus_password():
-        app.focus = t["pw"]
-        for n in backend.all_nodes():
-            n.info.focused = n.info.name == t["pw"]
+    def setup_return():
+        if app.focus == "you@example.com":
+            app.focus = t["pw"]
+            for n in backend.all_nodes():
+                n.info.focused = n.info.name == t["pw"]
+        elif app.focus == t["pw"]:
+            app.show("found-config")
 
-    app.on_key = {("setup-mail", "Return"): focus_password}
+    app.on_key = {("setup-mail", "Return"): setup_return, ("manual", "j"): lambda: selected.append("JMAP"),
+                  ("manual", "Return"): lambda: app.show("manual-url") if selected else None}
     ctx, log = make_context(tmp_path, app, "parula")
     original_inbox_listed = ctx.probe.inbox_listed
 
@@ -403,17 +404,17 @@ def test_parula_flow_sets_up_jmap_manually_and_waits_for_the_full_inbox(tmp_path
     assert app.typed["you@example.com"] == EMAIL
     assert app.typed[t["pw"]] == "s3cret-Pw"
     assert app.typed[""] == "https://mail.example.org/.well-known/jmap"
-    assert [s["name"] for s in ctx.steps] == ["skip-import", "manual-setup", "choose-jmap", "manual-url",
-                                               "check-login", "open-inbox"]
+    assert [s["name"] for s in ctx.steps] == ["skip-import", "find-config", "manual-setup", "show-details",
+                                               "check-config", "open-inbox"]
     assert ctx.steps[-1]["final"] and ctx.final_done
-    assert "manual-jmap" in ctx.flow_path and "video-paused" in ctx.flow_path
+    assert "found configuration offers no JMAP: manual setup" in ctx.flow_path and "video-paused" in ctx.flow_path
     assert ctx.probe.language == lang
-    # skip, add, type email, Return, type password, manual, combo, JMAP, click URL field, type URL, next, next, next
-    assert ctx.user_actions == 13
-    # pause on the first page, pause on the setup page, the email field's focus back
-    assert ctx.prep_actions == 3
+    # skip; add; type address, Return, type password, Return; manual setup; protocol, j, Return; URL field,
+    # ctrl+a, type URL; next, next, next (the same actions as the Linux flow, plus the skip of the import page)
+    assert ctx.user_actions == 16
+    assert ctx.prep_actions == 2
     assert ctx.steps[1]["actions"] == ["click button.add_email", "type “${account.email}”", "key Return",
-                                       "type the password", "click button.manual"]
+                                       "type the password", "key Return"]
     events = EventLog.read(log.path)
     probes = [e for e in events if e["type"] == "probe" and e["step"] == "open-inbox"]
     assert [p["complete"] for p in probes] == [False, False, True]
@@ -497,7 +498,7 @@ def new_outlook_pages(state):
         "success": [element("Text", "Success!"), element("Button", "Done", y=120)],
         "mail": mail,
         "settings": [element("TabItem", "Accounts", y=100), element("Button", "Close", x=1200, y=10)],
-        "accounts": [element("ListItem", "Email accounts", y=100)],
+        "accounts": [element("ListItem", "Your accounts", y=100)],
         "email-accounts": [element("Text", EMAIL, y=200), element("Button", "Manage", x=600, y=200),
                            element("Text", "ben@example.net", y=300), element("Button", "Manage", x=600, y=300)],
         "manage": [element("Button", "Remove", y=200)],
@@ -519,7 +520,7 @@ def test_new_outlook_flow_and_removal_from_all_devices(tmp_path):
                     ("success", "Done"): lambda n: app.show("mail"),
                     ("mail", "Settings"): lambda n: app.show("settings"),
                     ("settings", "Accounts"): lambda n: app.show("accounts"),
-                    ("accounts", "Email accounts"): lambda n: app.show("email-accounts"),
+                    ("accounts", "Your accounts"): lambda n: app.show("email-accounts"),
                     ("email-accounts", "Manage"): lambda n: (manage_clicked.append(n.info.rect.y), app.show("manage")),
                     ("manage", "Remove"): lambda n: app.show("remove"),
                     ("remove", "OK"): lambda n: app.show("gone")}
@@ -641,8 +642,9 @@ class ListLog:
     def __init__(self):
         self.lines = []
 
-    def header(self, **fields):
-        self.lines.append({"type": "header", **fields})
+    def header(self, os_name, app_id, source, poll_hz, root_pids):
+        self.lines.append({"type": "header", "version": 1, "os": os_name, "app": app_id, "source": source,
+                           "poll_hz": poll_hz, "root_pids": root_pids, "utc_offset": time.time() - time.perf_counter()})
 
     def write(self, type, **fields):
         self.lines.append({"type": type, **fields})
@@ -669,9 +671,10 @@ def test_watcher_writes_the_shared_network_log_format():
     header = log.lines[0]
     assert header["type"] == "header" and header["os"] == "windows" and header["source"] == "iphlpapi"
     assert header["poll_hz"] == 50 and "utc_offset" in header and header["app"] == "outlook-new"
-    kinds = [line["type"] for line in log.lines[1:]]
+    assert log.lines[1]["type"] == "watch" and log.lines[1]["process_names"] == ["olk.exe"]
+    kinds = [line["type"] for line in log.lines[2:]]
     assert kinds[:4] == ["open", "open", "close", "close"] and kinds[-1] == "stats"
-    first = log.lines[1]
+    first = log.lines[2]
     assert {"t", "utc", "pid", "process", "local", "remote", "remote_port", "state"} <= set(first)
     assert first["process"] == "msedgewebview2.exe" and first["remote_port"] == 443
     stats = log.lines[-1]

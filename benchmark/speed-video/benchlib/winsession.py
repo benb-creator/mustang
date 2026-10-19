@@ -235,7 +235,7 @@ class CoreServices:
 
     def mail_server_addresses(self) -> dict:
         from .evidence import MailServerAddresses
-        return MailServerAddresses.resolve(self.account_server().mail_hostnames())
+        return MailServerAddresses.for_server(self.account_server())
 
     def run_evidence(self, run_dir: Path, addresses: dict) -> dict:
         from .evidence import NetworkOwners, RunEvidence
@@ -625,6 +625,7 @@ class WindowsRunExecutor:
             meta["closed_cleanly"] = app.close()
             if watcher:
                 watcher.stop()
+                netlog.close()
             log.write("closed")
             log.clock("end")
             log.close()

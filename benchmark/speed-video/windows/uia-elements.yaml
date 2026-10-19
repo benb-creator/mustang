@@ -2,7 +2,9 @@
 # Names are regular expressions matched against the whole UIA Name (case-insensitive; `contains: true` searches).
 # `source` says where a name comes from:
 #   parula-source  verified in Parula's own source code at the tested release (v0.9.39: Svelte markup + l10n de)
-#   assumed        from Microsoft's documentation and screenshots of the dialogs, not checked against a UIA dump
+#   docs           the visible label as Microsoft's support articles (en-us, de-de) or setup guides quote it; that the
+#                  UIA Name equals the visible label is assumed
+#   assumed        from memory of the dialogs, not found in a document and not checked against a UIA dump
 # Pages are recognized in the order listed: a page whose elements include another page's comes first.
 # The preflight dumps every app's UI tree (preflight/<app>/*.txt in the result folder), so an assumed name that is
 # wrong shows up there; fix it here, nothing else changes.
@@ -63,13 +65,13 @@ outlook-classic:
   process_names: [outlook.exe]
   elements:
     field.email: {control_type: Edit, password: false, names: {en: "Email address", de: "E-Mail-Adresse"}, source: assumed}
-    link.advanced: {control_type: [Hyperlink, Button], names: {en: "Advanced options.*", de: "Erweiterte Optionen.*"}, source: assumed}
-    checkbox.manual: {control_type: CheckBox, names: {en: "Let me set up my account manually", de: "Ich möchte mein Konto manuell einrichten"}, source: assumed}
-    button.connect: {control_type: Button, names: {en: "Connect", de: "Verbinden"}, source: assumed}
+    link.advanced: {control_type: [Hyperlink, Button], names: {en: "Advanced options.*", de: "Erweiterte Optionen.*"}, source: docs}
+    checkbox.manual: {control_type: CheckBox, names: {en: "Let me set up my account manually", de: "Ich möchte mein Konto manuell einrichten"}, source: docs}
+    button.connect: {control_type: Button, names: {en: "Connect", de: "Verbinden"}, source: docs}
     heading.advanced_setup: {control_type: Text, names: {en: "Advanced setup", de: "Erweitertes Setup"}, source: assumed}
-    tile.imap: {control_type: [Button, ListItem], names: {en: "IMAP", de: "IMAP"}, source: assumed}
+    tile.imap: {control_type: [Button, ListItem], names: {en: "IMAP", de: "IMAP"}, source: docs}
     heading.imap_settings: {control_type: Text, names: {en: "IMAP Account Settings", de: "IMAP-Kontoeinstellungen"}, source: assumed}
-    button.next: {control_type: Button, names: {en: "Next", de: "Weiter"}, source: assumed}
+    button.next: {control_type: Button, names: {en: "Next", de: "Weiter"}, source: docs}
     field.password: {control_type: Edit, password: true, source: assumed}
     heading.done: {control_type: Text, names: {en: "Account successfully added.*", de: "(Das )?Konto (wurde )?erfolgreich hinzugefügt.*"}, source: assumed}
     checkbox.mobile: {control_type: CheckBox, names: {en: "Set up Outlook Mobile on my phone, too", de: "Outlook Mobile auch auf meinem (Telefon|Smartphone|Handy) einrichten"}, source: assumed}
@@ -97,21 +99,21 @@ outlook-new:
   process_names: [olk.exe, msedgewebview2.exe]
   elements:
     field.email: {control_type: Edit, password: false, names: {en: "Email( address)?", de: "E-Mail(-Adresse)?"}, source: assumed}
-    button.continue: {control_type: Button, names: {en: "Continue|Next", de: "Weiter|Fortfahren"}, source: assumed}
+    button.continue: {control_type: Button, names: {en: "Continue|Next|Connect", de: "Weiter|Fortfahren|Verbinden"}, source: docs}
     option.imap: {control_type: [Button, ListItem, RadioButton, MenuItem], names: {en: "IMAP", de: "IMAP"}, source: assumed}
     field.password: {control_type: Edit, password: true, source: assumed}
-    text.cloud_sync: {control_type: [Text, Group, Document], names: {en: ".*Microsoft Cloud.*", de: ".*Microsoft[- ]Cloud.*"}, contains: false, source: assumed}
-    button.done: {control_type: Button, names: {en: "Done|Skip|Maybe later|Not now", de: "Fertig|Überspringen|Vielleicht später|Jetzt nicht"}, source: assumed}
+    text.cloud_sync: {control_type: [Text, Group, Document], names: {en: ["Sync your IMAP account", ".*Microsoft Cloud.*"], de: ["IMAP-Konto synchronisieren", ".*Microsoft[- ]Cloud.*"]}, source: docs}
+    button.done: {control_type: Button, names: {en: "Done|Skip|Maybe later|Not now", de: "Fertig|Überspringen|Vielleicht später|Jetzt nicht"}, source: docs}
     heading.success: {control_type: Text, names: {en: "(Success!?|Account added.*|You're all set.*)", de: "(Erfolg(reich)?!?|Konto hinzugefügt.*|Alles bereit.*)"}, source: assumed}
     tree.inbox: {control_type: [TreeItem, ListItem, Button], names: {en: "Inbox.*", de: "Posteingang.*"}, source: assumed}
     list.messages: {control_type: [List, Group, DataGrid, Table], names: {en: "Message list.*", de: "Nachrichtenliste.*"}, source: assumed}
     list.item: {control_type: [ListItem, DataItem], source: assumed}
-    button.settings: {control_type: Button, names: {en: "Settings", de: "Einstellungen"}, source: assumed}
-    nav.accounts: {control_type: [TabItem, ListItem, Button, TreeItem, Hyperlink], names: {en: "Accounts", de: "Konten"}, source: assumed}
-    nav.email_accounts: {control_type: [TabItem, ListItem, Button, TreeItem, Hyperlink], names: {en: "Email accounts", de: "E-Mail-Konten"}, source: assumed}
-    button.manage: {control_type: Button, names: {en: "Manage.*", de: "Verwalten.*"}, source: assumed}
-    button.remove: {control_type: Button, names: {en: "Remove", de: "Entfernen"}, source: assumed}
-    option.remove_all_devices: {control_type: [Button, RadioButton, CheckBox, MenuItem], names: {en: "Remove from all devices", de: "Von allen Geräten entfernen"}, source: assumed}
+    button.settings: {control_type: [Button, MenuItem], names: {en: "Settings|View settings", de: "Einstellungen|Ansichtseinstellungen"}, source: docs}
+    nav.accounts: {control_type: [TabItem, ListItem, Button, TreeItem, Hyperlink], names: {en: "Accounts", de: "Konten"}, source: docs}
+    nav.email_accounts: {control_type: [TabItem, ListItem, Button, TreeItem, Hyperlink], names: {en: "Your accounts", de: "Ihre Konten"}, source: docs}
+    button.manage: {control_type: Button, names: {en: "Manage.*", de: "Verwalten.*"}, source: docs}
+    button.remove: {control_type: Button, names: {en: "Remove", de: "Entfernen"}, source: docs}
+    option.remove_all_devices: {control_type: [Button, RadioButton, CheckBox, MenuItem], names: {en: "Remove (it )?from all devices", de: "Von allen Geräten entfernen"}, source: docs}
     button.confirm: {control_type: Button, names: {en: "Remove|OK|Yes|Continue", de: "Entfernen|OK|Ja|Weiter"}, source: assumed}
     button.close_settings: {control_type: Button, names: {en: "Close", de: "Schließen"}, source: assumed}
   pages:
