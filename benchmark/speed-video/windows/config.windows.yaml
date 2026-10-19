@@ -1,0 +1,129 @@
+# Template of the Windows session's config. windows/winbench.py fills in the {{…}} values from the command line
+# of run-windows-tests.ps1 and the display it finds, and writes the result to <root>/state/config.yaml.
+# The password is never in a file: only in the environment variable BENCH_PASSWORD of the running script.
+
+workdir: "{{root}}/work"
+scenario_dir: "{{code}}/windows/scenarios"
+
+tools:
+  ffmpeg: "{{ffmpeg}}"
+  ffprobe: "{{ffprobe}}"
+
+server:
+  mode: account
+  host: "{{server}}"
+
+account:
+  email: "{{email}}"
+  display_name: Robin Sample
+  password_env: BENCH_PASSWORD
+
+corpus:
+  profile: inbox-30k
+  seed: 20261018
+  owner_name: Robin Sample
+  owner_address: "{{email}}"
+
+display:
+  platform: windows
+  monitor: 0
+  layout: windows-session
+  app_region: {x: 0, y: 0, width: 1280, height: 940}
+  marker: {cell: 12, position: below, gap: 4}
+
+capture:
+  fps: 60
+  draw_mouse: false
+  live_scale: 4
+  tail_s: 30
+
+settle:
+  pixel_threshold: 8
+  min_changed_pixels: 150
+  quiet_s: 1.0
+  step_timeout_s: 300
+  task_timeout_s: 7200
+  no_reaction_s: 60
+  max_gap_frames: 3
+
+runs: {measured: 5, warmup: 1, retries: 2, analyze_after_each: true}
+
+driver:
+  type_delay_ms: 40
+
+network:
+  poll_hz: 10
+
+windows:
+  elements: "{{code}}/windows/uia-elements.yaml"
+  min_free_gb: 60
+
+apps:
+  parula-jmap:
+    kind: parula
+    name: Parula
+    protocol: JMAP
+    os: Windows
+    launch: ["{{parula_exe}}"]
+    window: {timeout_s: 120}
+    close: {key: alt+F4, timeout_s: 60}
+    process_names: [parula.exe]
+    flow_options: {protocol: jmap}
+    start_quiet_s: 2
+    tail_s: 30
+    version_command: [powershell, -NoProfile, -Command, "(Get-Item '{{parula_exe}}').VersionInfo.ProductVersion"]
+    install_hint: "run-windows-tests.ps1 installs Parula when it is missing; start it again"
+  outlook-classic:
+    kind: outlook-classic
+    name: Outlook (classic)
+    protocol: IMAP
+    os: Windows
+    microsoft_ui: true
+    launch: ["{{outlook_exe}}", /profile, ParulaBench]
+    profile_name: ParulaBench
+    window: {class: rctrl_renwnd32, timeout_s: 180}
+    close: {key: alt+F4, timeout_s: 120}
+    process_names: [outlook.exe]
+    start_quiet_s: 3
+    tail_s: 30
+    version_command: [powershell, -NoProfile, -Command, "(Get-Item '{{outlook_exe}}').VersionInfo.ProductVersion"]
+    install_hint: "Install Outlook (classic) from Microsoft 365 (Office), sign in to Office once, then start the script again"
+  outlook-new:
+    kind: outlook-new
+    name: Outlook (new)
+    protocol: IMAP (via Microsoft cloud)
+    os: Windows
+    microsoft_ui: true
+    cloud_sync: true
+    launch: [explorer.exe, "shell:AppsFolder\\Microsoft.OutlookForWindows_8wekyb3d8bbwe!Microsoft.OutlookforWindows"]
+    window: {timeout_s: 180}
+    close: {key: alt+F4, timeout_s: 120}
+    process_names: [olk.exe]
+    start_quiet_s: 3
+    tail_s: 30
+    keep_after_complete_min: 3
+    keep_max_min: 120
+    min_gap_after_removal_min: 10
+    installed_check: "(Get-AppxPackage Microsoft.OutlookForWindows).Version"
+    version_command: [powershell, -NoProfile, -Command, "(Get-AppxPackage Microsoft.OutlookForWindows).Version"]
+    install_hint: "Install the new Outlook for Windows from the Microsoft Store (\"Outlook (new)\"), then start the script again"
+
+sessions:
+  windows: {apps: [parula-jmap, outlook-classic, outlook-new]}
+
+comparisons:
+  C3: {os: Windows, left: parula-jmap, right: outlook-classic, tasks: [T1], session: windows}
+  C4: {os: Windows, left: parula-jmap, right: outlook-new, tasks: [T1], session: windows}
+
+deviations:
+  - "Windows: the apps' windows were placed in the recorded area by the test script (the main window at its size and position, setup dialogs moved to its center at their own size, within 50 ms of appearing)."
+  - "Parula: the setup pages' background video was paused with its own Pause button before typing (a moving video never lets the screen settle); not counted as a user action."
+
+procedures:
+  - "Every run starts from a fresh app state: Parula without a profile, Outlook (classic) with an empty profile of its own, new Outlook without the test account (removed after every run with \"Remove from all devices\")."
+  - "Before every run the test account was checked against the corpus (message count per folder, flags, attachments) and repaired over IMAP if needed (account.json in each run)."
+  - "New Outlook: after the measured end the account stayed in new Outlook until its Inbox had listed all messages for 3 minutes (at most 2 hours), then it was removed from all devices; the next new Outlook run started at least 10 minutes after that removal."
+
+instrumentation:
+  - "UI Automation (Windows' accessibility interface) found the setup's buttons and fields and confirmed the end state (the expected page, the Inbox listing); it never gives a time. In Chromium-based apps (Parula, new Outlook) it turns on the accessibility tree for the rest of the run, the same in every run."
+  - "The TCP connection table of each app's processes (IP Helper API, 10 times per second) for the network evidence; UDP (QUIC) remote addresses can't be seen without administrator rights."

@@ -1,0 +1,15 @@
+# T1 on Windows: a new account is set up in the app's own setup, until the Inbox lists all messages of the corpus
+# (profile inbox-30k: 30,000) and the screen has settled. The steps are found at run time with UI Automation
+# (benchlib/winflows.py, element names in windows/uia-elements.yaml); every key, typed text and click of the flow
+# is a user action; each "continue"-type action starts a measured step. The step ends at the last significant
+# screen change before the app shows the expected next page (the final step: before UI Automation confirms the
+# complete Inbox listing); UI Automation never gives the time.
+id: T1
+title: {en: "New account: Inbox lists all messages", de: "Neues Konto: Posteingang listet alle Mails"}
+description: "Fresh app profile; from the first continue of the account setup until the Inbox lists all messages and has settled"
+start_state: {server: seeded, client: fresh}
+timeout_s: 7200
+apps:
+  parula-jmap: {flow: parula, protocol: jmap, tail_s: 30}
+  outlook-classic: {flow: outlook-classic, tail_s: 30}
+  outlook-new: {flow: outlook-new, tail_s: 30, finish_required: true}

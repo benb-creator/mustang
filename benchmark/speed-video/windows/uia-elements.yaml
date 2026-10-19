@@ -1,0 +1,125 @@
+# UI Automation names of the elements the Windows flows use, per app, in English (en) and German (de).
+# Names are regular expressions matched against the whole UIA Name (case-insensitive; `contains: true` searches).
+# `source` says where a name comes from:
+#   parula-source  verified in Parula's own source code at the tested release (v0.9.39: Svelte markup + l10n de)
+#   assumed        from Microsoft's documentation and screenshots of the dialogs, not checked against a UIA dump
+# Pages are recognized in the order listed: a page whose elements include another page's comes first.
+# The preflight dumps every app's UI tree (preflight/<app>/*.txt in the result folder), so an assumed name that is
+# wrong shows up there; fix it here, nothing else changes.
+
+parula:
+  process_names: [parula.exe]
+  elements:
+    heading.import_accounts: {control_type: Text, names: {en: "Import accounts", de: "Konten importieren"}, source: parula-source}
+    heading.import_addressbooks: {control_type: Text, names: {en: "Import address books", de: "Adressbücher importieren"}, source: parula-source}
+    button.skip: {control_type: Button, names: {en: "Skip", de: "Überspringen"}, source: parula-source}
+    heading.first_account: {control_type: Text, names: {en: "Set up your first account", de: "Richten Sie Ihr erstes Konto ein"}, source: parula-source}
+    button.add_email: {control_type: Button, names: {en: "Add email address", de: "E-Mail-Adresse hinzufügen"}, contains: true, source: parula-source}
+    heading.setup_mail: {control_type: Text, names: {en: "Set up existing email address", de: "Vorhandene E-Mail-Adresse einrichten"}, source: parula-source}
+    field.email: {control_type: Edit, password: false, names: {en: "you@example\\.com", de: "you@example\\.com"}, source: parula-source}
+    field.password: {control_type: Edit, password: true, source: parula-source}
+    button.next: {control_type: Button, names: {en: "Next", de: "Weiter"}, source: parula-source}
+    button.manual: {control_type: Button, names: {en: "Manual setup", de: "Manuelles Setup"}, source: parula-source}
+    button.pause: {control_type: Button, names: {en: "Pause", de: "Pause"}, source: parula-source}
+    heading.manual: {control_type: Text, names: {en: "Manual configuration", de: "Manuelle Konfiguration"}, source: parula-source}
+    combo.protocol: {control_type: ComboBox, source: parula-source}
+    option.jmap: {control_type: [ListItem, MenuItem], names: {en: "JMAP.*", de: "JMAP.*"}, source: parula-source}
+    field.url: {control_type: Edit, password: false, names: {en: "(URL)?", de: "(URL)?"}, source: parula-source}
+    label.url: {control_type: Text, names: {en: "URL", de: "URL"}, source: parula-source}
+    label.auth_method: {control_type: Text, names: {en: "Authentication method", de: "Authentifizierungs-Methode"}, source: parula-source}
+    text.found_config:
+      control_type: Text
+      names:
+        en: ["We found the configuration in our database\\.", "We received the configuration from your email provider\\.",
+             "We guessed a configuration that might work\\.", "We found a configuration", "We received the configuration.*"]
+        de: ["Wir haben die Konfiguration in unserer Datenbank gefunden\\.", "Wir haben die Konfiguration von Ihrem E-Mail-Anbieter erhalten\\.",
+             "Wir haben eine Konfiguration erraten, die vielleicht funktioniert\\.", "Wir haben eine Konfiguration gefunden", "Wir haben die Konfiguration.*"]
+      source: parula-source
+    text.no_config: {control_type: Text, names: {en: "No config found", de: "Keine Konfiguration gefunden"}, source: parula-source}
+    radio.jmap: {control_type: RadioButton, names: {en: "JMAP.*", de: "JMAP.*"}, source: parula-source}
+    radio.imap: {control_type: RadioButton, names: {en: "IMAP", de: "IMAP"}, source: parula-source}
+    text.ready: {control_type: Text, names: {en: ".* is working and ready", de: ".* funktioniert und ist bereit"}, source: parula-source}
+    text.inbox_count: {control_type: Text, names: {en: "([\\d.,\\s  ]+) mails", de: "([\\d.,\\s  ]+) Mails"}, source: parula-source}
+    text.loading: {control_type: Text, names: {en: "Loading\\.\\.\\.", de: "Wird geladen\\.\\.\\."}, source: parula-source}
+    folder.inbox: {control_type: [Text, ListItem, TreeItem, Button, Group], names: {en: "Inbox.*", de: "Posteingang.*"}, source: parula-source}
+  pages:
+    import-accounts: [heading.import_accounts, button.skip]
+    import-addressbooks: [heading.import_addressbooks, button.skip]
+    first-account: [heading.first_account, button.add_email]
+    setup-mail: [heading.setup_mail, field.email, field.password]
+    manual-url-full: [heading.manual, label.url, label.auth_method]
+    manual-url: [heading.manual, label.url]
+    manual: [heading.manual, combo.protocol]
+    found-config: [text.found_config, button.next]
+    no-config: [text.no_config]
+    ready: [text.ready, button.next]
+    mail: [text.inbox_count]
+  inbox_listed: {count: text.inbox_count}
+  verify: {keys: [End], within_s: 15}
+  deviations:
+    - "Parula: the setup pages' background video was paused with its own Pause button before typing (a moving video never lets the screen settle); not counted as a user action."
+
+outlook-classic:
+  process_names: [outlook.exe]
+  elements:
+    field.email: {control_type: Edit, password: false, names: {en: "Email address", de: "E-Mail-Adresse"}, source: assumed}
+    link.advanced: {control_type: [Hyperlink, Button], names: {en: "Advanced options.*", de: "Erweiterte Optionen.*"}, source: assumed}
+    checkbox.manual: {control_type: CheckBox, names: {en: "Let me set up my account manually", de: "Ich möchte mein Konto manuell einrichten"}, source: assumed}
+    button.connect: {control_type: Button, names: {en: "Connect", de: "Verbinden"}, source: assumed}
+    heading.advanced_setup: {control_type: Text, names: {en: "Advanced setup", de: "Erweitertes Setup"}, source: assumed}
+    tile.imap: {control_type: [Button, ListItem], names: {en: "IMAP", de: "IMAP"}, source: assumed}
+    heading.imap_settings: {control_type: Text, names: {en: "IMAP Account Settings", de: "IMAP-Kontoeinstellungen"}, source: assumed}
+    button.next: {control_type: Button, names: {en: "Next", de: "Weiter"}, source: assumed}
+    field.password: {control_type: Edit, password: true, source: assumed}
+    heading.done: {control_type: Text, names: {en: "Account successfully added.*", de: "(Das )?Konto (wurde )?erfolgreich hinzugefügt.*"}, source: assumed}
+    checkbox.mobile: {control_type: CheckBox, names: {en: "Set up Outlook Mobile on my phone, too", de: "Outlook Mobile auch auf meinem (Telefon|Smartphone|Handy) einrichten"}, source: assumed}
+    button.done: {control_type: Button, names: {en: "Done", de: "Fertig"}, source: assumed}
+    heading.error: {control_type: Text, names: {en: "Something went wrong.*", de: "(Es ist ein Fehler aufgetreten|Fehler).*"}, source: assumed}
+    status.items: {control_type: [Text, Button, StatusBar, Custom], names: {en: "Items: ([\\d.,\\s  ]+)", de: "Elemente: ([\\d.,\\s  ]+)"}, source: assumed}
+    status.unread: {control_type: [Text, Button, StatusBar, Custom], names: {en: "Unread: ([\\d.,\\s  ]+)", de: "Ungelesen: ([\\d.,\\s  ]+)"}, source: assumed}
+    status.up_to_date: {control_type: [Text, Button, StatusBar, Custom], names: {en: "All folders are up to date\\.?", de: "Alle Ordner sind auf dem neuesten Stand\\.?"}, source: assumed}
+    list.messages: {control_type: [Table, DataGrid, List], names: {en: "Table View|Message list", de: "Tabellenansicht|Nachrichtenliste"}, source: assumed}
+    privacy.next: {control_type: Button, names: {en: "Next|Accept|Close|OK", de: "Weiter|Akzeptieren|Schließen|OK"}, source: assumed}
+  pages:
+    password: [field.password, button.connect]
+    account-email: [field.email, button.connect]
+    advanced-setup: [heading.advanced_setup, tile.imap]
+    imap-settings: [heading.imap_settings, button.next]
+    done: [heading.done, button.done]
+    error: [heading.error]
+    mail: [status.items]
+  inbox_listed: {count: status.items, idle: status.up_to_date}
+  verify: {keys: [End], within_s: 30}
+  interruptions:
+    privacy: {require: [{control_type: Text, names: {en: ".*(respects your privacy|Your privacy option|optional (diagnostic )?data).*", de: ".*(Datenschutz|Privatsphäre|optionale).*"}}], click: privacy.next}
+
+outlook-new:
+  process_names: [olk.exe, msedgewebview2.exe]
+  elements:
+    field.email: {control_type: Edit, password: false, names: {en: "Email( address)?", de: "E-Mail(-Adresse)?"}, source: assumed}
+    button.continue: {control_type: Button, names: {en: "Continue|Next", de: "Weiter|Fortfahren"}, source: assumed}
+    option.imap: {control_type: [Button, ListItem, RadioButton, MenuItem], names: {en: "IMAP", de: "IMAP"}, source: assumed}
+    field.password: {control_type: Edit, password: true, source: assumed}
+    text.cloud_sync: {control_type: [Text, Group, Document], names: {en: ".*Microsoft Cloud.*", de: ".*Microsoft[- ]Cloud.*"}, contains: false, source: assumed}
+    button.done: {control_type: Button, names: {en: "Done|Skip|Maybe later|Not now", de: "Fertig|Überspringen|Vielleicht später|Jetzt nicht"}, source: assumed}
+    heading.success: {control_type: Text, names: {en: "(Success!?|Account added.*|You're all set.*)", de: "(Erfolg(reich)?!?|Konto hinzugefügt.*|Alles bereit.*)"}, source: assumed}
+    tree.inbox: {control_type: [TreeItem, ListItem, Button], names: {en: "Inbox.*", de: "Posteingang.*"}, source: assumed}
+    list.messages: {control_type: [List, Group, DataGrid, Table], names: {en: "Message list.*", de: "Nachrichtenliste.*"}, source: assumed}
+    list.item: {control_type: [ListItem, DataItem], source: assumed}
+    button.settings: {control_type: Button, names: {en: "Settings", de: "Einstellungen"}, source: assumed}
+    nav.accounts: {control_type: [TabItem, ListItem, Button, TreeItem, Hyperlink], names: {en: "Accounts", de: "Konten"}, source: assumed}
+    nav.email_accounts: {control_type: [TabItem, ListItem, Button, TreeItem, Hyperlink], names: {en: "Email accounts", de: "E-Mail-Konten"}, source: assumed}
+    button.manage: {control_type: Button, names: {en: "Manage.*", de: "Verwalten.*"}, source: assumed}
+    button.remove: {control_type: Button, names: {en: "Remove", de: "Entfernen"}, source: assumed}
+    option.remove_all_devices: {control_type: [Button, RadioButton, CheckBox, MenuItem], names: {en: "Remove from all devices", de: "Von allen Geräten entfernen"}, source: assumed}
+    button.confirm: {control_type: Button, names: {en: "Remove|OK|Yes|Continue", de: "Entfernen|OK|Ja|Weiter"}, source: assumed}
+    button.close_settings: {control_type: Button, names: {en: "Close", de: "Schließen"}, source: assumed}
+  pages:
+    imap-form: [field.password, button.continue]
+    add-account: [field.email, button.continue]
+    choose-provider: [option.imap]
+    cloud-sync: [text.cloud_sync, button.continue]
+    success: [heading.success]
+    mail: [tree.inbox]
+  inbox_listed: {set_size: list.item, unread: tree.inbox}
+  verify: {keys: [End], within_s: 900, repeat_s: 3}
