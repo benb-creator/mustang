@@ -30,7 +30,7 @@ param(
     [string]$Password,
     [string]$Root = '',
     [string]$CodeRepo = 'benb-creator/mustang',
-    [string]$CodeRef = 'claude/speed-benchmark-video',
+    [string]$CodeRef = 'da4eb4108aaedb0462b696b1e713f61d6996179a',
     [switch]$CheckOnly
 )
 
