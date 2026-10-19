@@ -23,7 +23,7 @@
       <RibbonButton label={$t`Delete`} icon={DeleteIcon}
         onClick={onDelete}
         disabled={!$selectedPersons.hasItems && $t`Select a contact first`}
-        shortCutInfo={$t`Del`} />
+        shortCutInfo={$t`Del *=> Delete key`} />
     </RibbonGroup>
     <RibbonGroup label={$t`Communicate`}>
       <RibbonButton label={$t`Email`} icon={MailIcon}

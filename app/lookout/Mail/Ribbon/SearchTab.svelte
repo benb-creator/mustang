@@ -91,7 +91,7 @@
   </RibbonGroup>
   <RibbonGroup label={$t`Close`}>
     <RibbonButton label={$t`Close Search`} icon={CloseIcon}
-      onClick={() => { dispatch("close"); }} shortCutInfo={$t`Esc`} />
+      onClick={() => { dispatch("close"); }} shortCutInfo={$t`Esc *=> Escape key`} />
   </RibbonGroup>
 </RibbonTab>
 

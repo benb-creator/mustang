@@ -3,7 +3,7 @@
     <MenuItem
       label={$t`Open`}
       icon={OpenIcon}
-      shortCutInfo={$t`Enter`}
+      shortCutInfo={$t`Enter *=> RETURN key`}
       onClick={() => ContactActions.edit(contacts[0])} />
     <MenuDivider />
   {/if}
@@ -36,7 +36,7 @@
   <MenuItem
     label={$t`Delete`}
     icon={DeleteIcon}
-    shortCutInfo={$t`Del`}
+    shortCutInfo={$t`Del *=> Delete key`}
     onClick={() => ContactActions.deleteContacts(contacts)} />
   <SubMenu label={$t`Move`} icon={MoveIcon}>
     {#each sections as section}

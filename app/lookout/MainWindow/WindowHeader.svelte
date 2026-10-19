@@ -99,7 +99,7 @@
       run: () => MessageActions.respond(get(selectedArray)[0], get(selectedArray)[0].compose.replyAll()) },
     { id: "mail.forward", label: $t`Forward`, icon: ForwardIcon, shortCutInfo: $t`Ctrl+F`, disabled: noSingle,
       run: () => MessageActions.forward(get(selectedArray)[0]) },
-    { id: "mail.delete", label: $t`Delete`, icon: DeleteIcon, shortCutInfo: $t`Del`, disabled: noSelection,
+    { id: "mail.delete", label: $t`Delete`, icon: DeleteIcon, shortCutInfo: $t`Del *=> Delete key`, disabled: noSelection,
       run: async () => { await Promise.all(get(selectedArray).map(message => message.deleteMessage())); } },
     { id: "mail.print", label: $t`Print`, icon: PrintIcon, shortCutInfo: $t`Ctrl+P`, disabled: noSingle,
       run: () => { $printMessage = get(selectedArray)[0]; } },

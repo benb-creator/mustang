@@ -1,4 +1,4 @@
-<MenuItem label={$t`Open`} icon={OpenIcon} shortCutInfo={$t`Enter`}
+<MenuItem label={$t`Open`} icon={OpenIcon} shortCutInfo={$t`Enter *=> RETURN key`}
   onClick={() => openEvent(event, true)} />
 {#if event.isIncomingMeeting && !event.isCancelled}
   <MenuDivider />
@@ -29,7 +29,7 @@
 {:else if isRecurring}
   <SubMenu label={$t`Delete`} icon={DeleteIcon}>
     {#if !event.isIncomingMeeting}
-      <MenuItem label={$t`Delete Occurrence`} icon={DeleteIcon} shortCutInfo={$t`Del`}
+      <MenuItem label={$t`Delete Occurrence`} icon={DeleteIcon} shortCutInfo={$t`Del *=> Delete key`}
         onClick={() => CalendarActions.deleteOccurrence(event)} />
       {#if event.seriesStatus == "middle"}
         <MenuItem label={$t`Delete This and Following`} icon={DeleteIcon}
@@ -43,7 +43,7 @@
   <MenuItem label={$t`Cancel Meeting`} icon={CancelIcon}
     onClick={() => CalendarActions.cancelMeeting(event)} />
 {:else}
-  <MenuItem label={$t`Delete`} icon={DeleteIcon} shortCutInfo={$t`Del`}
+  <MenuItem label={$t`Delete`} icon={DeleteIcon} shortCutInfo={$t`Del *=> Delete key`}
     onClick={() => CalendarActions.deleteOccurrence(event)} />
 {/if}
 

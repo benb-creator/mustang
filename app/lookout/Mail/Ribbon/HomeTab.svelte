@@ -23,10 +23,10 @@
     </RibbonMenuButton>
     <RibbonButton label={$t`Delete`} icon={DeleteIcon}
       onClick={async () => { await Promise.all(messages.map(message => message.deleteMessage())); }}
-      disabled={noSelection} shortCutInfo={$t`Del`} />
+      disabled={noSelection} shortCutInfo={$t`Del *=> Delete key`} />
     <RibbonButton label={$t`Archive`} icon={ArchiveIcon}
       onClick={() => MessageActions.archive(messages)}
-      disabled={noSelection} shortCutInfo={$t`Backspace`} />
+      disabled={noSelection} shortCutInfo={$t`Backspace *=> Backspace key`} />
   </RibbonGroup>
   <RibbonGroup label={$t`Respond`}>
     <RibbonButton label={$t`Reply`} icon={ReplyIcon} size="small"
