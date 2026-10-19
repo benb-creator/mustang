@@ -139,12 +139,19 @@ class Prerequisites:
         except Exception as ex:
             return [Check("Mail account reachable", False, f"{type(ex).__name__}: {ex}",
                           "Check the server name, the e-mail address and the password")]
-        counts = ", ".join(f"{name} {v.get('actual')}/{v.get('expected')}" for name, v in
-                           (report.get("folders") or {}).items())
+        folders = (report.get("before") or report).get("folders") or {}
+        counts = ", ".join(f"{name} {v.get('actual')}/{v.get('expected')}" for name, v in folders.items())
         return [Check("Mail account reachable", True, f"logged in ({report.get('protocol', 'imap')})"),
                 Check("Mail account seeded", bool(report.get("ok")), counts or "no folder counts",
                       "The account isn't seeded with the test messages (or differs from them). Seeding is done "
                       "once by the Parula team: please tell them, and run this script again afterwards.")]
+
+    def power(self) -> Check:
+        on_ac = self.desktop.on_ac_power()
+        return Check("Power supply", on_ac is not False, {True: "plugged in", False: "on battery",
+                                                          None: "unknown"}[on_ac],
+                     "Plug in the power supply: on battery Windows slows the computer down")
+
 
     def running_apps(self) -> Check:
         names = [n for app_id in self.config.group_apps(self.first_comparison())
@@ -159,7 +166,7 @@ class Prerequisites:
                         fatal=False)]
         checks += self.apps()
         display, plan = self.display()
-        checks += [display, self.disk(root), self.ffmpeg(), self.running_apps()]
+        checks += [display, self.disk(root), self.ffmpeg(), self.power(), self.running_apps()]
         checks += self.account()
         ok = all(c.ok or not c.fatal for c in checks)
         return {"ok": ok, "checks": [c.to_dict() for c in checks], "display": plan,
@@ -593,7 +600,7 @@ class WindowsRunExecutor:
             marker.close()
             marker = None
             verify = ctx.verify()
-            (run_dir / "verify.json").write_text(json.dumps(verify, indent=2, ensure_ascii=False))
+            (run_dir / "verify.json").write_text(json.dumps(verify, indent=2, ensure_ascii=False, default=str))
             try:
                 meta["after_run"] = adapter.after_run(ctx, meta["status"] == "complete")
             except Exception as ex:

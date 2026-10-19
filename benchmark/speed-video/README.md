@@ -35,6 +35,81 @@ bench.py all        env, run, analyze, compose, encode, verify for one compariso
 Every stage reads and writes files under `workdir`, so each one can be re-run on its own (`run` resumes
 completed runs; `analyze --force` re-analyzes them).
 
+## Windows tests: run once
+
+The Windows tests (C3, C4) are one script that runs everything by itself. **Untested**: it was written without a
+Windows machine (see "What is verified" below).
+
+**The command** (PowerShell, as the normal Windows user, no administrator rights; it asks for the password without
+showing it):
+
+```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/mustang-im/mustang/master/benchmark/speed-video/windows/run-windows-tests.ps1 -OutFile run-windows-tests.ps1
+powershell -ExecutionPolicy Bypass -File .\run-windows-tests.ps1 -Server mail.example.org -Email test@example.org
+```
+
+(From a checkout of the repository: `powershell -ExecutionPolicy Bypass -File windows\run-windows-tests.ps1 …`;
+`-Password <pw>` is accepted too, but then the password is visible in the process list; `-CheckOnly` only checks
+the prerequisites.) It creates the folder `parula-speed-test\` where it is started and keeps everything there.
+
+**What it needs:** 64-bit Windows 10 (1809 or later) or 11; Outlook (classic) from Microsoft 365, started and
+signed in to Office once; the new Outlook for Windows ("Outlook (new)" from the Microsoft Store) **without
+accounts** (or a separate Windows user just for the test); about 60 GB free disk space; the power supply plugged
+in; the test account seeded by us (the script checks it and stops if not). Display scaling 100 % is best; other
+scalings work when the screen fits a 1280×940 window at that scaling.
+
+**What it does:** fetches pinned tools into `parula-speed-test\tools\` (portable Python 3.13.16, numpy, Pillow,
+PyYAML, comtypes, ffmpeg 8.1.2; each file checked by SHA-256) and installs Parula 0.9.39 for the current user if
+Parula is missing; checks the prerequisites (apps installed and closed, display, disk, ffmpeg's `ddagrab`, the
+account reachable and seeded); asks to close other open apps (waits up to 10 minutes); runs a **preflight** (each
+app starts from a fresh state and its automation finds the first page of its account setup; a 2-second capture
+test) and stops early with diagnostics if anything fails; then runs the series: Parula (JMAP), Outlook (classic),
+new Outlook, interleaved, 1 warm-up + 5 measured runs each, every run a new account setup, recorded from the
+screen (ffmpeg `ddagrab`, lossless, with sync markers), with the account checked (and repaired) before every run
+and the TCP connections of each app's processes logged 10 times a second. Runs that fail for a technical reason
+are recorded again at the end. Finally it analyzes everything and writes the result folder and a zip of it.
+
+**How long:** typically 6–12 hours, depending mostly on new Outlook (its account is kept until its Inbox lists
+all messages, at most 2 hours per run, then removed; the next new Outlook run starts at least 10 minutes later).
+
+**Meanwhile:** don't use the computer (no mouse, no keyboard), don't lock it (Windows+L stops the screen
+capture), don't open apps, keep it plugged in. Sleep and the screen saver are suspended while it runs. Ctrl+C in
+its window stops it and still undoes everything.
+
+**What it changes, and undoes at the end** (also after an error, Ctrl+C or a crash: the next start undoes what a
+crashed session left, from `parula-speed-test\state\session-state.json`):
+- power plan "High performance" when the computer has it, Windows notifications (toasts) off;
+- Parula: a Parula profile of this Windows user (`%APPDATA%\Parula`, `%USERPROFILE%\Parula`) is moved aside and
+  moved back; Parula's update check is off (`resources\app-update.yml` renamed back afterwards); the benchmark's
+  own Parula profile is deleted after every run;
+- Outlook (classic): its own profile `ParulaBench` (`outlook.exe /profile ParulaBench`), deleted after every run
+  with the test account's data files and its Credential Manager entries; the user's own profiles and files are
+  never touched;
+- new Outlook: the test account is added in every run and removed with "Remove from all devices";
+- the console window is minimized when it covers the recorded area.
+Parula stays installed if the script installed it (uninstall in Settings → Apps if wanted).
+
+**The result:** `parula-speed-test\results-windows-<yyyymmdd-hhmm>\` with all recordings, logs and measurements
+(layout in "Result folder format"), `results-windows-<yyyymmdd-hhmm>.zip` next to it, and `README-FIRST.txt` in
+the folder, which says where both are, how big, and what to send us (the zip; through a cloud drive link, it is
+too large for e-mail). On a stop, the folder holds the diagnostics: `preflight\` (UI Automation trees and
+screenshots of every app's first setup page) and `runs\<app>\T1\<run>\screenshots\`.
+
+**How the flows work** (`benchlib/winflows.py`, element names in `windows/uia-elements.yaml`): UI Automation
+finds each setup page and its buttons and fields by name and control type, in English and German (the UI language
+is detected from the names that match); input goes through `SendInput` at the elements' screen positions, like a
+user's. Each app's default setup path is taken; the pages that appear decide the next action, and the path is
+recorded (`flow_path` in `meta.json`). Every "continue"-type action starts a measured step, which ends at the last
+significant screen change before UI Automation confirms the next page (the last step: the complete Inbox listing:
+Outlook's "Items: N" in its status bar, Parula's "N mails", new Outlook's list size or Inbox unread count); after
+the measured end, the newest message is selected and End must bring the corpus's oldest message into view
+(`verify.json`). UI Automation never gives the time.
+
+**What is verified, what is assumed:** Parula's element names are taken from its source at v0.9.39 (English and
+the German translations). Outlook's and new Outlook's names are the visible labels in Microsoft's support articles
+(`source: docs`) or remembered (`source: assumed`); none was checked against a real UI Automation tree. The
+preflight writes those trees, so a wrong name shows up there and is fixed in `windows/uia-elements.yaml` only.
+
 ## Prerequisites
 
 Linux (C1, C2):
@@ -50,15 +125,11 @@ Linux (C1, C2):
   no auto-updater, unlike the AppImage). Thunderbird from the official tarball, extracted to
   `tools/thunderbird/`, with `tools/thunderbird/distribution/policies.json` = `{"policies": {"DisableAppUpdate": true}}`.
 
-Windows (C3, C4), **untested** — written without access to a Windows machine:
-- Python 3.10+ (`pip install -r requirements.txt`; python-xlib is skipped), ffmpeg ≥ 7 with `ddagrab`
-  (gyan.dev "full" or BtbN builds), the built-in OpenSSH client for the server snapshots and the server log.
-- Input goes through `SendInput` (ctypes, `benchlib/windows.py`), the sync marker is a topmost popup window,
-  capture is ffmpeg `ddagrab` (Desktop Duplication) + `hwdownload`, ffmpeg's CPU affinity is set with
-  `SetProcessAffinityMask`. The driver is per-monitor DPI aware; use 100 % display scaling. Before every key or
-  typed text the driver checks that the app's window is in the foreground (it brings it there with
-  `AttachThreadInput` + `SetForegroundWindow`); if that fails, the run fails and nothing is typed.
-- A dedicated Windows user for benchmarking: client snapshots replace that user's app data folders.
+Windows (C3, C4): `windows/run-windows-tests.ps1` fetches everything it needs, see "Windows tests: run once".
+Input goes through `SendInput` (ctypes, `benchlib/windows.py`), the sync marker is a topmost popup window, capture
+is ffmpeg `ddagrab` (Desktop Duplication) + `hwdownload`, ffmpeg's CPU affinity is set with
+`SetProcessAffinityMask`; the driver is per-monitor DPI aware and checks before every key or typed text that the
+app's window is in the foreground, else the run fails and nothing is typed.
 
 ## The dedicated benchmark Stalwart instance (on the public host)
 
@@ -388,6 +459,9 @@ python -m pytest tests/                                     # settle detection i
                                                            # narration, spoken durations, method templates,
                                                            # speech; corpus profiles and determinism
 BENCH_VOICEOVER=<voice-over dir> python -m pytest tests/   # also every real variant and method template
+BENCH_PWSH=<pwsh> BENCH_PSSA=<PSScriptAnalyzer module dir> python -m pytest tests/test_windows.py
+                                                           # Windows logic with fakes, plus the PowerShell script
+                                                           # parsed and checked for Windows PowerShell 5.1
 tests/e2e_fake.py --work /tmp/e2e --tools <dir with ffmpeg, Xvfb, xdotool>
 tests/snapshot_check.py --config config.yaml [--protocol-level]
 ```

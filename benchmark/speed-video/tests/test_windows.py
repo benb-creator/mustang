@@ -420,8 +420,18 @@ def test_parula_flow_sets_up_jmap_manually_and_waits_for_the_full_inbox(tmp_path
     assert [p["complete"] for p in probes] == [False, False, True]
     assert probes[-1]["listed"] == 30000
     assert all(e.get("arg") != "s3cret-Pw" for e in events)
-    starts = [e["step"] for e in events if e["type"] == "step_start"]
-    assert starts == [s["name"] for s in ctx.steps]
+    starts = [e for e in events if e["type"] == "step_start"]
+    assert [e["step"] for e in starts] == [s["name"] for s in ctx.steps]
+    # what the shared analysis rebuilds the steps from (Step.from_checks) and where each step ended
+    assert starts[-1]["checks"]["complete"] == "inbox_listed" and starts[-1]["checks"]["after_end"] == "fail"
+    assert starts[1]["checks"]["complete"].startswith("page:") and not starts[1]["checks"]["verify_probe"]
+    settled = [e for e in events if e["type"] == "step_live_settled"]
+    assert [e["step"] for e in settled] == [s["name"] for s in ctx.steps]
+    assert all(e["confirmed_at"] >= e["live_end"] for e in settled)
+    assert [e["phase"] for e in events if e["type"] == "input" and e["phase"] != "step"] == ["prepare", "prepare"]
+    summary = ctx.summary()
+    assert summary["action_list"][:2] == ["click button.skip", "click button.add_email"]
+    assert summary["preparations"] == ["click button.pause", "click field.email"]
 
 
 def test_unknown_page_stops_the_flow_with_a_ui_dump(tmp_path):
@@ -551,6 +561,9 @@ def test_new_outlook_flow_and_removal_from_all_devices(tmp_path):
     app.on_key = {("mail", "End"): press_end}
     verify = ctx.verify()
     assert verify["inbox_complete"] and verify["oldest_visible"] and verify["newest_visible"]
+    assert verify["step"] == "open-inbox" and verify["oldest_subject"] == "Oldest subject in the corpus"
+    kinds = [e["type"] for e in EventLog.read(log.path)]
+    assert kinds.index("verify_start") < kinds.index("verify_end")
     assert verify["listed"] == 30000 and verify["basis"] == "count"
     verify_inputs = [e for e in EventLog.read(log.path) if e["type"] == "input" and e["phase"] == "verify"]
     assert [e["action"] for e in verify_inputs] == ["click", "key"]
@@ -1030,3 +1043,73 @@ exit $found.Count
     out = subprocess.run([os.environ["BENCH_PWSH"], "-NoProfile", "-NonInteractive", "-Command", command],
                          capture_output=True, text=True, env={**os.environ, "NO_COLOR": "1"}, timeout=600)
     assert out.returncode == 0, out.stdout + out.stderr
+
+
+class PrereqDesktop:
+    def __init__(self, work_area=Rect(0, 0, 1920, 1032), scale=100, on_ac=True, running=()):
+        self.work_area, self.scale, self.on_ac, self.running = work_area, scale, on_ac, set(running)
+
+    def primary_monitor(self):
+        return {"monitor": Rect(0, 0, self.work_area.width, self.work_area.height + 48), "work_area": self.work_area}
+
+    def scale_percent(self):
+        return self.scale
+
+    def on_ac_power(self):
+        return self.on_ac
+
+    def running_image_names(self):
+        return self.running
+
+
+class PrereqCore:
+    def __init__(self, report=None, error=None):
+        self.report, self.error = report, error
+
+    def check_account(self, repair):
+        assert repair is False
+        if self.error:
+            raise self.error
+        return self.report
+
+
+def prereq_commands(command, **_):
+    text = " ".join(command)
+    out = {"-filters": " ... ddagrab V->V Grab Windows desktop", "-encoders": " V..... libx264rgb"}
+    stdout = next((v for k, v in out.items() if text.endswith(k)), "")
+    if "Win32_OperatingSystem" in text:
+        stdout = "Microsoft Windows 11 Pro"
+    if "Get-AppxPackage" in text:
+        stdout = "1.2026.1001.400"
+    return subprocess.CompletedProcess(command, 0, stdout, "")
+
+
+def test_prerequisites_report_what_to_fix(tmp_path):
+    config, _ = session_config(tmp_path)
+    (tmp_path / "Programs" / "parula").mkdir(parents=True)
+    (tmp_path / "Programs" / "parula" / "Parula.exe").write_text("")
+    seeded = {"ok": True, "protocol": "imap", "before": {"ok": True, "folders": {"Inbox": {"expected": 30000,
+                                                                                    "actual": 30000}}}}
+    from benchlib.winsession import Prerequisites
+    good = Prerequisites(config, PrereqDesktop(), PrereqCore(seeded), lambda m: None, prereq_commands).run(tmp_path)
+    names = {c["name"]: c for c in good["checks"]}
+    assert names["Parula installed"]["ok"] and names["Outlook (new) installed"]["ok"]
+    assert not names["Outlook (classic) installed"]["ok"]
+    assert "Microsoft 365" in names["Outlook (classic) installed"]["fix"]
+    assert names["ffmpeg with ddagrab and libx264rgb"]["ok"] and names["Mail account seeded"]["ok"]
+    assert good["display"]["ok"] and not good["ok"]
+
+    unseeded = {"ok": False, "before": {"ok": False, "folders": {"Inbox": {"expected": 30000, "actual": 12}}}}
+    bad = Prerequisites(config, PrereqDesktop(Rect(0, 0, 1280, 672), 150, on_ac=False, running={"olk.exe"}),
+                        PrereqCore(unseeded), lambda m: None, prereq_commands).run(tmp_path)
+    names = {c["name"]: c for c in bad["checks"]}
+    assert not names["Display"]["ok"] and "100 %" in names["Display"]["fix"]
+    assert not names["Power supply"]["ok"] and names["Power supply"]["fatal"]
+    assert not names["The test apps are closed"]["ok"] and "olk.exe" in names["The test apps are closed"]["fix"]
+    assert not names["Mail account seeded"]["ok"] and "Seeding is done once" in names["Mail account seeded"]["fix"]
+    assert "Inbox 12/30000" in names["Mail account seeded"]["detail"]
+
+    unreachable = Prerequisites(config, PrereqDesktop(), PrereqCore(error=OSError("connection refused")),
+                                lambda m: None, prereq_commands).run(tmp_path)
+    check = next(c for c in unreachable["checks"] if c["name"] == "Mail account reachable")
+    assert not check["ok"] and "connection refused" in check["detail"]

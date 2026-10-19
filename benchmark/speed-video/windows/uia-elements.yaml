@@ -90,7 +90,7 @@ outlook-classic:
     done: [heading.done, button.done]
     error: [heading.error]
     mail: [status.items]
-  inbox_listed: {count: status.items, idle: status.up_to_date}
+  inbox_listed: {count: status.items, idle: status.up_to_date, list: list.messages}
   verify: {keys: [End], within_s: 30}
   interruptions:
     privacy: {require: [{control_type: Text, names: {en: ".*(respects your privacy|Your privacy option|optional (diagnostic )?data).*", de: ".*(Datenschutz|Privatsphäre|optionale).*"}}], click: privacy.next}
@@ -123,5 +123,5 @@ outlook-new:
     cloud-sync: [text.cloud_sync, button.continue]
     success: [heading.success]
     mail: [tree.inbox]
-  inbox_listed: {set_size: list.item, unread: tree.inbox}
+  inbox_listed: {set_size: list.item, unread: tree.inbox, list: list.messages}
   verify: {keys: [End], within_s: 900, repeat_s: 3}

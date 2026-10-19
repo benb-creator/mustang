@@ -345,6 +345,17 @@ class WindowsDesktop:
 
         return {"monitor": rect(info.rcMonitor), "work_area": rect(info.rcWork)}
 
+    def on_ac_power(self) -> bool | None:
+        class SYSTEM_POWER_STATUS(ctypes.Structure):
+            _fields_ = [("ACLineStatus", ctypes.c_ubyte), ("BatteryFlag", ctypes.c_ubyte),
+                        ("BatteryLifePercent", ctypes.c_ubyte), ("SystemStatusFlag", ctypes.c_ubyte),
+                        ("BatteryLifeTime", wintypes.DWORD), ("BatteryFullLifeTime", wintypes.DWORD)]
+
+        status = SYSTEM_POWER_STATUS()
+        if not self.kernel32.GetSystemPowerStatus(ctypes.byref(status)):
+            return None
+        return {0: False, 1: True}.get(status.ACLineStatus)
+
     def ui_language(self) -> str:
         lang_id = self.kernel32.GetUserDefaultUILanguage()
         return {0x07: "de", 0x09: "en"}.get(lang_id & 0x3FF, f"0x{lang_id:04x}")

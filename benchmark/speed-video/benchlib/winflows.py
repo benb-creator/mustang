@@ -58,9 +58,12 @@ class WindowsFlowContext:
         self.user_actions = 0
         self.prep_actions = 0
         self.pending: list[str] = []
+        self.action_list: list[str] = []
+        self.preparations: list[str] = []
         self.waited_s = 0.0
         self.final_done = False
         self.phase = "step"
+        self.verify_result: dict | None = None
 
     @property
     def log(self) -> EventLog:
@@ -92,7 +95,7 @@ class WindowsFlowContext:
             self.driver.show_marker(f"step:{measure}")
         t_before = EventLog.now()
         t_after = self.driver.perform(action)
-        phase = self.phase if counted else "prep"
+        phase = self.phase if counted else "prepare"
         fields = {"phase": phase, "action": action.kind, "arg": self.driver.loggable_arg(action), "t_before": t_before}
         if measure:
             fields["step"] = measure
@@ -100,12 +103,21 @@ class WindowsFlowContext:
         if counted and self.phase == "step":
             self.user_actions += action.user_action_count
             self.pending.append(action.describe())
+            self.action_list.append(action.describe())
         elif not counted:
             self.prep_actions += 1
+            self.preparations.append(action.describe())
         if measure:
-            self.log.write("step_start", t=t_after, step=measure, measure=True)
+            self.log.write("step_start", t=t_after, step=measure, measure=True, checks=self.checks(until, final))
             self.wait(measure, t_after, until, final)
         return t_after
+
+    @staticmethod
+    def checks(until: list[str] | None, final: bool) -> dict:
+        """What the shared analysis needs to rebuild the step (`Step.checks`, benchlib/scenario.py)."""
+        complete = "inbox_listed" if final else ("page:" + ",".join(until) if until else None)
+        return {"complete": complete, "verify_probe": final, "after_end": "fail" if final else "report",
+                "first_visible_list": final, "settle": {}, "timeout_s": None, "expect": "none"}
 
     def click(self, element: str, measure: str | None = None, until: list[str] | None = None, final: bool = False,
               counted: bool = True, timeout_s: float | None = None):
@@ -160,6 +172,7 @@ class WindowsFlowContext:
         quiet = self.quiet_s
         cursor = since
         became_final = final
+        last_change = None
         while True:
             remaining = deadline - EventLog.now()
             if remaining <= 0:
@@ -167,23 +180,31 @@ class WindowsFlowContext:
                 raise StepTimeout(step, limit)
             status, info = live.wait_settled(cursor, quiet, remaining, step, expect_change=expect_change,
                                              no_reaction_s=self.no_reaction_s if expect_change else None)
-            self.log.write(f"step_live_{status.replace('-', '_')}", step=step, limit_s=limit, **info)
             if status == "timeout":
+                self.log.write("step_live_timeout", step=step, limit_s=limit, **info)
                 raise StepTimeout(step, limit)
             if status == "no-reaction":
+                self.log.write("step_live_no_reaction", step=step, limit_s=limit, **info)
                 raise NoReaction(f"Step '{step}': no screen change within {self.no_reaction_s:.0f} s after its "
                                  f"input (a missed click or key?)")
+            if info.get("live_end") is not None:
+                last_change = info["live_end"]
+            t_probe = EventLog.now()
             ok, now_final, details = self.confirmed(step, until, became_final)
             became_final = became_final or now_final
-            self.log.write("probe", step=step, final=became_final, **{**details, "complete": ok})
+            check = "inbox_listed" if became_final else "page"
+            self.log.write("probe", step=step, check=check, t_before=t_probe, final=became_final,
+                           **{**details, "complete": ok})
             if ok:
-                still, still_info = live.wait_settled(EventLog.now(), quiet, quiet + 5, step, expect_change=False)
-                if still_info.get("live_end") is None:
+                _, still = live.wait_settled(EventLog.now(), quiet, quiet + 5, step, expect_change=False)
+                if still.get("live_end") is None:
+                    self.log.write("step_live_settled", step=step, limit_s=limit, live_end=last_change,
+                                   live_quiet_s=quiet, confirmed_at=t_probe, live_matched=True)
                     break
             cursor = EventLog.now()
             expect_change = False
             quiet = self.probe_interval_s if became_final else self.quiet_s
-        ended = info.get("live_end") or EventLog.now()
+        ended = last_change or EventLog.now()
         self.waited_s += max(0.0, ended - since)
         self.steps.append({"name": step, "actions": self.pending, "final": became_final})
         self.pending = []
@@ -191,16 +212,29 @@ class WindowsFlowContext:
             self.final_done = True
 
     def summary(self) -> dict:
-        return {"user_actions": self.user_actions, "prep_actions": self.prep_actions, "flow_path": self.flow_path,
-                "steps": self.steps, "language": self.probe.language, "final_done": self.final_done}
+        """The run's meta.json fields of the shared result folder format."""
+        return {"user_actions": self.user_actions, "action_list": self.action_list, "prepare_actions": self.prep_actions,
+                "preparations": self.preparations, "flow_path": self.flow_path, "steps": self.steps,
+                "language": self.probe.language, "final_done": self.final_done,
+                "inbox_complete": (self.verify_result or {}).get("inbox_complete")}
 
     def verify(self) -> dict:
+        """After the measured end; `verify_start` ends the last step's analysis window."""
+        step = self.steps[-1]["name"] if self.steps else None
+        self.log.write("verify_start", step=step, method=self.probe.method)
         self.phase = "verify"
         self.probe.inputs = VerifyInputs(self)
         try:
-            return self.probe.verify(self.expected)
+            result = self.probe.verify(self.expected)
+        except Exception as ex:
+            result = {"version": 1, "method": self.probe.method, "inbox_complete": False,
+                      "error": self.driver.variables.redact(f"{type(ex).__name__}: {ex}")}
         finally:
             self.phase = "step"
+        result["step"] = step
+        self.verify_result = result
+        self.log.write("verify_end", step=step, inbox_complete=result.get("inbox_complete"))
+        return result
 
 
 class VerifyInputs:

@@ -1,5 +1,6 @@
 import re
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -240,10 +241,16 @@ class UiaProbe:
             count_ok, basis = bool(listed["complete"]), "unread count"
         else:
             count_ok, basis = True, "oldest message only"
+        list_element = self.cached_element(self.map.inbox_listed["list"]) if self.map.inbox_listed.get("list") else None
+        list_rect = list_element.rect if list_element is not None else None
         return {"version": 1, "method": "uia", "inbox_complete": oldest is not None and count_ok, "basis": basis,
-                "listed": listed["listed"], "expected": expected.get("inbox_messages"),
+                "listed": listed["listed"], "listed_text": listed.get("count_text") or listed.get("unread_text"),
+                "expected": expected.get("inbox_messages"),
                 "oldest_subject": expected.get("inbox_oldest_subject"), "oldest_visible": oldest is not None,
-                "newest_visible": newest is not None, "checked_t": time.perf_counter(),
+                "newest_subject": expected.get("inbox_newest_subject"), "newest_visible": newest is not None,
+                "list_rect": {"x": list_rect.x, "y": list_rect.y, "w": list_rect.width, "h": list_rect.height}
+                if list_rect else None,
+                "checked_utc": datetime.now(timezone.utc).isoformat(),
                 "details": {"listed": listed, "seconds": round(self.clock() - started, 2), "keys": keys,
                             "language": self.language}}
 
