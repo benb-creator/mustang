@@ -174,7 +174,8 @@ class UiaProbe:
         matched = self.map.query(element).name_match(found.name, self.tree.ordered_languages())
         if matched and matched[1] is not None and matched[1].groups():
             return CountText.parse(matched[1].group(1)), found.name
-        return CountText.parse(re.sub(r"\D", "", found.name) or None), found.name
+        first = re.search(r"\d[\d.,\u00a0\u202f']*", found.name)
+        return CountText.parse(first.group(0) if first else None), found.name
 
     def inbox_listed(self, expected: dict) -> dict:
         strategy = self.map.inbox_listed

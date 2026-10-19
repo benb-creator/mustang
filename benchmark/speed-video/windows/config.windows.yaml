@@ -18,11 +18,11 @@ account:
   display_name: Robin Sample
   password_env: BENCH_PASSWORD
 
-corpus:
+corpus:                              # the same corpus as the Linux config (seeded once by the Parula team)
   profile: inbox-30k
   seed: 20261018
   owner_name: Robin Sample
-  owner_address: "{{email}}"
+  owner_address: robin.sample@example.com
 
 display:
   platform: windows

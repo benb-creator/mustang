@@ -106,6 +106,7 @@ outlook-new:
     button.done: {control_type: Button, names: {en: "Done|Skip|Maybe later|Not now", de: "Fertig|Überspringen|Vielleicht später|Jetzt nicht"}, source: docs}
     heading.success: {control_type: Text, names: {en: "(Success!?|Account added.*|You're all set.*)", de: "(Erfolg(reich)?!?|Konto hinzugefügt.*|Alles bereit.*)"}, source: assumed}
     tree.inbox: {control_type: [TreeItem, ListItem, Button], names: {en: "Inbox.*", de: "Posteingang.*"}, source: assumed}
+    tree.inbox_unread: {control_type: [TreeItem, ListItem, Button], names: {en: "Inbox\\W+([\\d.,\u00a0\u202f]+)\\s+unread.*", de: "Posteingang\\W+([\\d.,\u00a0\u202f]+)\\s+ungelesen.*"}, source: assumed}
     list.messages: {control_type: [List, Group, DataGrid, Table], names: {en: "Message list.*", de: "Nachrichtenliste.*"}, source: assumed}
     list.item: {control_type: [ListItem, DataItem], source: assumed}
     button.settings: {control_type: [Button, MenuItem], names: {en: "Settings|View settings", de: "Einstellungen|Ansichtseinstellungen"}, source: docs}
@@ -123,5 +124,5 @@ outlook-new:
     cloud-sync: [text.cloud_sync, button.continue]
     success: [heading.success]
     mail: [tree.inbox]
-  inbox_listed: {set_size: list.item, unread: tree.inbox, list: list.messages}
+  inbox_listed: {set_size: list.item, unread: tree.inbox_unread, list: list.messages}
   verify: {keys: [End], within_s: 900, repeat_s: 3}

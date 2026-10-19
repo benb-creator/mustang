@@ -225,10 +225,34 @@ class WindowsDesktop:
         return Rect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
 
     def place_window(self, hwnd, region: Rect, offsets: dict):
+        """Windows 10/11 windows have invisible resize borders around their visible frame: without explicit
+        offsets, the window is moved a second time so that its visible frame (DWM) covers the region exactly."""
         self.user32.ShowWindow(hwnd, 9)
         self.user32.MoveWindow(hwnd, region.x + int(offsets.get("x", 0)), region.y + int(offsets.get("y", 0)),
                                region.width + int(offsets.get("width", 0)),
                                region.height + int(offsets.get("height", 0)), True)
+        if offsets:
+            return
+        outer, visible = self.window_geometry(hwnd), self.visible_frame(hwnd)
+        if visible is None or visible == outer:
+            return
+        left, top = visible.x - outer.x, visible.y - outer.y
+        right = outer.x + outer.width - visible.x - visible.width
+        bottom = outer.y + outer.height - visible.y - visible.height
+        self.user32.MoveWindow(hwnd, region.x - left, region.y - top, region.width + left + right,
+                               region.height + top + bottom, True)
+
+    def visible_frame(self, hwnd) -> Rect | None:
+        DWMWA_EXTENDED_FRAME_BOUNDS = 9
+        rect = wintypes.RECT()
+        try:
+            dwmapi = ctypes.WinDLL("dwmapi")
+        except OSError:
+            return None
+        if dwmapi.DwmGetWindowAttribute(wintypes.HWND(hwnd), DWMWA_EXTENDED_FRAME_BOUNDS, ctypes.byref(rect),
+                                        ctypes.sizeof(rect)) != 0:
+            return None
+        return Rect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
 
     def window_process_id(self, hwnd) -> int:
         pid = wintypes.DWORD()

@@ -512,6 +512,11 @@ class WindowsRunExecutor:
         session = self.session
         adapter = session.adapters[app_id]
         run_dir = self.run_dir(comparison, task, app_id, run_id)
+        min_free_gb = float(self.config.get("windows.min_free_gb_per_run", 15))
+        free_gb = shutil.disk_usage(session.folder.path).free / 1e9
+        if free_gb < min_free_gb:
+            raise WindowsBenchError(f"Only {free_gb:.0f} GB free on the results drive; a run needs {min_free_gb:.0f} GB "
+                                    f"for its recording, so the series stops here (the runs so far are kept)")
         if run_dir.exists():
             shutil.rmtree(run_dir)
         (run_dir / "screenshots").mkdir(parents=True)
