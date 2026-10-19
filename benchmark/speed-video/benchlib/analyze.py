@@ -597,10 +597,12 @@ class Aggregator:
 
 
 class ReportWriter:
-    def __init__(self, results: dict, deviations: list[str], procedures: list[str] | None = None):
+    def __init__(self, results: dict, deviations: list[str], procedures: list[str] | None = None,
+                 instrumentation: list[str] | None = None):
         self.results = results
         self.deviations = deviations
         self.procedures = procedures or []
+        self.instrumentation = instrumentation or []
 
     @staticmethod
     def seconds(value) -> str:
@@ -620,17 +622,19 @@ class ReportWriter:
 
     def write(self, path: Path):
         r = self.results
+        account_mode = r.get("server_mode", "account") == "account"
         lines = ["# Speed benchmark report", "",
                  f"Generated {r['generated']}. Median of {r['runs']['measured']} measured runs per app and task, "
                  f"after {r['runs']['warmup']} discarded warm-up run(s) each.", "",
                  "## Method", "",
-                 "- Same computer, OS, display resolution, window size, network, server and account snapshot for both apps.",
+                 "- Same computer, OS, display resolution, window size, network, server and "
+                 + ("test account" if account_mode else "server snapshot") + " for both apps.",
                  "- Apps recorded one after another, never at the same time; run order interleaved (A B A B …). A run "
                  "that failed for a technical reason is recorded again at the end of the series (listed below); "
                  "timeouts and differing results are never recorded again.",
                  ("- Before every run the test account was checked against the corpus (every message by its "
                   "Message-ID, folder and flags) and repaired over IMAP where an earlier run had changed it; every "
-                  "run starts with a fresh app profile." if r.get("server_mode", "account") == "account" else
+                  "run starts with a fresh app profile." if account_mode else
                   "- Server and client state restored from the same snapshot before every run."),
                  "- Screen recording (lossless, 60 fps) runs during every measured run of every app; ffmpeg pinned "
                  "to its own CPU core where the OS allows it. The mouse pointer is moved out of the recorded area "
@@ -642,6 +646,8 @@ class ReportWriter:
                  "- The video shows the median run, synchronized at the start of each task.", "",
                  "## Deviations from default settings", ""]
         lines += [f"- {d}" for d in self.deviations] or ["- none"]
+        if self.instrumentation:
+            lines += ["", "## Instrumentation", ""] + [f"- {i}" for i in self.instrumentation]
         if self.procedures:
             lines += ["", "## Procedure notes", ""] + [f"- {p}" for p in self.procedures]
         lines += ["", "## Settle detection parameters", "", "```json", json.dumps(r.get("settle", {}), indent=2), "```",

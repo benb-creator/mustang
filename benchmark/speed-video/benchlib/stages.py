@@ -346,8 +346,8 @@ class Pipeline:
                 evidence["comparisons"][cid] = data["evidence"]
                 evidence["env"].update({f"{cid}.{k}": v for k, v in data["evidence"]["values"].items()})
         folder.evidence_path.write_text(json.dumps(evidence, indent=2, ensure_ascii=False))
-        ReportWriter(results, self.deviations("en"), list(self.config.get("procedures") or [])).write(
-            folder.report_path)
+        ReportWriter(results, self.deviations("en"), list(self.config.get("procedures") or []),
+                     list(self.config.get("instrumentation") or [])).write(folder.report_path)
         return results
 
     def deviations(self, language: str) -> list[str]:

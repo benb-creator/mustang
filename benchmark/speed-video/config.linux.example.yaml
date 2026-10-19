@@ -147,7 +147,6 @@ instrumentation:
   - "Client-side network evidence: the TCP connections of each app's processes are read from /proc ten times a second."
 
 procedures:
-  - "Before every run the test account is checked against the corpus (every message by its Message-ID, folder and flags) and repaired over IMAP if an earlier run changed it; every run starts with a fresh app profile."
   - "Neither app keeps the password in the desktop keyring: Parula stores it encrypted in its own profile, Thunderbird in its profile's logins.json; both profiles are new in every run."
 
 publish:
