@@ -3,7 +3,7 @@ import type { TJMAPCalendarEvent, TJSCalendarAlert, TJSCalendarRecurrenceRule, T
 import { Frequency, RecurrenceRule, type RecurrenceInit } from "../RecurrenceRule";
 import { InvitationResponse } from "../Invitation/InvitationStatus";
 import { Participant } from "../Participant";
-import { k1DayS, k1HourS, k1MinuteS } from "../../../frontend/Util/date";
+import { k1DayS, k1HourS, k1MinuteS } from "../../util/date";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { NotImplemented, assert } from "../../util/util";
 import { ArrayColl } from "svelte-collections";
@@ -29,10 +29,9 @@ export class JSCalendarEvent {
 
     // Time
     event.startTime = this.toDate(jmap.start, jmap);
-    event.endTime = new Date(event.startTime.getTime() +
-      toSeconds(sanitize.nonemptystring(jmap.duration, "PT0S")) * 1000);
     event.timezone = jmap.timeZone ?? null;
     event.allDay = sanitize.boolean(jmap.showWithoutTime, false);
+    event.duration = toSeconds(sanitize.nonemptystring(jmap.duration, "PT0S"));
 
     // Reminder. We support only one alarm per event, so take the first.
     event.alarm = this.toAlarm(Object.values(jmap.alerts ?? {})[0], event);
@@ -85,20 +84,27 @@ export class JSCalendarEvent {
     // Meeting with other participants
     event.isCancelled = jmap.status == "cancelled";
     if (jmap.participants) {
+      let organizer = toEmailAddress(jmap.organizerCalendarAddress);
       let participants = new ArrayColl<Participant>();
       for (let id in jmap.participants) {
         let participant = jmap.participants[id];
+        let emailAddress = toEmailAddress(participant.calendarAddress);
         let response =
-          participant.roles?.owner ? InvitationResponse.Organizer :
+          organizer && organizer == emailAddress ? InvitationResponse.Organizer :
             !participant.participationStatus || participant.participationStatus == "needs-action" ? InvitationResponse.NoResponseReceived :
               participant.participationStatus == "accepted" ? InvitationResponse.Accept :
                 participant.participationStatus == "declined" ? InvitationResponse.Decline :
                   participant.participationStatus == "tentative" ? InvitationResponse.Tentative :
                     InvitationResponse.Unknown;
-        let p = new Participant(participant.email, participant.name, response);
+        let p = new Participant(emailAddress, participant.name, response);
         participants.add(p);
       }
       event.participants.replaceAll(participants);
+      let myIdentities = event.calendar?.identitiesAvailable.contents ?? [];
+      let me = participants.find(p => myIdentities.some(identity => identity.isEMailAddress(p.emailAddress)));
+      if (me) {
+        event.myParticipation = me.response;
+      }
     }
 
     event.color = sanitize.nonemptystring(jmap.color, null);
@@ -234,8 +240,9 @@ export class JSCalendarEvent {
       jmap.participants ??= {};
       for (let id of Object.keys(jmap.participants)) {
         let participant = jmap.participants[id];
-        let p = participant.email
-          ? event.participants.find(p => p.emailAddress == participant.email)
+        let emailAddress = toEmailAddress(participant.calendarAddress);
+        let p = emailAddress
+          ? event.participants.find(p => p.emailAddress?.toLowerCase() == emailAddress)
           : event.participants.find(p => p.name == participant.name);
         if (!p) {
           delete jmap.participants[id];
@@ -256,17 +263,19 @@ export class JSCalendarEvent {
       }
       // Add the participants that are not in the JSCalendar event yet
       for (let p of event.participants) {
-        let existing = Object.values(jmap.participants).find(participant => participant.email
-          ? participant.email == p.emailAddress
-          : participant.name == p.name);
+        let existing = Object.values(jmap.participants).find(participant => {
+          let emailAddress = toEmailAddress(participant.calendarAddress);
+          return emailAddress
+            ? emailAddress == p.emailAddress?.toLowerCase()
+            : participant.name == p.name;
+        });
         if (existing) {
           continue;
         }
         jmap.participants[crypto.randomUUID()] = {
           "@type": "Participant",
           name: p.name,
-          email: p.emailAddress,
-          sendTo: p.emailAddress ? { imip: "mailto:" + p.emailAddress } : undefined,
+          calendarAddress: p.emailAddress ? "mailto:" + p.emailAddress : undefined,
           roles: p.response == InvitationResponse.Organizer ? { owner: true } : { attendee: true },
           participationStatus:
             p.response == InvitationResponse.Accept ? "accepted" :
@@ -275,8 +284,12 @@ export class JSCalendarEvent {
             "needs-action",
         };
       }
-    } else if (jmap.participants) {
+      if (event.organizer?.emailAddress) {
+        jmap.organizerCalendarAddress = "mailto:" + event.organizer.emailAddress;
+      }
+    } else {
       delete jmap.participants;
+      delete jmap.organizerCalendarAddress;
     }
 
     jmap.color = event.color;
@@ -364,6 +377,14 @@ function fromSeconds(seconds: number): string {
     return sign + "PT" + abs / k1MinuteS + "M";
   }
   return sign + "PT" + abs + "S";
+}
+
+/**
+ * @param calendarAddress mailto: URI, e.g. "mailto:fred@example.com"
+ * @returns e.g. "fred@example.com", or null, if it's not a mailto: URI with a valid email address
+ */
+function toEmailAddress(calendarAddress: string | undefined): string | null {
+  return sanitize.emailAddress(calendarAddress?.replace(/^mailto:/i, ""), null);
 }
 
 const kLocationNameDescriptionSeparator = "\n---\n";
