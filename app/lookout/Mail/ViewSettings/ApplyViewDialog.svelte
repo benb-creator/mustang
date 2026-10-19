@@ -84,7 +84,6 @@
   .account {
     padding: 6px 8px 2px 8px;
     font-weight: 600;
-    font-size: 13px;
   }
   .folder {
     min-height: 26px;

@@ -183,7 +183,7 @@
     background-color: transparent;
     color: inherit;
     font-family: inherit;
-    font-size: 15px;
+    font-size: var(--lo-font-size);
     text-align: start;
   }
   .nav-item.back {

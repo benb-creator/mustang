@@ -111,7 +111,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
   }
   .summary.disabled {
     color: var(--lo-fg-secondary);

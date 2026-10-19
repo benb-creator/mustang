@@ -31,7 +31,4 @@
   .page-icon {
     color: var(--lo-accent-text);
   }
-  .description {
-    font-size: 15px;
-  }
 </style>
