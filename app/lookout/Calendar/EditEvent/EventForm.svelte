@@ -157,9 +157,6 @@
     border-block-end-color: var(--lo-accent);
     box-shadow: 0 1px 0 0 var(--lo-accent);
   }
-  .field.title {
-    font-size: 18px;
-  }
   .field.attendees {
     align-items: center;
   }

@@ -229,7 +229,7 @@
     background: none;
     color: var(--lo-fg);
     font: inherit;
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
     cursor: pointer;
     z-index: 1;
   }

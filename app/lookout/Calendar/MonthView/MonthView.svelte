@@ -61,7 +61,7 @@
   .weekday {
     padding: 6px 8px;
     border-inline-start: 1px solid var(--lo-divider);
-    font-size: 13px;
+    font-size: var(--lo-font-size-small);
     color: var(--lo-fg-secondary);
     white-space: nowrap;
     overflow: hidden;
