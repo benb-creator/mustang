@@ -10,6 +10,8 @@ files:
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  # Test-only binary, left over from a source build with one arch. Breaks the Mac universal build.
+  - '!**/node_modules/better-sqlite3/build/Release/test_extension.node'
 asarUnpack:
   - resources/**
 win:
