@@ -7,7 +7,7 @@ Lookout (`app/lookout/`) is the Outlook-like frontend. It shows some components 
 - Lookout has one global stylesheet, `lookout/app.css`. Lookout's MainWindow adds it as a `<style>` element when Lookout starts, and removes it when the user switches back to Parula.
 - The main trick is the second `:root` block in `lookout/app.css`: the classic variables (`--bg`, `--selected-bg`, `--hover-bg`, `--leftbar-bg`, `--appbar-bg`, `--border-radius`, ...) are set to Lookout's `--lo-*` palette. Every frontend/ component that uses those variables gets Lookout's colors, in light and dark mode, with no change to the component. That is most of what Web apps, Files, Chat, Meet and Topic get.
 - The same file sets the font, and adds a few global rules (scrollbars, text selection, focus ring, checkboxes, popup menus) and the generic list classes `nav-list` and `nav-entry`.
-- Margins, radius and spacing are not changed inside frontend/ components, with one exception: the Web apps store categories use `nav-list` and `nav-entry` (see 1.6). Otherwise Lookout only puts each frontend app into a card with rounded corners and an 8px margin. Setup, the frontend settings pages and the notification bar also get `:global(...)` overrides.
+- Where a frontend component needs a different shape or spacing in Lookout, the component itself has `:global(.lookout) .foo` rules, like the `:global(.mobile) .foo` rules for mobile (see 1.5). Lookout doesn't add CSS variables for single components to `app.css`, because that doesn't scale. The Web apps store categories also use `nav-list` and `nav-entry` (see 1.6). Setup, the frontend settings pages and the notification bar also get `:global(...)` overrides from Lookout components.
 - What can't be changed globally: px sizes, hard-coded colors (e.g. Parula teal `#20AE9E`) and px font sizes in frontend/ scoped CSS, plus the iframes that show mail and event bodies.
 - Mail, Calendar, People, the Settings window, app bar, ribbon, dialogs and menus are Lookout's own components, which use `--lo-*` directly.
 
@@ -19,7 +19,7 @@ Lookout (`app/lookout/`) is the Outlook-like frontend. It shows some components 
 - `frontend/MainWindow/MainWindow.svelte` reads the `appearance.frontend` setting. If it's "lookout", it loads `lookout/MainWindow/MainWindow.svelte` lazily with `import()`.
 - `lookout/MainWindow/MainWindow.svelte` imports `../app.css?inline`, so Vite returns the CSS as a string and doesn't apply it. The component puts the string into a `<style>` at the end of `<head>` and removes it in `onDestroy`. A comment there says why: if the user switches to the classic frontend at runtime, the global CSS has to go away.
 - That `<style>` comes after `frontend/app.css`, so its `:root` rules win at equal specificity. The mapping block isn't inside the dark `@media` block. It points to `--lo-*` variables, which have their own dark values (the `@media (prefers-color-scheme: dark)` block in `lookout/app.css`), so dark mode works for every mapped variable.
-- Lookout's root element has the classes `main-window desktop lookout-window` (`lookout/MainWindow/MainWindow.svelte`). `main-window` is needed: the global FastList hover rules in `frontend/app.css` start with `.main-window:not(.mobile)`, and they apply in Lookout because of it.
+- Lookout's root element has the classes `main-window desktop lookout` (`lookout/MainWindow/MainWindow.svelte`). `main-window` is needed: the global FastList hover rules in `frontend/app.css` start with `.main-window:not(.mobile)`, and they apply in Lookout because of it.
 
 ### 1.2 Variable mapping: colors
 
@@ -46,23 +46,28 @@ Caveat: the custom colors from Parula's Appearance settings (Background, Center,
 
 ### 1.3 Font
 
-- `lookout/app.css` sets `font-family: var(--lo-font)` (Segoe UI Variable, Segoe UI, system-ui) on `:root`, which replaces Karla (the `font-family` on `:root` in `frontend/app.css`). Its `body` rule sets 14px. The `.lookout-window` rule in `lookout/MainWindow/MainWindow.svelte` sets both again.
+- `lookout/app.css` sets `font-family: var(--lo-font)` (Segoe UI Variable, Segoe UI, system-ui) on `:root`, which replaces Karla (the `font-family` on `:root` in `frontend/app.css`). Its `body` rule sets 14px. The `.lookout` rule in `lookout/MainWindow/MainWindow.svelte` sets both again.
 - This reaches all frontend text that doesn't set its own font.
 - It doesn't reach px font sizes in frontend scoped CSS (63 declarations in 55 files, e.g. the buttons in `frontend/Shared/Button.svelte`). It also doesn't reach the global classes `.font-smallest/.font-small/.font-normal/.font-large` (`frontend/app.css`, 12/14/16/24px), which Lookout doesn't override.
 
 ### 1.4 Global rules in `lookout/app.css`
 
 - `*::selection` (text selection), `:focus-visible` (focus ring, replaces the one in `frontend/app.css`), `::-webkit-scrollbar*` (scrollbars), and `accent-color` of native checkboxes and radio buttons. All of these are colors.
-- `.lookout-window .popup > .menu`: border, 8px radius and popup shadow for frontend popup menus (`frontend/Shared/Popup.svelte`, `frontend/Shared/Menu/Menu.svelte`). `.popup` keeps its own 5px radius and shadow (`Popup.svelte`).
-- `.lookout-window .checkbox ...`: colors for the frontend `Shared/Checkbox.svelte`.
+- `.lookout .popup > .menu`: border, 8px radius and popup shadow for frontend popup menus (`frontend/Shared/Popup.svelte`, `frontend/Shared/Menu/Menu.svelte`). `.popup` keeps its own 5px radius and shadow (`Popup.svelte`).
+- `.lookout .checkbox ...`: colors for the frontend `Shared/Checkbox.svelte`.
 - `.lo-card`, `.lo-secondary`, `.lo-text-field`: helper classes. Only Lookout's own components use them.
-- `.lookout-window .nav-list ...`: the shared style of navigation lists, see 1.6.
+- `.lookout .nav-list ...`: the shared style of navigation lists, see 1.6.
 
-### 1.5 Wrappers and `:global(...)` overrides in Lookout components
+### 1.5 `:global(.lookout)` rules in frontend components, and wrappers and overrides in Lookout components
 
-- `lookout/AppsBar/AppContentRoutes.svelte` wraps the chat, files, meet, topic, webapp, settings, login and app-menu routes in `<vbox class="frontend-page">`. Its `.frontend-page` rule gives a 4px 8px 8px 8px margin, the pane background, `--lo-radius` (8px), a card shadow, and `overflow: hidden`. For these apps, this is the only change to spacing and radius (apart from the store categories, see 1.6), and it's around the whole app, not inside it.
+- frontend/ components with Lookout rules: `:global(.lookout) .foo` in the component's own `<style>`, next to the classic rule it changes. `.foo` is always a class of that component, so the rule stays scoped. Currently:
+  - controls: `Shared/Button.svelte` (small radius, 32px high, accent hover of filled buttons), `Shared/RoundButton.svelte` (small radius, accent hover of filled buttons), `Shared/IslandSwitcher.svelte` (small radius, no overlap, bold selected button), `Shared/SearchField.svelte` (small radius, input background), `Shared/HeaderGroupBox.svelte` (no box, header with a line below, like Lookout's sections)
+  - panes, each one its own card like in Mail and Contacts: `Chat/ChatAppD.svelte`, `Files/FilesAppD.svelte`, `Settings/Window/SettingsApp.svelte`, `WebApps/WebAppsApp.svelte`. The navigation panes sit on the window background without shadow: `Files/LeftPane/LeftPane.svelte`, `Settings/Window/CategoriesPane.svelte`, `WebApps/Shop/WebAppStore.svelte`
+  - persons list like in Contacts: `Contacts/Person/PersonsList.svelte`, `Contacts/Person/PersonLine.svelte`, `Files/LeftPane/PersonsPane.svelte`
+- The `:global(.lookout)` prefix makes such a rule one class more specific than the classic rule. A caller's own override of the component, e.g. the flat buttons of `Shared/Toolbar/Toolbar.svelte`, can then lose in Lookout. The Button rules therefore wrap their `:not(.plain)` in `:where()`.
+- `lookout/AppsBar/AppContentRoutes.svelte` wraps the meet, topic, login and app-menu routes in `<vbox class="frontend-page">`. Its `.frontend-page` rule gives a 4px 8px 8px 8px margin, the pane background, `--lo-radius` (8px), a card shadow, and `overflow: hidden`. The chat, files, webapp and settings routes get `<vbox class="frontend-panes">` instead, which only has a margin, because their panes are cards themselves.
 - `lookout/Setup/SetupRoutes.svelte` wraps frontend Setup. It hides the background video, turns `.page-box` into a card (margin, radius, border, shadow), and sets the heading weight and input font.
-- `lookout/Settings/Window/MainContent.svelte` restyles frontend settings pages shown in Lookout's Settings window: `h2` size, `.group` margin, border, radius and padding, `.button` radius and padding, input font. It sets `--headerbar-bg: transparent`, the only place where Lookout sets a classic variable for a subtree only.
+- `lookout/Settings/Window/MainContent.svelte` restyles frontend settings pages shown in Lookout's Settings window: `h2` size, `.group` bottom margin, group header font size, input font. It sets `--headerbar-bg: transparent`, the only place where Lookout sets a classic variable for a subtree only.
 - `lookout/MainWindow/MainWindow.svelte` restyles the frontend NotificationBar with `.app-area > :global(.notification-bar ...)` rules (margin, radius, infobar colors, and it hides the leading spacer, so the message is left-aligned). Its `.sidebar` rule gives the Meet sidebar a shadow.
 - Lookout's own components that embed frontend parts override them for that one place: FastList rows (`lookout/Contacts/Person/PersonsList.svelte`, `PersonsTable.svelte`, `lookout/Mail/Rules/Rules.svelte`, `lookout/Mail/Composer/SelectNamesDialog.svelte`), and HTMLEditor (`lookout/Mail/Composer/MailComposer.svelte`, which changes the blockquote border from teal to the accent color).
 - Most of the ~250 `:global(...)` rules in lookout/ style Lookout's own child elements and icons, not frontend components.
@@ -80,7 +85,7 @@ Navigation lists share one style instead, defined once in `lookout/app.css`:
 - Each list keeps its own height, padding and indentation. Sub-entries are indented with padding inside the entry, not with a margin, so their highlight fills the line like a main entry.
 - Users: the Settings categories (`lookout/Settings/Window/CategoriesPane.svelte`, `CategoryItem.svelte`, `AccountItem.svelte`, `AccountsList.svelte`), the address book list in People (`lookout/Contacts/AddressbookSelector.svelte`, `AddressbookItem.svelte`) and the Web apps store categories (`frontend/WebApps/Shop/WebAppStore.svelte`, `CategoryEntry.svelte`).
 - The store is a frontend component. Its markup only carries the two class names. frontend/ has no CSS for them, so Parula's store looks the same as before.
-- The rules start with `.lookout-window .nav-list`, so they win over the store's own scoped selection rules (up to specificity 0,4,0).
+- The rules start with `.lookout .nav-list`, so they win over the store's own scoped selection rules (up to specificity 0,4,0).
 
 ### 1.7 What can't be changed globally today
 
@@ -119,11 +124,11 @@ Navigation lists share one style instead, defined once in `lookout/app.css`:
 
 This CSS reaches it in Lookout, from the outside in:
 
-1. The card around the whole Web apps app (`.frontend-page` in `lookout/AppsBar/AppContentRoutes.svelte`).
+1. The store is in the `.main-pane` card of `WebAppsApp.svelte` (see 1.5).
 2. The `.categories` pane in `WebAppStore.svelte`:
    - background and text from `--leftbar-bg/fg`, which in Lookout are white and Lookout's text color
    - padding 40px at the top and 24px at the bottom. In Lookout, its class `nav-list` adds 4px at the sides.
-   - a hard-coded shadow `rgba(22, 12, 39, 8%)`
+   - a hard-coded shadow `rgba(22, 12, 39, 8%)`, which its `:global(.lookout)` rule removes
    - the class `font-small` makes it 14px (`frontend/app.css`). The font family comes from `lookout/app.css`.
 3. `.category` in `CategoryEntry.svelte`. Rows have 6px/24px padding, and selection and hover use `--selected-bg/-fg`, `--hover-bg/-fg` and `--selected-hover-bg/-fg`. Through the variable mapping, these are already Lookout's colors in light and dark mode: pale blue selection (dark blue in dark mode), grey hover, normal text color.
 4. The class `nav-entry` on the rows (see 1.6). In Lookout, it gives the rows the 4px radius, bold text and the accent bar when selected, and keeps the selection color when the selected row is hovered, the same as in the Settings categories.
@@ -132,8 +137,8 @@ The launch bar next to the store uses `--appbar-bg` (`LauncherBar/LaunchBar.svel
 
 ### Files (`frontend/Files/`)
 
-1. The same card wrapper.
-2. Left pane (`LeftPane/LeftPane.svelte`): `--leftbar-bg` makes it white. The shadow `rgba(0, 0, 0, 10%)` is hard-coded.
+1. The main pane and the right pane are cards (`FilesAppD.svelte`, see 1.5).
+2. Left pane (`LeftPane/LeftPane.svelte`): `--leftbar-bg` makes it white. Its `:global(.lookout)` rule removes the hard-coded shadow `rgba(0, 0, 0, 10%)`.
 3. The account list and folder tree are FastList and FastTree (`FolderLeftPane/AccountList.svelte`, `FolderLeftPane/FolderList.svelte`).
    - Selection and hover come from the global `.fast-list .row` rules in `frontend/app.css`, so they have Lookout's colors.
    - Row padding is `0 5px` (`frontend/Shared/FastList.svelte`).
@@ -146,26 +151,26 @@ The launch bar next to the store uses `--appbar-bg` (`LauncherBar/LaunchBar.svel
 
 The store categories have it already, with `nav-list` and `nav-entry` (see 1.6). Their frontend markup only needed the two class names. For the Files lists, there are two ways:
 
-A. Only lookout/ files, with `:global` overrides in `lookout/AppsBar/AppContentRoutes.svelte`, or in `lookout/app.css` under `.lookout-window`:
+A. Only lookout/ files, with `:global` overrides in `lookout/AppsBar/AppContentRoutes.svelte`, or in `lookout/app.css` under `.lookout`:
    - Files table: radius on `.frontend-page :global(.files-list .line.selected > :first-child)` and on `:last-child`, with the accent bar on the first cell. The same for hover.
    - Files left pane: `.fast-list .row.selected > *`. In `lookout/app.css`, this would also change Lookout's own FastList lists (Contacts, Select Names, Rules), which already have their own rules.
    - Each override needs the wrapper prefix to beat the scoped rule, because Svelte adds a class to it (`.line.selected` becomes specificity 0,3,0).
    - Downside: it depends on frontend's internal class names (`.line`, `.row`, `.selected`), and nothing in frontend/ shows that Lookout uses them. The generic class names avoid that, as in the store.
 
-B. Shared: the frontend row rules read variables whose defaults are Parula's current values, and Lookout sets the variables once in `lookout/app.css`. This touches `FileLine.svelte`, `DirectoryLine.svelte` and the `.fast-list .row` rules in `frontend/app.css`, plus about 3 lines in `lookout/app.css`. Parula's look doesn't change. See recommendation 3.
+B. In the frontend components: `:global(.lookout)` rules in `FileLine.svelte` and `DirectoryLine.svelte`, next to their classic row rules (see 1.5). Parula's look doesn't change. See recommendation 3.
 
 ## 4. Recommendations for sharing more and styling globally
 
-Ranked by benefit. Each one keeps Parula's look by default. Lookout only sets variables in `lookout/app.css`.
+Ranked by benefit. Each one keeps Parula's look by default. A variable is only worth it for a theme value that many components use, like the accent color. A look that only a few components need goes into these components as `:global(.lookout)` rules (see 1.5).
 
-1. **Button radius variable.** Use `border-radius: var(--button-radius)` for the pill radius (`border-radius: 1000px`) in `frontend/Shared/Button.svelte` and `RoundButton.svelte`. Plain buttons (3px) stay as they are. Set the variable to `1000px` in `frontend/app.css` and to `var(--lo-radius-small)` in `lookout/app.css`. That's 2 component files plus 2 lines. It changes every button in Web apps, Files, Chat, Meet, Topic, Setup and the frontend settings pages. Pill buttons are the most visible Parula trait left in those apps.
+1. **Done: button radius.** `frontend/Shared/Button.svelte` and `RoundButton.svelte` have `:global(.lookout)` rules with `--lo-radius-small` instead of the pill radius. Plain buttons (3px) stay as they are.
 2. **A real accent variable.** Add `--accent` and `--accent-fg` to `frontend/app.css` (Parula: teal #20AE9E and white), and set them to `--lo-accent` in Lookout. Use it where teal is hard-coded as an accent: `Shared/Spinner.svelte`, `Shared/Editor/HTMLEditor.svelte` (then Lookout's blockquote override in `MailComposer.svelte` can go), `Settings/Mail/Send.svelte`, and the Meet buttons (`Meet/InMeetingToolbar.svelte`, `Meet/Start/Calling.svelte`, `Meet/Start/Phone/PhoneDialScreen.svelte`). That's about 6 files in frontend/.
-3. **List-row variables** (this covers Files). The store categories already get Lookout's row look from `nav-list` and `nav-entry` (see 1.6). Use the variables in the two row styles that Lookout shows and that don't have these classes: FastList (`.fast-list .row` in `frontend/app.css`) and Files (`FileLine.svelte`, `DirectoryLine.svelte`):
-   - `--row-radius` (default 0) on the first and last cell
-   - `--row-selected-bar` (default transparent): an accent bar drawn on the first cell with `::before` and `inset-inline-start`, the way Lookout's own rows do it
-   - `--row-selected-weight` (default normal)
+3. **List-row look** (this covers Files). The store categories already get Lookout's row look from `nav-list` and `nav-entry` (see 1.6). The two row styles that Lookout shows and that don't have these classes are FastList (`.fast-list .row` in `frontend/app.css`) and Files (`FileLine.svelte`, `DirectoryLine.svelte`). They need:
+   - a 4px radius on the first and last cell
+   - an accent bar (`--lo-accent`) drawn on the first cell with `::before` and `inset-inline-start`, the way Lookout's own rows do it
+   - weight 600 for the selected row
 
-   In Lookout these become 4px, `--lo-accent` and 600, the same values as `nav-entry`. That's 3 files. An inset works easily only on flex rows, like with `nav-list`. In the grid lists, it would be padding on the container.
+   These are the same values as `nav-entry`. For Files, these are `:global(.lookout)` rules in the 2 files. An inset works easily only on flex rows, like with `nav-list`. In the grid lists, it would be padding on the container.
 4. **Lookout-only additions to `lookout/app.css`**, with no frontend change:
    - Map the variables that are still missing: `--chat-bubble-*` (Chat) and `--shadow-color` (Popup, person popup, Meet popups).
    - Override `.font-smallest/.font-small/.font-normal/.font-large` with Lookout's sizes. Lookout's own components don't use these classes, and 31 files in Web apps, Files, Chat, Meet and Topic do.
@@ -176,4 +181,4 @@ Ranked by benefit. Each one keeps Parula's look by default. Lookout only sets va
 7. **Optional: iframe colors.** `frontend/Mail/Message/HTMLDisplay.svelte` and `lookout/Calendar/DisplayEvent/DisplayEvent.svelte` build the iframe's `<style>`. They could add the current values of `--bg`, `--fg`, the font and the selection color to it. Then mail and event bodies would match Lookout (and Parula's custom colors).
 8. **Optional housekeeping:** add `<copied to="…lookout/…">` markers in the frontend originals of the 121 copied blocks (69 Lookout files). Then a change there shows that Lookout has a copy. This touches many frontend files, so it's best done whenever a file is touched anyway.
 
-Not recommended: a theme rewrite, or moving Lookout's own components to the classic variables. Mapping `--lo-*` onto the classic variables in one place is the right approach. frontend/ just needs a few more variables (button radius, accent, row shape, secondary text) instead of hard-coded values, and generic class names like `nav-list` and `nav-entry` where Lookout needs a different shape.
+Not recommended: a theme rewrite, or moving Lookout's own components to the classic variables. Mapping `--lo-*` onto the classic variables in one place is the right approach. frontend/ just needs a few more theme variables (accent, secondary text) instead of hard-coded values, `:global(.lookout)` rules where a single component needs a different shape, and generic class names like `nav-list` and `nav-entry` where several lists share one look.

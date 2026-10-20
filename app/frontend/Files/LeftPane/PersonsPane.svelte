@@ -127,14 +127,14 @@
   .email {
     display: none;
   }
-  :global(.lookout-window) .persons-file-pane {
+  :global(.lookout) .persons-file-pane {
     min-height: 0;
     overflow: hidden;
     background-color: var(--lo-pane-bg);
     border-radius: var(--lo-radius);
     box-shadow: var(--lo-shadow-card);
   }
-  :global(.lookout-window) .email {
+  :global(.lookout) .email {
     display: block;
     overflow: hidden;
     white-space: nowrap;

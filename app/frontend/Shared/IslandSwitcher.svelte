@@ -18,13 +18,23 @@
 <style>
   .island.border {
     border: 1px solid var(--border);
-    border-radius: var(--island-radius);
+    border-radius: 1000px;
   }
   .island :global(button) {
-    border-radius: var(--island-radius);
+    border-radius: 1000px;
   }
   .island :global(button:not(:last-of-type)) {
-    margin-inline-end: var(--island-overlap);
+    margin-inline-end: -6px;
+  }
+  :global(.lookout) .island.border,
+  :global(.lookout) .island :global(button) {
+    border-radius: var(--lo-radius-small);
+  }
+  :global(.lookout) .island :global(button:not(:last-of-type)) {
+    margin-inline-end: 0;
+  }
+  :global(.lookout) .island :global(button.selected) {
+    font-weight: 600;
   }
   .island.faint :global(button.selected:not(.hover)) {
     background-color: var(--offset-bg);

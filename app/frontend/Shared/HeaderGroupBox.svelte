@@ -17,21 +17,35 @@
 
 <style>
   .group {
-    border: var(--group-box-border);
-    border-radius: var(--group-box-radius);
-    margin-block-start: var(--group-box-margin-top);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-block-start: 24px;
+  }
+  :global(.lookout) .group {
+    border: none;
+    border-radius: 0;
+    margin-block-start: 8px;
   }
   .header {
-    background-color: var(--group-box-header-bg);
+    background-color: var(--headerbar-bg);
     color: var(--headerbar-fg);
-    border-bottom: var(--group-box-header-border);
-    padding: var(--group-box-header-padding);
-    font-weight: var(--group-box-header-weight);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    font-weight: 500;
     align-items: center;
+  }
+  :global(.lookout) .header {
+    background-color: transparent;
+    border-bottom: 1px solid var(--lo-divider);
+    padding: 0 0 4px 0;
+    font-weight: 600;
   }
   .content {
     background-color: var(--main-bg);
     color: var(--main-fg);
-    padding: var(--group-box-content-padding);
+    padding: 24px 20px 16px 20px;
+  }
+  :global(.lookout) .content {
+    padding: 8px 0 8px 44px;
   }
 </style>

@@ -115,9 +115,16 @@
     background-color: var(--button-bg);
     color: var(--button-fg);
     border: 1px solid var(--button-border);
-    border-radius: var(--button-radius);
-    padding: var(--button-padding);
-    min-height: var(--button-min-height);
+    border-radius: 1000px;
+    padding: 6px 8px;
+  }
+  /* :where(), so that the button styles of callers like Toolbar still win */
+  :global(.lookout) .button:where(:not(.plain)) {
+    border-radius: var(--lo-radius-small);
+    min-height: 32px;
+  }
+  :global(.lookout) .button:where(:not(.plain, .large)) {
+    padding: 0 8px;
   }
   .plain {
     background-color: transparent;
@@ -132,9 +139,9 @@
     background-color: var(--hover-bg);
     color: var(--hover-fg);
   }
-  button.filled:hover:not(.disabled) {
-    background-color: var(--button-filled-hover-bg);
-    color: var(--button-filled-hover-fg);
+  :global(.lookout) .button.filled:hover:not(.disabled) {
+    background-color: var(--lo-accent-hover);
+    color: var(--lo-accent-fg);
   }
   button.button.selected:not(.disabled) {
     background-color: var(--selected-bg);
@@ -155,7 +162,9 @@
   button.filled {
     background-color: var(--inverted-bg);
     color: var(--inverted-fg);
-    border-color: var(--button-filled-border);
+  }
+  :global(.lookout) .button.filled {
+    border-color: var(--lo-accent);
   }
   button {
     font-size: 14px;
@@ -168,8 +177,8 @@
   :global(.mobile) button {
     font-size: 16px;
   }
-  button:not(.plain) > .label {
-    padding-inline: var(--button-label-padding);
+  :global(.lookout) .button:where(:not(.plain)) > .label {
+    padding-inline: 4px;
   }
   .gap {
     width: 8px;

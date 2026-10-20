@@ -48,17 +48,20 @@
 
 <style>
   .left-pane {
-    box-shadow: var(--left-pane-shadow, 2px 0px 6px 0px rgba(0, 0, 0, 10%));
+    box-shadow: 2px 0px 6px 0px rgba(0, 0, 0, 10%);
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
     padding-block-end: 16px;
-    margin: var(--pane-margin);
+  }
+  :global(.lookout) .left-pane {
+    box-shadow: none;
+    margin: 0 4px 8px 4px;
   }
 
   .left-pane :global(.persons) {
     margin-block-start: 8px;
   }
-  :global(.lookout-window) .left-pane :global(.persons) {
+  :global(.lookout) .left-pane :global(.persons) {
     margin-block-start: 0;
   }
   .left-pane :global(.account-list) {

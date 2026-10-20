@@ -92,15 +92,14 @@
 
 <style>
   .left-pane {
-    box-shadow: var(--pane-shadow, 2px 0px 6px 0px rgba(0, 0, 0, 10%)); /* Also on MessageList */
+    box-shadow: 2px 0px 6px 0px rgba(0, 0, 0, 10%); /* Also on MessageList */
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
-    margin: var(--pane-margin);
-    border-radius: var(--pane-radius);
   }
-  .right-pane {
-    margin: var(--pane-margin);
-    border-radius: var(--pane-radius);
-    box-shadow: var(--pane-shadow, none);
+  :global(.lookout) .left-pane,
+  :global(.lookout) .right-pane {
+    margin: 0 4px 8px 4px;
+    border-radius: var(--lo-radius);
+    box-shadow: var(--lo-shadow-card);
   }
 </style>

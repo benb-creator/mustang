@@ -77,26 +77,26 @@
     max-height: 1.3em;
   }
 
-  :global(.lookout-window) .person {
+  :global(.lookout) .person {
     align-items: center;
     box-sizing: border-box;
     min-height: 56px;
     border-block-end: 1px solid var(--lo-divider);
   }
-  :global(.lookout-window) .person :global(.avatar) {
+  :global(.lookout) .person :global(.avatar) {
     flex-shrink: 0;
     margin: 0 12px;
   }
-  :global(.lookout-window) .name {
+  :global(.lookout) .name {
     font-size: 15px;
   }
-  :global(.lookout-window) .person.selected {
+  :global(.lookout) .person.selected {
     color: var(--lo-fg);
   }
-  :global(.lookout-window) .person::before {
+  :global(.lookout) .person::before {
     display: none;
   }
-  :global(.lookout-window) .person.selected::before {
+  :global(.lookout) .person.selected::before {
     display: block;
     top: 0;
     left: 0;

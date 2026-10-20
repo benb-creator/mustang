@@ -238,42 +238,42 @@ input[type="date"].lo-text-field::-webkit-calendar-picker-indicator {
   box-shadow: inset 0 -1px 0 var(--lo-accent);
 }
 
-.lookout-window .popup > .menu {
+.lookout .popup > .menu {
   border: 1px solid var(--lo-border);
   border-radius: var(--lo-radius);
   box-shadow: var(--lo-shadow-popup);
 }
 
-.lookout-window .checkbox {
+.lookout .checkbox {
   position: relative;
 }
-.lookout-window .checkbox > input:not(:checked) {
+.lookout .checkbox > input:not(:checked) {
   background-color: var(--lo-input-bg);
   border-color: var(--lo-input-border);
 }
-.lookout-window .checkbox > input:checked {
+.lookout .checkbox > input:checked {
   background-color: var(--lo-accent);
 }
-.lookout-window .checkbox > .state-icon-wrapper {
+.lookout .checkbox > .state-icon-wrapper {
   color: var(--lo-accent-fg);
 }
 
-.lookout-window .nav-list {
+.lookout .nav-list {
   padding-inline: 4px;
 }
-.lookout-window .nav-list .nav-entry {
+.lookout .nav-list .nav-entry {
   position: relative;
   border-radius: var(--lo-radius-small);
 }
-.lookout-window .nav-list .nav-entry:not(.selected):hover {
+.lookout .nav-list .nav-entry:not(.selected):hover {
   background-color: var(--lo-hover-bg);
 }
-.lookout-window .nav-list .nav-entry.selected,
-.lookout-window .nav-list .nav-entry.selected:hover {
+.lookout .nav-list .nav-entry.selected,
+.lookout .nav-list .nav-entry.selected:hover {
   background-color: var(--lo-selected-bg);
   font-weight: 600;
 }
-.lookout-window .nav-list .nav-entry.selected::before {
+.lookout .nav-list .nav-entry.selected::before {
   content: "";
   position: absolute;
   inset-inline-start: 0;
@@ -282,33 +282,6 @@ input[type="date"].lo-text-field::-webkit-calendar-picker-indicator {
   width: 3px;
   border-radius: 2px;
   background-color: var(--lo-accent);
-}
-
-:root {
-  --island-radius: var(--lo-radius-small);
-  --island-overlap: 0;
-  --button-radius: var(--lo-radius-small);
-  --button-padding: 0 8px;
-  --button-label-padding: 4px;
-  --button-min-height: 32px;
-  --button-filled-border: var(--lo-accent);
-  --button-filled-hover-bg: var(--lo-accent-hover);
-  --button-filled-hover-fg: var(--lo-accent-fg);
-  --search-field-radius: var(--lo-radius-small);
-  --search-field-bg: var(--lo-input-bg);
-  --group-box-border: none;
-  --group-box-margin-top: 8px;
-  --group-box-radius: 0;
-  --group-box-header-bg: transparent;
-  --group-box-header-border: 1px solid var(--lo-divider);
-  --group-box-header-padding: 0 0 4px 0;
-  --group-box-header-weight: 600;
-  --group-box-content-padding: 8px 0 8px 44px;
-  --pane-margin: 0 4px 8px 4px;
-  --pane-radius: var(--lo-radius);
-  --pane-shadow: var(--lo-shadow-card);
-  --pane-bg: var(--lo-pane-bg);
-  --left-pane-shadow: none;
 }
 
 :where(.frontend-page, .frontend-panes, .setup, .settings-content) :is(input[type="number"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="time"], input[type="tel"], input[type="text"]),
@@ -329,8 +302,4 @@ input[type="date"].lo-text-field::-webkit-calendar-picker-indicator {
 }
 :where(.frontend-page, .frontend-panes, .setup, .settings-content) input[type="number"] {
   min-width: 64px;
-}
-
-.lookout-window .island button.selected {
-  font-weight: 600;
 }

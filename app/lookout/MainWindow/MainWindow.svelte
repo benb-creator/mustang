@@ -1,4 +1,4 @@
-<vbox flex class="main-window desktop lookout-window" dir={rtl}>
+<vbox flex class="main-window desktop lookout" dir={rtl}>
   <WindowHeader selectedApp={$selectedApp} bind:this={windowHeader} />
   <vbox flex class="below-title">
     <hbox flex class="window-body">
@@ -202,7 +202,7 @@
 </script>
 
 <style>
-  .lookout-window {
+  .lookout {
     min-width: 640px;
     min-height: 0;
     background-color: var(--lo-window-bg);

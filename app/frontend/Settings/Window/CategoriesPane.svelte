@@ -21,9 +21,12 @@
   .settings-categories-pane {
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
-    box-shadow: var(--left-pane-shadow, 1px 0px 3px 0px rgba(22, 12, 39, 20%)); /* #160C27 */
-    margin: var(--pane-margin);
+    box-shadow: 1px 0px 3px 0px rgba(22, 12, 39, 20%); /* #160C27 */
     padding-block-start: 24px;
     z-index: 4;
+  }
+  :global(.lookout) .settings-categories-pane {
+    box-shadow: none;
+    margin: 0 4px 8px 4px;
   }
 </style>

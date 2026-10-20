@@ -84,7 +84,7 @@
 <style>
   button {
     border: 1px solid transparent;
-    border-radius: var(--button-radius);
+    border-radius: 1000px;
     padding: var(--padding);
 
     flex-direction: row;
@@ -94,6 +94,9 @@
 
     background-color: var(--button-bg);
     color: var(--button-fg);
+  }
+  :global(.lookout) .button {
+    border-radius: var(--lo-radius-small);
   }
   button.border {
     border: 1px solid var(--button-border);
@@ -122,9 +125,9 @@
     color: var(--hover-fg);
     border: 1px solid transparent;
   }
-  button.button.filled:hover:not(.disabled) {
-    background-color: var(--button-filled-hover-bg);
-    color: var(--button-filled-hover-fg);
+  :global(.lookout) .button.filled:hover:not(.disabled) {
+    background-color: var(--lo-accent-hover);
+    color: var(--lo-accent-fg);
   }
   .selected:not(.disabled) {
     background-color: var(--selected-bg);

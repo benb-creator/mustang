@@ -59,11 +59,11 @@
 </script>
 
 <style>
-  .page-pane {
-    background-color: var(--pane-bg);
-    margin: var(--pane-margin);
-    border-radius: var(--pane-radius);
-    box-shadow: var(--pane-shadow, none);
+  :global(.lookout) .page-pane {
+    background-color: var(--lo-pane-bg);
+    margin: 0 4px 8px 4px;
+    border-radius: var(--lo-radius);
+    box-shadow: var(--lo-shadow-card);
   }
   .right-page {
     margin: 0px 32px 32px 32px;
