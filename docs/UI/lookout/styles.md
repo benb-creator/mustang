@@ -16,7 +16,7 @@ Lookout (`app/lookout/`) is the Outlook-like frontend. It shows some components 
 ### 1.1 How `lookout/app.css` is loaded and removed
 
 - `frontend/main.ts` always imports `frontend/app.css` (Parula's variables, Karla font, base rules). It stays loaded in Lookout too.
-- `frontend/MainWindow/MainWindow.svelte` reads the `appearance.frontend` setting. If it's "lookout", it loads `lookout/MainWindow/MainWindow.svelte` lazily with `import()`.
+- `frontend/MainWindow/MainWindow.svelte` reads the `appearance.frontend` setting. If it's "lookout", it loads `lookout/Lookout.ts` lazily with `import()`, which only re-exports `lookout/MainWindow/MainWindow.svelte`. That way, the build puts the Lookout code into the chunks `Lookout-*.js` and `Lookout-*.css`, which the classic frontend doesn't load.
 - `lookout/MainWindow/MainWindow.svelte` imports `../app.css?inline`, so Vite returns the CSS as a string and doesn't apply it. The component puts the string into a `<style>` at the end of `<head>` and removes it in `onDestroy`. A comment there says why: if the user switches to the classic frontend at runtime, the global CSS has to go away.
 - That `<style>` comes after `frontend/app.css`, so its `:root` rules win at equal specificity. The mapping block isn't inside the dark `@media` block. It points to `--lo-*` variables, which have their own dark values (the `@media (prefers-color-scheme: dark)` block in `lookout/app.css`), so dark mode works for every mapped variable.
 - Lookout's root element has the classes `main-window desktop lookout-window` (`lookout/MainWindow/MainWindow.svelte`). `main-window` is needed: the global FastList hover rules in `frontend/app.css` start with `.main-window:not(.mobile)`, and they apply in Lookout because of it.

@@ -101,7 +101,7 @@
   const frontendSetting = getLocalStorage("appearance.frontend", "classic");
   $: frontend = $frontendSetting.value;
   // For Vite, the import must be in `<script>` to pre-bundle, otherwise "504 Outdated Optimize Dep"
-  $: lookoutWindow = frontend == "lookout" ? import("../../lookout/MainWindow/MainWindow.svelte") : null;
+  $: lookoutWindow = frontend == "lookout" ? import("../../lookout/Lookout") : null;
 
   // $: sidebarApp = $mustangApps.filter(app => app.showSidebar).first; // TODO watch `app` property changes
   $: $sidebarApp = $meetMustangApp.showSidebar ? meetMustangApp : null;
