@@ -32,6 +32,7 @@ class UiaAppMap:
         self.sources = {name: spec.get("source", "assumed") for name, spec in (raw.get("elements") or {}).items()}
         self.pages = {name: list(required) for name, required in (raw.get("pages") or {}).items()}
         self.inbox_listed = dict(raw.get("inbox_listed") or {})
+        self.server_fields = list(raw.get("server_fields") or [])
         self.verify = dict(raw.get("verify") or {})
         self.interruptions = {}
         for name, spec in (raw.get("interruptions") or {}).items():
@@ -41,6 +42,9 @@ class UiaAppMap:
             missing = [e for e in required if e not in self.elements]
             if missing:
                 raise ProbeError(f"{kind}: page '{page}' names unknown elements {missing}")
+        missing = [e for e in self.server_fields if e not in self.elements]
+        if missing:
+            raise ProbeError(f"{kind}: server_fields names unknown elements {missing}")
 
     @classmethod
     def load(cls, path: Path, kind: str) -> "UiaAppMap":
@@ -178,6 +182,17 @@ class UiaProbe(AppProbe):
 
     def page_text(self) -> str:
         return " | ".join(e.name for e in self.snapshot() if e.name and e.visible)[:4000]
+
+    def found_hosts(self) -> list[str]:
+        """The host names in the map's `server_fields` as shown; empty when one of them isn't shown or is empty."""
+        hosts = []
+        for name in self.map.server_fields:
+            found = self.find(name)
+            host = re.sub(r"\s+", "", (found or {}).get("value") or "").lower()
+            if not host:
+                return []
+            hosts.append(host)
+        return hosts
 
     def cached_element(self, element: str) -> ElementInfo | None:
         """A probe element read again cheaply (one element) after the first search, which reads many."""

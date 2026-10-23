@@ -1,7 +1,9 @@
 # UI Automation names of the elements the Windows flows of the Outlooks use, in English (en) and German (de); Parula
 # is found through its DevTools, as on Linux (benchlib/probe.py). Names are regular expressions matched against the
 # whole UIA Name (case-insensitive; `contains: true` searches). `near: <value>`: of the matching elements, the one in
-# the row of the element that names that value (the probe's `values`, e.g. the test account). `source` says where a
+# the row of the element that names that value (the probe's `values`, e.g. the test account). `index: n`: the n-th
+# match in the tree's order (0 = the first). `server_fields`: the fields that name the servers the app will log in to;
+# the flows (benchlib/flows.py) read them before the password and correct another server there. `source` says where a
 # name comes from:
 #   docs           the visible label as Microsoft's support articles (en-us, de-de) or setup guides quote it; that the
 #                  UIA Name equals the visible label is assumed
@@ -20,6 +22,11 @@ outlook-classic:
     heading.advanced_setup: {control_type: Text, names: {en: "Advanced setup", de: "Erweitertes Setup"}, source: assumed}
     tile.imap: {control_type: [Button, ListItem], names: {en: "IMAP", de: "IMAP"}, source: docs}
     heading.imap_settings: {control_type: Text, names: {en: "IMAP Account Settings", de: "IMAP-Kontoeinstellungen"}, source: assumed}
+    field.incoming_server: {control_type: Edit, password: false, names: {en: "Server", de: "Server"}, index: 0, source: assumed}
+    field.incoming_port: {control_type: Edit, password: false, names: {en: "Port", de: "Port"}, index: 0, source: assumed}
+    field.outgoing_server: {control_type: Edit, password: false, names: {en: "Server", de: "Server"}, index: 1, source: assumed}
+    field.outgoing_port: {control_type: Edit, password: false, names: {en: "Port", de: "Port"}, index: 1, source: assumed}
+    link.back: {control_type: [Hyperlink, Button], names: {en: "Not you\\?|Back|Go back", de: "(Nicht Sie|Sind Sie das nicht)\\?|Zurück"}, source: assumed}
     button.next: {control_type: Button, names: {en: "Next", de: "Weiter"}, source: docs}
     field.password: {control_type: Edit, password: true, source: assumed}
     heading.done: {control_type: Text, names: {en: "Account successfully added.*", de: "(Das )?Konto (wurde )?erfolgreich hinzugefügt.*"}, source: assumed}
@@ -39,6 +46,7 @@ outlook-classic:
     done: [heading.done, button.done]
     error: [heading.error]
     mail: [status.items]
+  server_fields: [field.incoming_server, field.outgoing_server]
   inbox_listed: {count: status.items, idle: status.up_to_date, list: list.messages}
   verify: {keys: [End], within_s: 30}
   interruptions:
@@ -51,6 +59,11 @@ outlook-new:
     button.continue: {control_type: Button, names: {en: "Continue|Next|Connect", de: "Weiter|Fortfahren|Verbinden"}, source: docs}
     option.imap: {control_type: [Button, ListItem, RadioButton, MenuItem], names: {en: "IMAP", de: "IMAP"}, source: assumed}
     field.password: {control_type: Edit, password: true, source: assumed}
+    button.show_more: {control_type: [Button, Hyperlink], names: {en: "Show more|More options|Advanced settings", de: "Mehr anzeigen|Weitere Optionen|Erweiterte Einstellungen"}, source: assumed}
+    field.imap_server: {control_type: Edit, password: false, names: {en: "IMAP (incoming )?server|Incoming (mail )?server", de: "IMAP-(Eingangs)?[Ss]erver|Posteingangsserver"}, source: assumed}
+    field.imap_port: {control_type: Edit, password: false, names: {en: "((IMAP|SMTP|incoming|outgoing) )?port", de: "((IMAP|SMTP)-)?Port"}, index: 0, source: assumed}
+    field.smtp_server: {control_type: Edit, password: false, names: {en: "SMTP (outgoing )?server|Outgoing (mail )?server", de: "SMTP-(Ausgangs)?[Ss]erver|Postausgangsserver"}, source: assumed}
+    field.smtp_port: {control_type: Edit, password: false, names: {en: "((IMAP|SMTP|incoming|outgoing) )?port", de: "((IMAP|SMTP)-)?Port"}, index: 1, source: assumed}
     text.cloud_sync: {control_type: [Text, Group, Document], names: {en: ["Sync your IMAP account", ".*Microsoft Cloud.*"], de: ["IMAP-Konto synchronisieren", ".*Microsoft[- ]Cloud.*"]}, source: docs}
     button.done: {control_type: Button, names: {en: "Done|Skip|Maybe later|Not now", de: "Fertig|Überspringen|Vielleicht später|Jetzt nicht"}, source: docs}
     heading.success: {control_type: Text, names: {en: "(Success!?|Account added.*|You're all set.*)", de: "(Erfolg(reich)?!?|Konto hinzugefügt.*|Alles bereit.*)"}, source: assumed}
@@ -73,5 +86,6 @@ outlook-new:
     cloud-sync: [text.cloud_sync, button.continue]
     success: [heading.success]
     mail: [tree.inbox]
+  server_fields: [field.imap_server, field.smtp_server]
   inbox_listed: {set_size: list.item, unread: tree.inbox_unread, list: list.messages}
   verify: {keys: [End], within_s: 900, repeat_s: 3}

@@ -22,8 +22,9 @@ from benchlib.account import AccountServer, AccountSession  # noqa: E402
 from benchlib.config import Config  # noqa: E402
 from benchlib.corpus import CorpusGenerator, CorpusSpec  # noqa: E402
 from benchlib.driver import Calibration, EventLog, ScenarioDriver, TextVariables  # noqa: E402
-from benchlib.flows import FlowContext, FlowError, NewOutlookRemoval, NewOutlookSetupFlow, OutlookClassicSetupFlow  # noqa: E402
-from benchlib.probe import Probes  # noqa: E402
+from benchlib.flows import (FlowContext, FlowError, Flows, NewOutlookRemoval, NewOutlookSetupFlow,  # noqa: E402
+                            OutlookClassicSetupFlow, ParulaSetupFlow, WrongServer)
+from benchlib.probe import ParulaProbe, Probes  # noqa: E402
 from benchlib.runner import Orchestrator, RunExecutor  # noqa: E402
 from benchlib.settle import Rect  # noqa: E402
 from benchlib.uia import ElementInfo, ElementQuery, UiaError, UiTree  # noqa: E402
@@ -138,7 +139,9 @@ class FakeApp:
         self.pages = pages
         self.pid = pid
         self.typed: dict[str, str] = {}
+        self.typing: list[tuple[str, str]] = []
         self.focus: str | None = None
+        self.focus_node: Node | None = None
         self.history: list[str] = []
         self.page = None
         self.show(start)
@@ -153,7 +156,7 @@ class FakeApp:
         for node in self.backend.all_nodes():
             node.info.process_id = self.pid
             if node.info.focused:
-                self.focus = node.info.name
+                self.focus, self.focus_node = node.info.name, node
         self.history.append(page)
 
     def node_at(self, x, y):
@@ -169,7 +172,7 @@ class FakeApp:
         for n in self.backend.all_nodes():
             n.info.focused = False
         node.info.focused = True
-        self.focus = node.info.name
+        self.focus, self.focus_node = node.info.name, node
         action = self.on_click.get((self.page, node.info.name))
         if action:
             action(node)
@@ -181,6 +184,9 @@ class FakeApp:
 
     def type(self, text):
         self.typed[self.focus or ""] = text
+        self.typing.append((self.page, self.focus or ""))
+        if self.focus_node is not None and self.focus_node.info.control_type == "Edit":
+            self.focus_node.info.value = text
 
 
 class FakeDesktop:
@@ -240,7 +246,9 @@ def make_context(tmp_path, app: FakeApp, kind: str, expected: dict | None = None
                      sleep=clock.sleep, clock=clock)
     probe.tree = UiTree(backend, lambda: {app.pid})
     values = {"account.email": EMAIL, "account.password": "s3cret-Pw",
-              "server.jmap_url": "https://mail.example.org/.well-known/jmap"}
+              "server.jmap_url": "https://mail.example.org/.well-known/jmap",
+              "server.imap_host": "mail.example.org", "server.imap_port": "993",
+              "server.smtp_host": "mail.example.org", "server.smtp_port": "465"}
     variables = TextVariables(values, {"account.password"})
     probe.redact = variables.redact
     log = EventLog(tmp_path / "driver.jsonl")
@@ -350,14 +358,40 @@ def test_count_text_parses_both_languages():
 # ---------------------------------------------------------------------------------------------------------------
 # Outlook (classic), German UI
 
-def outlook_classic_app(items):
+def outlook_classic_app(items, found_host: str | None = "mail.example.org", back_link: bool = True):
+    """Outlook (classic), German UI. `found_host`: the server its IMAP settings page shows after the IMAP tile; None:
+    it asks for the password right away (without showing the server), and shows the settings page only in its
+    manual setup, prefilled with the address's domain."""
     backend = FakeBackend()
+    state = {"manual_shown": False, "manual": False}
+
+    def account_email():
+        nodes = [element("Edit", "E-Mail-Adresse", focused=True, value=state.get("email")),
+                 element("Hyperlink", "Erweiterte Optionen", y=60), element("Button", "Verbinden", y=120)]
+        if state["manual_shown"]:
+            nodes.append(element("CheckBox", "Ich möchte mein Konto manuell einrichten", y=90,
+                                 toggle_state=1 if state["manual"] else 0))
+        return nodes
+
+    def imap_settings():
+        host = found_host or "imap.example.org"
+        return [element("Text", "IMAP-Kontoeinstellungen"),
+                element("Edit", "Server", y=60, value=host), element("Edit", "Port", x=200, y=60, value="993"),
+                element("Edit", "Server", y=90, value=host.replace("imap.", "smtp.")),
+                element("Edit", "Port", x=200, y=90, value="587"), element("Button", "Weiter", y=160)]
+
+    def password():
+        nodes = [element("Edit", "Kennwort", is_password=True, focused=True), element("Button", "Verbinden", y=120)]
+        if back_link:
+            nodes.append(element("Hyperlink", "Nicht Sie?", y=30))
+        return nodes
+
     pages = {
-        "account-email": [element("Edit", "E-Mail-Adresse", focused=True), element("Hyperlink", "Erweiterte Optionen", y=60),
-                          element("Button", "Verbinden", y=120)],
+        "account-email": account_email,
         "advanced-setup": [element("Text", "Erweitertes Setup"), element("Button", "IMAP", y=100),
                            element("Button", "POP", y=140)],
-        "password": [element("Edit", "Kennwort", is_password=True, focused=True), element("Button", "Verbinden", y=120)],
+        "imap-settings": imap_settings,
+        "password": password,
         "done": [element("Text", "Konto erfolgreich hinzugefügt"),
                  element("CheckBox", "Outlook Mobile auch auf meinem Telefon einrichten", y=80, toggle_state=1),
                  element("Button", "Fertig", y=120)],
@@ -365,19 +399,36 @@ def outlook_classic_app(items):
                          element("Text", "Alle Ordner sind auf dem neuesten Stand.", x=300, y=920)],
     }
     app = FakeApp(backend, pages, "account-email")
+
+    def imap_tile(node):
+        app.show("imap-settings" if found_host or state["manual"] else "password")
+
+    def toggle_manual(node):
+        state["manual"] = not state["manual"]
+        app.show("account-email")
+
+    def back(node):
+        state["email"] = EMAIL
+        app.show("account-email")
+
+    def show_manual(node):
+        state["manual_shown"] = True
+        app.show("account-email")
+
     app.on_click = {("account-email", "Verbinden"): lambda n: app.show("advanced-setup"),
-                    ("advanced-setup", "IMAP"): lambda n: app.show("password"),
+                    ("account-email", "Erweiterte Optionen"): show_manual,
+                    ("account-email", "Ich möchte mein Konto manuell einrichten"): toggle_manual,
+                    ("advanced-setup", "IMAP"): imap_tile,
+                    ("imap-settings", "Weiter"): lambda n: app.show("password"),
                     ("password", "Verbinden"): lambda n: app.show("done"),
+                    ("password", "Nicht Sie?"): back,
                     ("done", "Outlook Mobile auch auf meinem Telefon einrichten"):
                         lambda n: setattr(n.info, "toggle_state", 0),
                     ("done", "Fertig"): lambda n: app.show("mail")}
     return app
 
 
-def test_outlook_classic_flow_german_unchecks_outlook_mobile_and_waits_for_the_item_count(tmp_path):
-    items = {"n": 4000}
-    app = outlook_classic_app(items)
-    ctx, log = make_context(tmp_path, app, "outlook-classic")
+def classic_growing_inbox(ctx, app, items):
     original = ctx.probe.inbox_listed
 
     def growing(expected):
@@ -386,17 +437,25 @@ def test_outlook_classic_flow_german_unchecks_outlook_mobile_and_waits_for_the_i
         return original(expected)
 
     ctx.probe.inbox_listed = growing
+
+
+def test_outlook_classic_flow_german_unchecks_outlook_mobile_and_waits_for_the_item_count(tmp_path):
+    items = {"n": 4000}
+    app = outlook_classic_app(items)
+    ctx, log = make_context(tmp_path, app, "outlook-classic")
+    classic_growing_inbox(ctx, app, items)
     OutlookClassicSetupFlow(ctx).run()
     assert app.typed["E-Mail-Adresse"] == EMAIL and app.typed["Kennwort"] == "s3cret-Pw"
     starts = logged(log, "step_start")
-    assert [e["step"] for e in starts] == ["connect", "choose-imap", "login", "open-inbox"]
+    assert [e["step"] for e in starts] == ["connect", "choose-imap", "imap-settings", "login", "open-inbox"]
     assert starts[0]["checks"]["complete"]["pages"] == ["advanced-setup", "done", "error", "imap-settings",
                                                         "password"]
     assert starts[-1]["checks"]["complete"] == "inbox_listed" and starts[-1]["checks"]["after_end"] == "fail"
     assert "advanced-setup" in ctx.path and any("Outlook Mobile" in note for note in ctx.path)
+    assert "Outlook's IMAP settings name the account's server" in ctx.path
     assert ctx.probe.language == "de"
     actions = RunExecutor.user_actions(log.path, ctx.variables)
-    assert actions["user_actions"] == 7 and actions["prepare_actions"] == []
+    assert actions["user_actions"] == 8 and actions["prepare_actions"] == []
     final = logged(log, "probe", step="open-inbox")
     assert [p["complete"] for p in final] == [False, True] and final[-1]["listed"] == 30000
     assert final[-1]["idle"] is True
@@ -405,6 +464,56 @@ def test_outlook_classic_flow_german_unchecks_outlook_mobile_and_waits_for_the_i
     assert verify["step"] == "open-inbox" and verify["listed"] == 30000
     assert verify["count_rect"] == {"x": 10, "y": 920, "w": 100, "h": 24}
     assert all(e.get("arg") != "s3cret-Pw" for e in EventLog.read(log.path))
+
+
+def test_outlook_classic_corrects_another_server_on_its_imap_settings_page_before_the_password(tmp_path):
+    items = {"n": 30000}
+    app = outlook_classic_app(items, found_host="imap.beonex.example")
+    ctx, log = make_context(tmp_path, app, "outlook-classic")
+    servers = []
+    app.on_click[("imap-settings", "Weiter")] = lambda n: (
+        servers.append([e.value for e in ctx.probe.snapshot() if e.control_type == "Edit"]), app.show("password"))
+    OutlookClassicSetupFlow(ctx).run()
+    assert servers == [["mail.example.org", "993", "mail.example.org", "465"]]
+    assert any("another server (imap.beonex.example, smtp.beonex.example)" in note for note in ctx.path)
+    assert app.typing.index(("password", "Kennwort")) > app.typing.index(("imap-settings", "Server"))
+    assert [e["step"] for e in logged(log, "step_start")] == ["connect", "choose-imap", "imap-settings", "login",
+                                                              "open-inbox"]
+    assert RunExecutor.user_actions(log.path, ctx.variables)["user_actions"] == 8 + 3 * 3
+
+
+def test_outlook_classic_that_asks_for_the_password_without_a_server_goes_to_its_manual_setup(tmp_path):
+    items = {"n": 30000}
+    app = outlook_classic_app(items, found_host=None)
+    ctx, log = make_context(tmp_path, app, "outlook-classic")
+    OutlookClassicSetupFlow(ctx).run()
+    assert app.history[:4] == ["account-email", "advanced-setup", "password", "account-email"]
+    assert [page for page, field in app.typing if field == "Kennwort"] == ["password"]
+    assert app.typing.index(("password", "Kennwort")) > app.typing.index(("imap-settings", "Server"))
+    assert [e["step"] for e in logged(log, "step_start")] == ["connect", "choose-imap", "change-setup",
+                                                              "connect-manually", "choose-imap-2", "imap-settings",
+                                                              "login", "open-inbox"]
+    assert any("back to the address" in note for note in ctx.path)
+    clicked = [e["arg"] for e in logged(log, "input", phase="step") if e["action"] == "click"]
+    assert clicked[2:6] == ["link.back", "link.advanced", "checkbox.manual", "button.connect"]
+
+
+def test_outlook_classic_without_a_way_to_its_manual_setup_stops_before_the_password(tmp_path):
+    app = outlook_classic_app({"n": 30000}, found_host=None, back_link=False)
+    ctx, log = make_context(tmp_path, app, "outlook-classic")
+    with pytest.raises(WrongServer, match="stopped before the password, which goes only to mail.example.org"):
+        OutlookClassicSetupFlow(ctx).run()
+    assert "Kennwort" not in app.typed and app.page == "password"
+    assert isinstance(WrongServer("x"), FlowError)
+
+
+def test_outlook_classic_settings_without_readable_server_fields_stop_before_the_password(tmp_path):
+    app = outlook_classic_app({"n": 30000}, found_host="imap.beonex.example")
+    app.pages["imap-settings"] = [element("Text", "IMAP-Kontoeinstellungen"), element("Button", "Weiter", y=160)]
+    ctx, _ = make_context(tmp_path, app, "outlook-classic")
+    with pytest.raises(WrongServer, match="shows no field 'field.incoming_server'"):
+        OutlookClassicSetupFlow(ctx).run()
+    assert "Kennwort" not in app.typed
 
 
 def test_an_unknown_page_stops_the_flow(tmp_path):
@@ -428,11 +537,27 @@ def test_a_privacy_notice_in_between_is_closed_without_counting(tmp_path):
     assert any("privacy.next" in note for note in ctx.path)
     prepared = [e for e in logged(log, "input") if e["phase"] == "prepare"]
     assert [e["arg"] for e in prepared] == ["privacy.next"]
-    assert RunExecutor.user_actions(log.path, ctx.variables)["user_actions"] == 7
+    assert RunExecutor.user_actions(log.path, ctx.variables)["user_actions"] == 8
 
 
 # ---------------------------------------------------------------------------------------------------------------
 # New Outlook, English UI: setup, the cloud-sync notice, the probes, the removal from all devices
+
+def imap_form(state):
+    """New Outlook's IMAP form: the servers it found (`state["found_host"]`), shown at once or behind "Show more"
+    (`state["hidden"]`); `state["no_servers"]`: a form without server fields."""
+    nodes = [element("Edit", "Email address"), element("Edit", "IMAP password", y=60, is_password=True),
+             element("Button", "Continue", y=400)]
+    if state.get("no_servers"):
+        return nodes
+    if state.get("hidden"):
+        return nodes + [element("Button", "Show more", y=90)]
+    host = state.get("found_host", "mail.example.org")
+    return nodes + [element("Edit", "IMAP incoming server", y=150, value=host),
+                    element("Edit", "Port", x=200, y=150, value="993"),
+                    element("Edit", "SMTP outgoing server", y=200, value=host),
+                    element("Edit", "Port", x=200, y=200, value="587")]
+
 
 def new_outlook_pages(state):
     def mail():
@@ -445,8 +570,7 @@ def new_outlook_pages(state):
     return {
         "add-account": [element("Edit", "Email address", focused=True), element("Button", "Continue", y=120)],
         "choose-provider": [element("Text", "Choose your provider"), element("Button", "IMAP", y=100)],
-        "imap-form": [element("Edit", "Email address"), element("Edit", "IMAP password", y=60, is_password=True),
-                      element("Button", "Continue", y=120)],
+        "imap-form": lambda: imap_form(state),
         "cloud-sync": [element("Text", "Sync your email account with the Microsoft Cloud so you can use the new "
                                        "Outlook features"), element("Button", "Continue", y=120)],
         "success": [element("Text", "Success!"), element("Button", "Done", y=120)],
@@ -512,7 +636,8 @@ def test_new_outlook_flow_verify_and_removal_from_all_devices(tmp_path):
     NewOutlookSetupFlow(ctx).run()
     assert [e["step"] for e in logged(log, "step_start")] == ["continue", "choose-imap", "connect", "cloud-sync",
                                                               "open-inbox"]
-    assert ctx.path[:4] == ["choose-provider", "imap-form", "cloud-sync", "success"]
+    assert ctx.path[:5] == ["choose-provider", "imap-form", "new Outlook's IMAP form names the account's server",
+                            "cloud-sync", "success"]
     final = logged(log, "probe", step="open-inbox")
     assert final[-1]["complete"] and final[-1]["listed"] == 30000 and final[-1]["listed_from"] == "size_of_set"
     verify = json.loads((tmp_path / "verify.json").read_text())
@@ -529,6 +654,55 @@ def test_new_outlook_flow_verify_and_removal_from_all_devices(tmp_path):
     assert RunExecutor.user_actions(log.path, ctx.variables)["user_actions"] == counted
     assert len([e for e in logged(log, "input") if e["phase"] == "finish"]) == 7
     assert logged(log, "account_removed")[0]["email_domain"] == "example.org"
+
+
+def test_new_outlook_reads_the_servers_behind_show_more_and_corrects_another_server_before_the_password(tmp_path):
+    state = {"size": 30000, "unread": 1500, "hidden": True, "found_host": "mail.beonex.example"}
+    app, _ = new_outlook_app(state)
+
+    def show_more(node):
+        state["hidden"] = False
+        app.show("imap-form")
+
+    app.on_click[("imap-form", "Show more")] = show_more
+    sent = []
+    app.on_click[("imap-form", "Continue")] = lambda n: (
+        sent.append([e.value for e in ctx.probe.snapshot() if e.control_type == "Edit" and not e.is_password]),
+        app.show("cloud-sync"))
+    ctx, log = make_context(tmp_path, app, "outlook-new", NEW_OUTLOOK_EXPECTED)
+    NewOutlookSetupFlow(ctx).run()
+    assert sent == [[None, "mail.example.org", "993", "mail.example.org", "465"]]
+    assert app.typing.index(("imap-form", "IMAP password")) > app.typing.index(("imap-form", "SMTP outgoing server"))
+    assert any("not counted" in note for note in ctx.path)
+    assert any("another server (mail.beonex.example, mail.beonex.example)" in note for note in ctx.path)
+    actions = RunExecutor.user_actions(log.path, ctx.variables)
+    assert [e["arg"] for e in logged(log, "input") if e["phase"] == "prepare"] == ["button.show_more"]
+    assert [e["step"] for e in logged(log, "step_start")] == ["continue", "choose-imap", "connect", "cloud-sync",
+                                                              "open-inbox"]
+    (tmp_path / "plain").mkdir()
+    plain = make_context(tmp_path / "plain", new_outlook_app({"size": 30000, "unread": 1500})[0], "outlook-new",
+                         NEW_OUTLOOK_EXPECTED)
+    NewOutlookSetupFlow(plain[0]).run()
+    assert actions["user_actions"] == RunExecutor.user_actions(plain[1].path, plain[0].variables)["user_actions"] + 3 * 3
+
+
+def test_new_outlook_without_server_fields_stops_before_the_password(tmp_path):
+    state = {"size": 1, "unread": 1, "no_servers": True}
+    app, _ = new_outlook_app(state)
+    ctx, _ = make_context(tmp_path, app, "outlook-new", NEW_OUTLOOK_EXPECTED)
+    with pytest.raises(WrongServer, match="New Outlook shows no field 'field.imap_server'"):
+        NewOutlookSetupFlow(ctx).run()
+    assert "IMAP password" not in app.typed and app.page == "imap-form"
+
+
+def test_parula_on_windows_takes_the_same_flow_and_probe_as_on_linux_so_its_found_server_is_checked(tmp_path):
+    raw = yaml.safe_load((ROOT / "windows" / "config.windows.yaml").read_text(encoding="utf-8"))
+    scenario = yaml.safe_load((ROOT / "scenarios" / "T1.yaml").read_text(encoding="utf-8"))
+    assert raw["apps"]["parula-jmap"]["probe"]["type"] == "cdp"
+    assert isinstance(Probes.create(raw["apps"]["parula-jmap"]["probe"], Config({"apps": {}}, ROOT)), ParulaProbe)
+    assert scenario["apps"]["parula-jmap"]["flow"]["name"] == "parula-setup"
+    assert Flows.known["parula-setup"] is ParulaSetupFlow
+    assert "parula-jmap" in raw["sessions"]["windows"]["apps"]
 
 
 def test_new_outlook_that_opens_its_inbox_right_after_the_cloud_notice_measures_the_listing_in_that_step(tmp_path):

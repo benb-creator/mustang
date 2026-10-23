@@ -444,6 +444,15 @@ class Aggregator:
         return sorted(p for p in root.glob("*") if (p / "meta.json").exists() and p.name != "reference"
                       and ".failed-" not in p.name)
 
+    def failed_attempts(self, comparison: str, task: str, app: str) -> list[dict]:
+        """The failed attempts of runs recorded again, for the evidence of every run (not for the times)."""
+        if self.folder is not None:
+            dirs = self.folder.failed_attempt_dirs(app, task)
+        else:
+            root = self.config.workdir / "runs" / self.config.run_group(comparison) / task / app
+            dirs = sorted(p for p in root.glob("*.failed-*") if (p / "meta.json").exists()) if root.exists() else []
+        return [{**self.run_entry(d), "run": d.name} for d in dirs]
+
     @staticmethod
     def median_run(runs: list[dict], median: float | None = None) -> dict:
         """The run whose total is the median (of all measured runs, timeouts included, when given)."""
@@ -472,9 +481,15 @@ class Aggregator:
         server_evidence_path = run_dir / "server-evidence.json"
         account_path = run_dir / "account.json"
         account = json.loads(account_path.read_text()) if account_path.exists() else None
+        pressure_path = run_dir / "cpu-pressure.json"
+        pressure = json.loads(pressure_path.read_text()) if pressure_path.exists() else None
+        reason = (analysis or {}).get("reason") or meta.get("error")
+        if pressure and pressure.get("over_limit") and status in ("ok", "timeout", "wrong-result"):
+            status, reason = "failed", (f"technical: CPU stall {pressure['pct']:.1f} % during the "
+                                        f"{pressure['basis']} (limit {pressure['limit_pct']:g} %)")
         return {"run": meta["run"], "order": meta.get("order"), "attempt": meta.get("attempt", 1),
-                "warmup": bool(meta.get("warmup")), "status": status,
-                "reason": (analysis or {}).get("reason") or meta.get("error"),
+                "warmup": bool(meta.get("warmup")), "status": status, "reason": reason,
+                "cpu_pressure": pressure,
                 "total_s": (analysis or {}).get("total_s"), "first_s": (analysis or {}).get("first_s"),
                 "censored_at_s": (analysis or {}).get("censored_at_s"),
                 "steps": {s["name"]: s.get("duration_s") for s in (analysis or {}).get("steps", [])},
@@ -510,6 +525,7 @@ class Aggregator:
                 "flow": app_scenario.flow.get("name") if app_scenario.flow else None,
                 "microsoft_ui": bool(app.get("microsoft_ui")), "cloud_sync": bool(app.get("cloud_sync")),
                 "runs": measured, "warmups": warmups, "warmups_discarded": [e["run"] for e in warmups],
+                "failed_attempts": self.failed_attempts(comparison, task, app_id),
                 "runs_app_killed_at_close": [e["run"] for e in entries if e["closed_cleanly"] is False],
                 "failed_runs": [{"run": e["run"], "reason": f"{e['status']}: {e['reason']}"}
                                 for e in measured if e["status"] not in ("ok", "timeout")],
@@ -636,6 +652,11 @@ class ReportWriter:
         else:
             value = f"{run['status']} ({run['reason']})"
         extra = f", attempt {run['attempt']}" if run.get("attempt", 1) > 1 else ""
+        pressure = run.get("cpu_pressure")
+        if pressure:
+            value += f"; CPU stall {pressure['pct']:.1f} %"
+            if pressure.get("loadavg_start") and pressure.get("loadavg_end"):
+                value += f", load {pressure['loadavg_start'][0]:.1f} → {pressure['loadavg_end'][0]:.1f}"
         return f"{run['run']} (#{run['order']}{extra}): {value}"
 
     def write(self, path: Path):

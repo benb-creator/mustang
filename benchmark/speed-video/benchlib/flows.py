@@ -3,6 +3,7 @@ shown, and act like a user at the elements' screen positions. Every input is log
 inputs that only exist because of the benchmark (phase "prepare") are logged, not counted, and disclosed."""
 
 import time
+from urllib.parse import urlparse
 
 from .probe import AppProbe, ProbeError
 from .scenario import Action, Step
@@ -10,6 +11,11 @@ from .scenario import Action, Step
 
 class FlowError(Exception):
     pass
+
+
+class WrongServer(FlowError):
+    """The app would log in to a server the test can't confirm as the account's: the run stops before the password
+    is entered (a technical failure), so the test password never goes to another server."""
 
 
 class FlowContext:
@@ -109,8 +115,30 @@ class FlowContext:
         (empty if unreadable): the flow then corrects them in the app's manual setup, like a user, and the
         password never goes to another server."""
         hosts = self.probe.found_hosts()
-        own = {self.value("server.imap_host").lower(), self.value("server.smtp_host").lower()}
-        return None if hosts and set(hosts) <= own else hosts
+        return None if hosts and set(hosts) <= self.own_hosts() else hosts
+
+    def own_hosts(self) -> set[str]:
+        jmap_host = urlparse(self.value("server.jmap_url")).hostname or ""
+        return {host.lower() for host in (self.value("server.imap_host"), self.value("server.smtp_host"), jmap_host)
+                if host}
+
+    def correct_servers(self, app: str, hosts: list[tuple[str, str]], ports: list[tuple[str, str]]):
+        """Types the account's server into the app's own server fields (as a user corrects them; counted) and
+        confirms them; a host field the app doesn't show, or a field that still names another server, stops the
+        run before the password."""
+        for element, variable in hosts + ports:
+            if self.probe.find(element) is None:
+                if (element, variable) in ports:
+                    continue
+                raise WrongServer(f"{app} shows no field '{element}' for the server it would log in to; stopped "
+                                  f"before the password, which goes only to {self.value('server.imap_host')}")
+            if self.field_value(element) != self.value(variable):
+                self.replace_text(element, "${" + variable + "}")
+        left = self.other_server()
+        if left is not None:
+            raise WrongServer(f"{app}'s server fields name {', '.join(left) or 'no readable server'} after the "
+                              f"correction; stopped before the password, which goes only to "
+                              f"{self.value('server.imap_host')}")
 
 
 class ParulaSetupFlow:
@@ -288,11 +316,19 @@ class ThunderbirdSetupFlow:
 
 
 class OutlookClassicSetupFlow:
-    """Outlook (classic), started with an empty profile: its own "Add account" dialog, the default way (no
-    "set up manually" option); the pages that follow depend on what Outlook detects for the address."""
+    """Outlook (classic), started with an empty profile: its own "Add account" dialog, the default way; the pages
+    that follow depend on what Outlook detects for the address. Its IMAP settings page names the servers: another
+    server than the account's is corrected there. A password page reached without that page doesn't show the
+    server: the flow goes back to the address and takes Outlook's manual setup ("Let me set up my account
+    manually"), or stops before the password."""
+
+    hosts = [("field.incoming_server", "server.imap_host"), ("field.outgoing_server", "server.smtp_host")]
+    ports = [("field.incoming_port", "server.imap_port"), ("field.outgoing_port", "server.smtp_port")]
 
     def __init__(self, ctx: FlowContext):
         self.ctx = ctx
+        self.checked = False
+        self.manual = False
 
     def run(self):
         ctx, a = self.ctx, FlowContext.action
@@ -300,7 +336,7 @@ class OutlookClassicSetupFlow:
         ctx.page({"account-email"}, 180)
         ctx.type_into("field.email", "${account.email}")
         ctx.step("connect", a("click", "button.connect"), until=after_connect, fail=())
-        for _ in range(6):
+        for _ in range(8):
             page = ctx.page(after_connect, 30)
             ctx.note(page)
             if page == "error":
@@ -308,7 +344,10 @@ class OutlookClassicSetupFlow:
             if page == "advanced-setup":
                 ctx.step("choose-imap", a("click", "tile.imap"), until={"imap-settings", "password", "error"}, fail=())
             elif page == "imap-settings":
+                self.check_settings()
                 ctx.step("imap-settings", a("click", "button.next"), until={"password", "done", "error"}, fail=())
+            elif page == "password" and not self.checked:
+                self.manual_setup(after_connect)
             elif page == "password":
                 ctx.type_into("field.password", "${account.password}")
                 ctx.step("login", a("click", "button.connect"), until={"done", "error", "imap-settings"}, fail=())
@@ -321,10 +360,50 @@ class OutlookClassicSetupFlow:
                 return
         raise FlowError("Outlook's account setup didn't reach its last page")
 
+    def check_settings(self):
+        ctx = self.ctx
+        hosts = ctx.other_server()
+        if hosts is None:
+            ctx.note("Outlook's IMAP settings name the account's server")
+        else:
+            ctx.note(f"Outlook's IMAP settings name another server ({', '.join(hosts) or 'unreadable'}): corrected "
+                     "on that page")
+            ctx.correct_servers("Outlook (classic)", self.hosts, self.ports)
+        self.checked = True
+
+    def manual_setup(self, after_connect: set[str]):
+        ctx, a = self.ctx, FlowContext.action
+        if self.manual or ctx.probe.find("link.back") is None:
+            raise WrongServer("Outlook (classic) asks for the password without showing which server it would log "
+                              "in to" + (" even in its manual setup" if self.manual else ", and offers no way back "
+                                         "to its manual setup") + "; stopped before the password, which goes only "
+                              f"to {ctx.value('server.imap_host')}")
+        ctx.note("Outlook asks for the password without showing the server it found: back to the address, its "
+                 "manual setup")
+        ctx.step("change-setup", a("click", "link.back"), until={"account-email"}, fail=())
+        ctx.page({"account-email"}, 30)
+        if ctx.field_value("field.email") != ctx.value("account.email"):
+            ctx.replace_text("field.email", "${account.email}")
+        if ctx.probe.find("checkbox.manual") is None:
+            ctx.act(a("click", "link.advanced"))
+        manual = ctx.probe.find("checkbox.manual")
+        if manual is None:
+            raise WrongServer("Outlook (classic) shows no 'Let me set up my account manually'; stopped before the "
+                              f"password, which goes only to {ctx.value('server.imap_host')}")
+        if not manual.get("checked"):
+            ctx.act(a("click", "checkbox.manual"))
+        self.manual = True
+        ctx.step("connect-manually", a("click", "button.connect"), until=after_connect, fail=())
+
 
 class NewOutlookSetupFlow:
     """New Outlook for Windows: its own "Add account" flow for an IMAP address, which ends with its notice that the
-    account is synced through the Microsoft Cloud."""
+    account is synced through the Microsoft Cloud. Its IMAP form names the servers the Microsoft Cloud will log in
+    to (behind "Show more", opened only to read them, not counted): another server than the account's is corrected
+    in that form before the password; a form without server fields stops the run before the password."""
+
+    hosts = [("field.imap_server", "server.imap_host"), ("field.smtp_server", "server.smtp_host")]
+    ports = [("field.imap_port", "server.imap_port"), ("field.smtp_port", "server.smtp_port")]
 
     def __init__(self, ctx: FlowContext):
         self.ctx = ctx
@@ -347,6 +426,7 @@ class NewOutlookSetupFlow:
             if page == "choose-provider":
                 step = ctx.step("choose-imap", a("click", "option.imap"), until={"imap-form", "cloud-sync"}, fail=())
             elif page == "imap-form":
+                self.check_servers()
                 ctx.type_into("field.password", "${account.password}")
                 step = ctx.step("connect", a("click", "button.continue"), until={"cloud-sync", "success"},
                                 final_pages={"mail"}, fail=())
@@ -359,6 +439,24 @@ class NewOutlookSetupFlow:
             else:
                 raise FlowError("New Outlook shows its mail view, but no step measured the Inbox listing")
         raise FlowError("New Outlook's account setup didn't reach its last page")
+
+    def check_servers(self):
+        ctx, a = self.ctx, FlowContext.action
+        hosts = ctx.other_server()
+        if hosts is not None and ctx.probe.find("field.imap_server") is None and \
+                ctx.probe.find("button.show_more") is not None:
+            ctx.note("opened 'Show more' to read the servers of new Outlook's IMAP form (not counted)")
+            ctx.prepare(a("click", "button.show_more"))
+            deadline = time.monotonic() + 5
+            while ctx.probe.find("field.imap_server") is None and time.monotonic() < deadline:
+                time.sleep(0.2)
+            hosts = ctx.other_server()
+        if hosts is None:
+            ctx.note("new Outlook's IMAP form names the account's server")
+            return
+        ctx.note(f"new Outlook's IMAP form names another server ({', '.join(hosts) or 'unreadable'}): corrected in "
+                 "the form")
+        ctx.correct_servers("New Outlook", self.hosts, self.ports)
 
 
 class NewOutlookRemoval:

@@ -28,7 +28,7 @@ class NetworkLog:
 
     def header(self, os_name: str, app_id: str, source: str, poll_hz: float, root_pids: list[int]):
         self.write("header", version=self.version, os=os_name, app=app_id, source=source, poll_hz=poll_hz,
-                   root_pids=root_pids, utc_offset=time.time() - time.perf_counter())
+                   root_pids=root_pids, script_pid=os.getpid(), utc_offset=time.time() - time.perf_counter())
 
     def close(self):
         with self.lock:

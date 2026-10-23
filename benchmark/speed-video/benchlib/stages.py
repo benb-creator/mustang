@@ -13,9 +13,11 @@ from .corpus import CorpusGenerator, CorpusSpec
 from .driver import AppProcess, Calibration, EventLog, ScenarioDriver
 from .encode import EncodeError, Encoder
 from .environment import EnvironmentProbe
-from .evidence import NetworkOwners, RunEvidence, SessionEvidence
+from .evidence import MicrosoftNetworks, NetworkOwners, RunEvidence, SessionEvidence
+from .facts import FactsError, PersonFacts
 from .method import MethodTexts
 from .narration import Narration
+from .pressure import CpuPressure, CpuPressureLog
 from .references import References
 from .resultfolder import ResultFolder
 from .runner import Desktops, Orchestrator, RunExecutor, RunPlan, SeriesStop
@@ -227,8 +229,16 @@ class Pipeline:
                 for n, (app, run, is_warmup) in enumerate(RunPlan.interleaved(apps, measured_n, warmup_n))]
         self.results_folder().write_manifest(plan=plan, runs={"measured": measured_n, "warmup": warmup_n})
         analyzer = RunAnalyzer(self.config, self.scenarios) if self.config.get("runs.analyze_after_each", True) else None
-        Orchestrator(self.config, self.executor(), self.progress, analyzer).run_comparison(
-            comparison_id, tasks, resume, measured, warmup, only_apps)
+        pressure = None
+        if self.desktop.platform == "linux" and CpuPressureLog.available():
+            pressure = CpuPressureLog(self.results_folder().logs_dir / CpuPressureLog.file_name).start()
+        try:
+            Orchestrator(self.config, self.executor(), self.progress, analyzer,
+                         pressure.path if pressure else None).run_comparison(
+                comparison_id, tasks, resume, measured, warmup, only_apps)
+        finally:
+            if pressure is not None:
+                pressure.stop()
 
     def run_session(self, session: str, measured: int | None = None, warmup: int | None = None,
                     resume: bool = True, package: bool = True, full_zip: bool = True) -> dict:
@@ -265,12 +275,31 @@ class Pipeline:
         return [c for c, spec in (self.config.get("comparisons") or {}).items()
                 if spec["left"] in recorded and spec["right"] in recorded]
 
+    def endpoints(self) -> dict:
+        """The account's server endpoints as the session recorded them (manifest.json), else from the config."""
+        recorded = (self.results_folder().manifest().get("server") or {}).get("endpoints")
+        if recorded:
+            return recorded
+        return {"jmap_session_url": self.config.get("server.jmap_session_url"),
+                "imap": self.config.get("server.imap") or {}, "smtp": self.config.get("server.smtp") or {}}
+
     def analyze(self, comparison_id: str, force: bool = False) -> dict:
+        """Everything after the recording, from the result folder alone (so it can run again later, e.g. on a
+        Windows session's result folder here): settle detection of runs without analysis.json (all with `force`),
+        each run's evidence.json and cpu-pressure.json, results.json, evidence.json, report.md."""
         analyzer = RunAnalyzer(self.config, self.scenarios)
         folder = self.results_folder()
         owners = NetworkOwners(self.config.workdir / "evidence" / "ip-owners.json")
+        microsoft = MicrosoftNetworks.from_config(self.config)
+        pressure = CpuPressure.for_folder(folder, CpuPressure.configured_limit(self.config))
+        endpoints = self.endpoints()
+        proxy_ports = set(self.config.get("evidence.proxy_ports") or [1080, 3128])
+        folder.write_manifest(evidence_rules={**microsoft.describe(), "proxy_ports": sorted(proxy_ports),
+                                              "carries_data": "more than 65,536 bytes received, or open more than "
+                                                              "5 s without byte counts"})
         tasks = {t for c in self.config.group_comparisons(comparison_id) for t in self.config.comparison(c)["tasks"]}
         for app_id in self.config.group_apps(comparison_id):
+            protocol = self.config.app(app_id).get("protocol")
             for task in sorted(tasks):
                 for run_dir in folder.run_dirs(app_id, task):
                     meta = json.loads((run_dir / "meta.json").read_text())
@@ -279,9 +308,12 @@ class Pipeline:
                         self.progress(f"  {folder.relative(run_dir)}: {result['status']} "
                                       + (f"{result['total_s']:.3f} s" if result.get("total_s") is not None else "")
                                       + (f" ({result['reason']})" if result.get("reason") else ""))
+                for run_dir in folder.run_dirs(app_id, task) + folder.failed_attempt_dirs(app_id, task):
                     if (run_dir / "network.jsonl").exists():
-                        RunEvidence(run_dir, owners, set(self.config.get("evidence.proxy_ports") or [1080, 3128])
-                                    ).summarize()
+                        RunEvidence(run_dir, owners, proxy_ports, protocol=protocol, endpoints=endpoints,
+                                    microsoft=microsoft).summarize()
+                    if pressure is not None:
+                        pressure.write(run_dir)
         results = None
         for comparison in self.config.group_comparisons(comparison_id):
             results = self.write_results(comparison)
@@ -290,17 +322,10 @@ class Pipeline:
     def results_path(self) -> Path:
         return self.results_folder().results_path
 
-    def facts(self, results_dir: Path) -> dict:
+    def facts(self, results_dir: Path, comparisons: list[str] | None = None) -> PersonFacts:
         """Person-set facts (never from the measurement): `facts.json` next to results.json, created as a template."""
-        path = results_dir / "facts.json"
-        if not path.exists():
-            template = {"_help": "Set by a person after checking the recordings; 1 = confirmed. Never filled in by "
-                                 "the pipeline. See README, 'Facts set by a person'.",
-                        **{c: {"right_protocol_default": None} for c in self.config.get("comparisons", {})}}
-            if "C4" in template:
-                template["C4"].update({"cloud_sync_confirmed": None, "dialog_text": None, "microsoft_footage": None})
-            path.write_text(json.dumps(template, indent=2, ensure_ascii=False))
-        return json.loads(path.read_text())
+        return PersonFacts.load(results_dir, comparisons if comparisons is not None else
+                                list(self.config.get("comparisons") or {}))
 
     def server_evidence(self, comparison_id: str, comparison: dict) -> dict | None:
         task_id = self.config.get("server.log.evidence_task", "T1")
@@ -332,7 +357,11 @@ class Pipeline:
         comparison = Aggregator(self.config, self.scenarios, folder).comparison(comparison_id)
         task_id = self.config.get("evidence.task", "T1")
         cloud_apps = {a for a in self.config.get("apps") or {} if self.config.app(a).get("cloud_sync")}
-        client = SessionEvidence({comparison_id: comparison}, cloud_apps).summarize(task_id)
+        client = SessionEvidence({comparison_id: comparison}, cloud_apps,
+                                 MicrosoftNetworks.from_config(self.config)).summarize(task_id)
+        pressure = SessionEvidence.cpu_pressure(comparison["tasks"].get(task_id))
+        if client["comparisons"].get(comparison_id) is not None and pressure is not None:
+            client["comparisons"][comparison_id]["values"]["cpu_pressure"] = pressure
         comparison["evidence"] = client["comparisons"].get(comparison_id)
         comparison["server_evidence"] = self.server_evidence(comparison_id, comparison)
         if comparison["evidence"] is not None and comparison["server_evidence"]:
@@ -342,6 +371,7 @@ class Pipeline:
         results["comparisons"][comparison_id] = comparison
         env = self.stored_environment(comparison_id)
         if env is not None:
+            env = EnvironmentProbe.published({**env, **(self.config.comparison(comparison_id).get("environment") or {})})
             for side in ("left", "right"):
                 app = env.get("apps", {}).get(comparison[side], {})
                 for task in comparison["tasks"].values():
@@ -353,7 +383,7 @@ class Pipeline:
         results["corpus"] = comparison["corpus"]
         results["server_mode"] = self.server_mode
         results["result_folder"] = folder.name
-        results["facts"] = self.facts(folder.path)
+        results["facts"] = self.facts(folder.path, list(results["comparisons"])).data
         results["generated"] = datetime.now(timezone.utc).isoformat()
         path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
         evidence = {"version": 1, "generated": results["generated"], "comparisons": {}, "env": {}}
@@ -377,10 +407,11 @@ class Pipeline:
         paths = [Path(p) for p in results_paths] if results_paths else [self.results_path()]
         merged = None
         first = None
+        facts = []
         for path in paths:
             folder = ResultFolder.open(path if path.is_dir() else path.parent)
             data = json.loads((folder.results_path if path.is_dir() else path).read_text())
-            data["facts"] = {**(data.get("facts") or {}), **self.facts(folder.path)}
+            facts.append(self.facts(folder.path, list(data["comparisons"])))
             for comparison in data["comparisons"].values():
                 comparison["result_folder"] = str(folder.path)
             if merged is None:
@@ -392,7 +423,8 @@ class Pipeline:
                                       f"{merged.get(key)}); results of different setups can't share one video")
             merged["comparisons"].update(data["comparisons"])
             merged["environment"].update(data.get("environment") or {})
-            merged["facts"].update(data["facts"])
+        merged["facts"] = PersonFacts.merged(facts).data
+        merged["facts_files"] = [f.source for f in facts]
         return merged
 
     def compose(self, comparisons: list[str] | None, language: str, narration_path: str | None,
@@ -411,10 +443,12 @@ class Pipeline:
                results_paths: list[str] | None = None, allow_missing: bool = False) -> dict:
         results = self.merged_results(results_paths)
         files = NarrationFiles(narration_path, language, variant)
-        values = ValuesBuilder(self.config, results, language, results.get("facts") or {}).build()
         compose = self.config.get("compose") or {}
+        settings = files.settings(compose)
+        values = ValuesBuilder(self.config, results, language, results.get("facts") or {},
+                               settings.person_set_facts).build()
         voice_dir = self.config.path(compose["voice_dir"]) if compose.get("voice_dir") else None
-        texts = MethodTexts(self.config, results, values, language, voice_dir)
+        texts = MethodTexts(self.config, results, values, language, voice_dir, settings)
         out_dir = self.config.workdir / "compose" / f"{name}-{language}" / "method"
         return texts.render(files.method_dir(), variant, out_dir, comparisons or list(results["comparisons"]),
                             allow_missing)
@@ -433,14 +467,22 @@ class Pipeline:
         out_dir = self.config.workdir / "compose" / f"{name}-{language}"
         timeline = json.loads((out_dir / "timeline.json").read_text())
         publication = timeline.get("publication") or {}
+        facts = timeline.get("facts") or {}
+        try:
+            for path in facts.get("files") or []:
+                PersonFacts(json.loads(Path(path).read_text()), facts.get("person_set_facts"), path).check()
+        except FactsError as ex:
+            raise EncodeError(str(ex)) from ex
         watermark = None
         if not publication.get("allowed", True):
             if not internal_preview:
                 instead = ", ".join(publication.get("instead") or []) or "none of its fallbacks " + \
                     f"({', '.join(publication.get('chain') or []) or 'none listed'})"
-                raise EncodeError(f"Variant {publication.get('variant')} must not be published: its condition "
-                                  f"'{publication.get('publish_when')}' is false. Publish instead: {instead}. "
-                                  f"(--internal-preview encodes it with an on-screen 'not for publication' mark.)")
+                why = ("compose.json has no publish_when for it" if publication.get("ungated") else
+                       f"its condition '{publication.get('publish_when')}' is false")
+                raise EncodeError(f"Variant {publication.get('variant')} must not be published: {why}. Publish "
+                                  f"instead: {instead}. (--internal-preview encodes it with an on-screen 'not for "
+                                  f"publication' mark.)")
             watermark = Composer.texts.get(language, Composer.texts["en"])["preview"]
         encoder = Encoder(self.config, out_dir / "master.mkv", timeline.get("audio"), out_dir / "out",
                           f"{name}-{language}", self.progress, watermark)

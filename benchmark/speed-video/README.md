@@ -25,7 +25,7 @@ bench.py run-linux [--results <folder>]          the whole Linux session (C1 + C
 bench.py corpus     manifest | time | write      deterministic test corpus (profile inbox-30k or multi-folder)
 bench.py env        record OS, CPU, RAM, GPU, display, app and server versions, round-trip time
 bench.py run        warm-up + 5 measured runs per app and task, interleaved A B A B, with capture
-bench.py analyze    --results <folder>: settle detection and checks per run, medians, results.json, evidence.json,
+bench.py analyze    --results <folder> [--recorded-config]: settle detection and checks per run, medians, results.json, evidence.json,
                     report.md
 bench.py compose    --results <folder>[,<folder>]: short video (hook, "Go!", race, hold, cards, timeline, subtitles)
 bench.py voice      text-to-speech for the lines the composition chose
@@ -39,7 +39,10 @@ A session writes one **result folder** (`results-<os>-<yyyymmdd-hhmm>/`, see "Re
 run, the captures and all evidence, plus two zips of it: `…-small.zip` to send (every data file, log and screenshot
 of every run, but only the recordings the videos use) and `….zip` with everything; `analyze`, `compose` and
 `method` read result folders, so the Linux folder made here and the Windows folder Ben sends are composed the same
-way. Both OSes run the same code: one runner (`benchlib/runner.py`), the same flows, probes and analysis; the
+way. `analyze` needs nothing but the folder (the small zip is enough: it uses the recorded analyses, logs and
+checks), so newer evidence rules can be applied after the fact; for a folder made on another computer,
+`analyze --results <folder> --recorded-config` takes the config that session ran with from its manifest.json (paths,
+tools and the analysis rules from `--config`). Both OSes run the same code: one runner (`benchlib/runner.py`), the same flows, probes and analysis; the
 Windows session only adds what Windows needs around the runs (`benchlib/winsession.py`). `run` and `run-linux`
 continue an interrupted folder with `--results <folder>` (completed runs are kept).
 
@@ -390,7 +393,13 @@ types there like a user (xdotool on Linux, `SendInput` on Windows).
   the configuration it finds (autoconfig), or, when the server's domain offers none for that app, its manual setup
   (recorded per run as `flow_path`, and every input of it is a counted user action). A found configuration that
   names another server than the account's (e.g. the address's domain points to a different mail server) is
-  corrected in the app's own manual setup, as a user would; the password never goes to another server.
+  corrected in the app's own manual setup, as a user would; the password never goes to another server. Parula
+  ("Manual setup") and Thunderbird ("Edit configuration") show the found host names; on Windows Parula runs the same
+  flow. Outlook (classic): its IMAP settings page (`server_fields` in the element map) is corrected there; a
+  password page without that page (the found server isn't shown) leads back to the address and its "Let me set up
+  my account manually". New Outlook: its IMAP form's server fields (behind "Show more", opened only to read them and
+  not counted) are corrected in the form before the password. Where an app doesn't show the server it would log in
+  to, the run stops before the password as a technical failure (`WrongServer`).
   Parula 0.9.39 doesn't find JMAP by itself (Stalwart's autoconfig lists IMAP, POP3 and SMTP), so Parula's JMAP
   setup is always its manual setup with protocol "JMAP" and the server's URL.
 - The instrumentation is never the timing source. Each measured step ends at the last significant screen change in
@@ -420,14 +429,43 @@ types there like a user (xdotool on Linux, `SendInput` on Windows).
 
 Every run of every app logs the TCP connections of the app's process tree ten times a second (`network.jsonl`;
 Linux: `/proc`, byte counters from `ss -tni`), together with the mail server's addresses as this computer resolves
-them at the start of the run. `analyze` summarizes each run (`evidence.json`: connections to the mail server on
-its mail ports, bytes received over them, connections on mail ports to other addresses, every other remote network
-by owner, ASN and prefix from RDAP and RIPEstat, cached) and each comparison (`env.<C>.left_direct_only`,
-`right_direct_only`; for an app with `cloud_sync: true` also `right_direct_connections`, `right_inbox_complete`,
-`right_remote_owner`, `right_remote_asn`). `direct_only` = the app connected to the mail server in every measured run
-and to no other address on a mail port with more than a probe's few bytes (an app that guesses host names
-probes other addresses; that isn't mail data) and to no proxy. Raw addresses stay in `network.jsonl`; the
-summaries publish networks, never single addresses, and never this computer's public address.
+them at the start of the run. On Windows the log also has the connections of other processes to the mail server's
+addresses (`open_outside_tree`). `analyze` summarizes each run (`evidence.json`): connections to the mail server on
+its mail ports and on any port, `direct_mail_connections` (on the app's own mail endpoint, the IMAP port for IMAP
+apps and the JMAP URL's port for JMAP, that carried data: more than 64 KB received, or open more than 5 s without
+byte counts), the outside-tree connections that count (first seen after the app's launch, in any state but
+TIME_WAIT, not the test script's own process), bytes received, connections on mail ports to other addresses, every
+other remote network by owner, ASN and prefix from RDAP and RIPEstat (cached), whether it is registered to
+Microsoft (origin AS in `evidence.microsoft_asns`, default AS8068–AS8075, AS3598, AS6584, AS12076, or an RDAP
+registrant or AS holder starting with "Microsoft"; the rule is in manifest.json `evidence_rules`), the share of the
+connections in the measured window that went to Microsoft's networks, and the completeness check with its basis
+(`inbox_basis`: "count" when the app's own count was read; "oldest message only" never counts as complete).
+
+Per comparison (`results.json` and `evidence.json`, the narration's `env.<C>.*` values): `left_direct_only`,
+`right_direct_only` = 1 if the app connected directly for its mail (`direct_mail_connections` ≥ 1) in every
+completed run, the warm-up included, with no mail data to other addresses and no proxy. For an app with
+`cloud_sync: true` also: `right_direct_connections` (most connections to the mail server's addresses, any port and
+outside the app's tree included, in any run: warm-up, measured and failed attempts), `right_mail_port_elsewhere`
+(likewise for mail ports elsewhere), `right_logged_runs` (completed runs with a network log, warm-up included) —
+these three are missing unless every completed run has a log —, `right_inbox_complete` and `right_inbox_counted`
+(every measured run complete, and counted), `right_remote_owner`, `right_remote_asn`, `right_remote_microsoft`,
+`right_remote_microsoft_share` (lowest share of any measured run, whole %). Raw addresses stay in `network.jsonl`;
+the summaries publish networks, never single addresses, and never this computer's public address.
+
+### CPU stall (Linux)
+
+A Linux session records the CPU stall counters once a second (`logs/cpu-pressure.jsonl`: `/proc/pressure/cpu`
+`some`/`full` totals, the container's cgroup `cpu.pressure`, `/proc/loadavg`). Each run's share of stalled time over
+its measured window is in `cpu-pressure.json` (with the load average at the start and end); a run above
+`runs.max_cpu_pressure_pct` (default 15: the capture and software rendering alone stall 6–8 %, so more means
+interference; `null` only records it) counts as a technical failure and is recorded again at the end of the series. `env.<C>.cpu_pressure` = the highest share of the measured runs, rounded up to 0.1 %.
+A `cpu-pressure.jsonl` recorded next to a session by any sampler in the same format can be put into `logs/` of an
+older result folder; `analyze` then computes the shares after the fact.
+
+The environment record (`manifest.json` `environment`) has the container's memory limit (`ram_limit`, cgroup
+`memory.max`) next to the computer's RAM; cards and method texts show the limit as the RAM and the logical CPU count
+with the CPU ("…, 12 vCPUs"). For a folder recorded before that, `comparisons.<C>.environment` in the config
+(e.g. `{ram_limit: 48 GB}`) is applied when `analyze` writes results.json.
 
 ## Result folder format
 
@@ -446,6 +484,7 @@ results-<os>-<yyyymmdd-hhmm>/                 os = linux | windows
     changes.npz      per-frame change measures (analysis), analysis.json the run's analysis (steps, durations,
                      clock fit, first rows visible, tail, measured window, wall-clock elapsed)
     network.jsonl    connections of the app's processes, evidence.json their summary
+    cpu-pressure.json  Linux: the run's CPU stall share and load average (from logs/cpu-pressure.jsonl)
     verify.json      the completeness check after the measured end
     account.json     the account check and repair before the run
     screenshots/     on a failed run: the screen and the app's UI state
@@ -455,7 +494,7 @@ results-<os>-<yyyymmdd-hhmm>/                 os = linux | windows
                      setup path, first rows visible, wall-clock elapsed, evidence summary, environment, corpus
   evidence.json      the evidence facts per comparison (the narration's env.<C>.* values)
   report.md          the human-readable report
-  logs/              session logs (secrets redacted)
+  logs/              session logs (secrets redacted); Linux: cpu-pressure.jsonl
   README-FIRST.txt   for the person who ran it: where the folder and the zips are, how big, what to send
 results-<os>-<yyyymmdd-hhmm>-small.zip      every file except the recordings the videos don't use (to send)
 results-<os>-<yyyymmdd-hhmm>.zip            everything (recordings stored, not recompressed)
@@ -466,13 +505,16 @@ redacted, and the config holds only the name of the environment variable.
 
 ### Facts set by a person (`<result folder>/facts.json`)
 
-`analyze` creates the template; the pipeline never fills it. Per comparison:
+`analyze` creates the template; the pipeline never fills it. At the top: `server_ours: 1` once confirmed that the
+Parula team runs the mail server (the texts say "our own mail server"). Per comparison:
 `right_protocol_default: 1` after checking our own T1 recording that the right-hand app's own account setup chose
 IMAP for this server; for C4 also `cloud_sync_confirmed: 1` (new Outlook's setup screen in our recording says the
 account syncs through the Microsoft cloud), `dialog_text` (that screen's text, typed from the recording) and
 `microsoft_footage: 1` once a lawyer confirmed Microsoft's screenshot permission covers the C4 footage.
-The server-log facts (`left_direct_only`, `cloud_login_confirmed`, `cloud_fetched_messages`, …) come from the
-evidence.
+Only the keys the voice-over's `compose.json` lists in `person_set_facts` are allowed: compose, method and encode
+refuse a `facts.json` with any other key and name it, so a measured value (`left_direct_only`,
+`right_direct_connections`, `cloud_login_confirmed`, …) can only come from the evidence. With several result folders,
+a top-level fact set in two of them must agree.
 
 ### New Outlook (C4)
 
@@ -490,10 +532,11 @@ shows no fetch and then no login from outside the benchmark computer (`wait_clou
 evidence (`cloud_logins_after_removal`, `cloud_fetched_messages`, `cloud_fetched_headers`, after the last run
 `server.log.final_watch_min`) is recorded. The procedure is listed in the report and the method text.
 
-Every variant may only be published when its `publish_when` in `compose.json` holds (C4:
-`cloud_sync_confirmed`, `cloud_login_confirmed`, `left_direct_only`; the combined cut also one session per
-computer). `encode` refuses otherwise and names the first variant of its `publish_instead` chain whose own
-condition holds (e.g. `c4-direct`), or none; `encode --internal-preview` makes a copy marked "not for publication"
+Every variant may only be published when its `publish_when` in `compose.json` holds; a variant without its own
+`publish_when` is never published (C4: the client evidence values above, `cloud_sync_confirmed`, `left_direct_only`,
+`server_ours`; the combined cut also one session per computer). `encode` re-checks `facts.json` and refuses
+otherwise, naming the first variant of its `publish_instead` chain whose own condition holds (e.g. `c4-direct`, then
+`c4-neutral`), or none; `encode --internal-preview` makes a copy marked "not for publication"
 for review. In variants with the data-path card, new Outlook's pane shows footage only when
 `c4_microsoft_footage_when` holds (`microsoft_footage` in `facts.json`), otherwise a neutral timer card.
 
@@ -570,8 +613,10 @@ list keeps loading in the background would have ended 1.2–2.0 s too early.
   the median run, never the best one.
 - Screen recording runs during all measured runs of all apps; ffmpeg is pinned to its own core in the same way
   for every app.
-- The environment (OS, kernel, CPU, RAM, GPU, display, app versions per run, Stalwart version, round-trip time,
-  date) is recorded automatically and goes into the report and the method text.
+- The environment (OS, kernel, CPU, RAM, GPU, display, app versions per run, the server software from
+  `server.software` with its version where known, round-trip time, date) is recorded automatically and goes into the
+  report and the method text; a user account can't ask the server for its version, so `server.version` is optional
+  and the texts read correctly without it.
 - No editing beyond crop, the side-by-side layout and overlays (all outside the app panes). Waits beyond the race
   budget are shown as a labelled time-lapse with one factor for both panes (the label stays, in the past tense,
   until the end of the hold); the timers show real time. Microsoft
@@ -603,10 +648,19 @@ start and finish sounds (`sfx_start`, `sfx_finish`) are the same for both panes.
 (lossless RGB), `audio.wav`, `timeline.json`, `subtitles.vtt`, `subtitles.srt`, `voice-script.md/json`.
 
 `bench.py method` renders the voice-over's method templates (`method/<variant>.<lang>.youtube.txt` and
-`.expander.md`) with every run in run order, the action lists, the server-log evidence, the deviations, what each
-app kept doing after the list was complete, and `publish.page_url`, `repo_url`, `imprint_url`; it fails on a
-missing value (`--allow-missing` for drafts) and when the YouTube text exceeds 5,000 bytes (UTF-8) or contains
-`<` or `>`. The expander is written as Markdown and HTML.
+`.expander.md`) with every run in run order, the action lists, the evidence, the deviations and the
+instrumentation (`block.deviations`, `block.instrumentation`: what each result folder's manifest.json recorded,
+"Linux: … Windows: …" for several folders; German from `translations/de.yaml` or the config's `translations.de`,
+sentence by sentence, else the block is missing and the error names the sentence; `block.deviations_short` for
+the YouTube text: the number of deviations and the subjects they start with, e.g. "7 (Test computer, Thunderbird,
+Parula)", next to the link `method_url` = `publish.method_url`, default https://parula.app, to the full list), what
+each app kept doing after the list was complete, the server software (`env.<C>.server_software` from
+`server.software`, the version only when known), and `publish.page_url`, `repo_url`, `imprint_url`; it fails on a
+missing value
+(`--allow-missing` for drafts) and when the YouTube text exceeds 5,000 bytes (UTF-8) or contains `<` or `>`. The
+expander is written as Markdown and HTML. Label bars, cards and method texts name the apps and protocols as the
+voice-over's `compose.json` does (`pane_names`, `pane_protocol`); an app whose protocol doesn't start with its side's
+protocol is refused.
 
 Encoding converts once from RGB to BT.709 limited-range 4:2:0 and tags it: WebM (VP9 2-pass CRF 30, row-mt,
 `tune-content=screen`, Opus 160k), MP4 (H.264 High CRF 18, +faststart, AAC 192k), YouTube master (H.264 CRF 12,

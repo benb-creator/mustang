@@ -1,12 +1,80 @@
 import html
 import json
+import re
 from pathlib import Path
 
+import yaml
+
+from .compose import PaneLabels, ShortSettings
 from .narration import MethodTemplate, NarrationValues
 
 
 class MethodError(Exception):
     pass
+
+
+class ManifestTexts:
+    """Sentences a result folder's manifest.json records (`instrumentation`, `deviations`: what that session
+    actually used), in the method text's language: as recorded (English), or translated sentence by sentence from
+    `translations/<lang>.yaml` and the config's `translations.<lang>`. A sentence without a translation leaves the
+    block without a value; `untranslated` names it."""
+
+    def __init__(self, config, language: str):
+        self.language = language
+        self.table = {}
+        path = Path(__file__).resolve().parent.parent / "translations" / f"{language}.yaml"
+        if language != "en" and path.exists():
+            self.table.update(yaml.safe_load(path.read_text(encoding="utf-8")) or {})
+        self.table.update((config.get("translations") or {}).get(language) or {})
+        self.untranslated: dict[str, list[str]] = {}
+
+    def lines(self, folder: Path, key: str) -> list[str] | None:
+        path = Path(folder) / "manifest.json"
+        recorded = (json.loads(path.read_text()) if path.exists() else {}).get(key)
+        if isinstance(recorded, dict):
+            if recorded.get(self.language) is not None:
+                return list(recorded[self.language])
+            recorded = recorded.get("en")
+        if recorded is None:
+            return None
+        if self.language == "en":
+            return list(recorded)
+        missing = [line for line in recorded if not self.table.get(line)]
+        if missing:
+            self.untranslated[f"{Path(folder).name}/manifest.json {key}"] = missing
+            return None
+        return [self.table[line] for line in recorded]
+
+    def block(self, folders: list[Path], key: str, separator: str, list_items: bool = False,
+              summary: bool = False) -> str | None:
+        """One text from the folders' sentences ("Linux: … Windows: …" for several folders); `list_items` joins
+        them as items of one sentence, without their final periods; `summary`: only their number and subjects."""
+        parts = []
+        for folder in folders:
+            lines = self.lines(folder, key)
+            if lines is None:
+                return None
+            if list_items:
+                lines = [line.rstrip(".") for line in lines]
+            text = self.summary(lines) if summary else separator.join(lines)
+            if len(folders) > 1:
+                os_name = str(json.loads((Path(folder) / "manifest.json").read_text()).get("os") or "").capitalize()
+                text = f"{os_name}: {text}"
+            parts.append(text)
+        return separator.join(parts) if parts else None
+
+    @staticmethod
+    def summary(lines: list[str]) -> str:
+        """The short form of a list for the YouTube text: its length and the subjects its sentences start with
+        ("Thunderbird: …"), e.g. "7 (Test computer, Thunderbird, Parula)"; the website has the whole list."""
+        if not lines:
+            return ""
+        subjects = []
+        for line in lines:
+            match = re.match(r"([^:.;,]{1,40}): ", line)
+            if match and match.group(1) not in subjects:
+                subjects.append(match.group(1))
+        return f"{len(lines)} ({', '.join(subjects)})" if subjects else str(len(lines))
 
 
 class MethodTexts:
@@ -31,7 +99,7 @@ class MethodTexts:
                "also": "also {n} connection(s) to {owner} ({asn}, {prefix})", "inbox_complete": "Inbox complete",
                "inbox_incomplete": "Inbox not complete", "no_network": "no network evidence",
                "after_download": "{mb} MB more from the mail server after the list was complete, until the app was closed",
-               "none": "none"},
+               "warmup_run": "warm-up", "failed_attempt": "failed attempt, recorded again", "none": "none"},
         "de": {"warmup": "Aufwärmlauf, verworfen", "not_done": "nicht fertig in {limit}",
                "failed": "nicht gültig: {reason}",
                "attempt": "am Ende der Serie erneut aufgenommen (Versuch {attempt})",
@@ -50,15 +118,19 @@ class MethodTexts:
                "inbox_complete": "Posteingang vollständig", "inbox_incomplete": "Posteingang nicht vollständig",
                "no_network": "keine Netzwerk-Belege",
                "after_download": "{mb} MB mehr vom Mailserver nach der vollständigen Liste bis zum Schließen der App",
+               "warmup_run": "Aufwärmlauf", "failed_attempt": "fehlgeschlagener Versuch, erneut aufgenommen",
                "none": "keine"},
     }
 
-    def __init__(self, config, results: dict, values: NarrationValues, language: str, voice_dir: Path | None):
+    def __init__(self, config, results: dict, values: NarrationValues, language: str, voice_dir: Path | None,
+                 settings: ShortSettings | None = None):
         self.config = config
         self.results = results
         self.values = values
         self.language = language if language in self.words else "en"
         self.voice_dir = voice_dir
+        self.labels = PaneLabels(settings or ShortSettings(None, config.get("compose") or {}), language)
+        self.manifest_texts = ManifestTexts(config, self.language)
 
     def w(self, key: str, **kwargs) -> str:
         return self.words[self.language][key].format(**kwargs)
@@ -81,31 +153,33 @@ class MethodTexts:
             value += f" ({self.w('attempt', attempt=run['attempt'])})"
         return value
 
-    def runs_block(self, task: dict) -> str:
+    def runs_block(self, comparison_id: str, task: dict) -> str:
         rows = []
-        for side in (task["left"], task["right"]):
+        for side_name in ("left", "right"):
+            side = task[side_name]
             for run in side.get("warmups", []) + side["runs"]:
-                rows.append((run["order"] or 0, side["name"], run))
+                rows.append((run["order"] or 0, self.labels.name(comparison_id, side_name, side), run))
         lines = []
         for order, name, run in sorted(rows, key=lambda r: r[0]):
             label = f"{name} ({self.w('warmup')})" if run["warmup"] else name
             lines.append(f"• #{order} {label}: {self.run_text(None, run)}")
         return "\n".join(lines)
 
-    @staticmethod
-    def actions_block(task: dict) -> str:
-        return " · ".join(f"{s['name']} ({s['actions']}): " + "; ".join(s["action_list"]) for s in (task["left"],
-                                                                                                    task["right"]))
+    def actions_block(self, comparison_id: str, task: dict) -> str:
+        return " · ".join(f"{self.labels.name(comparison_id, n, task[n])} ({task[n]['actions']}): "
+                          + "; ".join(task[n]["action_list"]) for n in ("left", "right"))
 
-    def client_evidence_block(self, comparison: dict, evidence: dict) -> str:
+    def client_evidence_block(self, comparison_id: str, comparison: dict, evidence: dict) -> str:
         lines = []
         for side_name, data in evidence["sides"].items():
-            name = comparison["tasks"][evidence["task"]][side_name]["name"]
+            name = self.labels.name(comparison_id, side_name, comparison["tasks"][evidence["task"]][side_name])
             if not data["runs_with_evidence"]:
                 lines.append(f"• {name}: {self.w('no_network')}")
                 continue
             for run in data["runs"]:
-                count = run.get("direct_connections") or 0
+                count = run.get("server_connections")
+                if count is None:
+                    count = run.get("direct_connections") or 0
                 parts = [self.w("connections", n=count) if count else self.w("no_connections")]
                 for network in run.get("remote_networks", []):
                     if network.get("connections"):
@@ -113,24 +187,26 @@ class MethodTexts:
                                             asn=network.get("asn") or "–", prefix=network.get("prefix") or "–"))
                 if run.get("inbox_complete") is not None:
                     parts.append(self.w("inbox_complete" if run["inbox_complete"] else "inbox_incomplete"))
-                lines.append(f"• {name} {run['run']}: " + ", ".join(parts))
+                kind = {"warm-up": f" ({self.w('warmup_run')})", "attempt": f" ({self.w('failed_attempt')})"}.get(
+                    run.get("kind"), "")
+                lines.append(f"• {name} {run['run']}{kind}: " + ", ".join(parts))
         return "\n".join(lines)
 
-    def evidence_block(self, comparison: dict) -> str:
+    def evidence_block(self, comparison_id: str, comparison: dict) -> str:
         evidence = comparison.get("evidence") or {}
         if evidence.get("kind") == "client":
-            block = self.client_evidence_block(comparison, evidence)
+            block = self.client_evidence_block(comparison_id, comparison, evidence)
             if comparison.get("server_evidence"):
-                block += "\n" + self.server_evidence_block(comparison, comparison["server_evidence"])
+                block += "\n" + self.server_evidence_block(comparison_id, comparison, comparison["server_evidence"])
             return block
-        return self.server_evidence_block(comparison, evidence)
+        return self.server_evidence_block(comparison_id, comparison, evidence)
 
-    def server_evidence_block(self, comparison: dict, evidence: dict) -> str:
+    def server_evidence_block(self, comparison_id: str, comparison: dict, evidence: dict) -> str:
         if not evidence.get("sides"):
             return self.w("no_evidence")
         lines = []
         for side_name, data in evidence["sides"].items():
-            name = comparison["tasks"][evidence["task"]][side_name]["name"]
+            name = self.labels.name(comparison_id, side_name, comparison["tasks"][evidence["task"]][side_name])
             for run in data["runs"]:
                 logins = sum(run["logins"].values())
                 parts = [self.w("logins", n=logins)]
@@ -173,7 +249,7 @@ class MethodTexts:
                     notes.append(self.w("after_fetch", messages=sum(window["full_messages"].values()),
                                         downloads=downloads))
                 if notes:
-                    parts.append(f"{side['name']} ({side['protocol']}): " + "; ".join(notes))
+                    parts.append(f"{self.labels.named(comparison_id, side_name, side)}: " + "; ".join(notes))
         return " · ".join(parts) or self.w("none")
 
     def credits(self) -> dict:
@@ -186,23 +262,46 @@ class MethodTexts:
                       else self.w("none"))
         return {"voice_credit": voice, "music_credit": music_text}
 
+    def folders(self, comparisons: list[str]) -> list[Path]:
+        """The result folders of these comparisons, in their order."""
+        out = []
+        for comparison_id in comparisons:
+            folder = self.results["comparisons"][comparison_id].get("result_folder")
+            if folder and Path(folder) not in out and (Path(folder) / "manifest.json").exists():
+                out.append(Path(folder))
+        return out
+
+    def config_lines(self, key: str) -> list[str]:
+        lines = self.config.get(key) or []
+        if isinstance(lines, dict):
+            lines = lines.get(self.language) or lines.get("en") or []
+        return list(lines)
+
     def fill(self, comparisons: list[str]):
         v = self.values
         for comparison_id in comparisons:
             comparison = self.results["comparisons"][comparison_id]
             for task_id, task in comparison["tasks"].items():
-                v.set_text(f"block.runs.{comparison_id}.{task_id}", self.runs_block(task))
-                v.set_text(f"block.actions.{comparison_id}.{task_id}", self.actions_block(task))
-            v.set_text(f"block.evidence.{comparison_id}", self.evidence_block(comparison))
-        deviations = self.config.get("deviations") or []
-        if isinstance(deviations, dict):
-            deviations = deviations.get(self.language) or deviations.get("en") or []
-        v.set_text("block.deviations", "; ".join(deviations) or self.w("none"))
+                v.set_text(f"block.runs.{comparison_id}.{task_id}", self.runs_block(comparison_id, task))
+                v.set_text(f"block.actions.{comparison_id}.{task_id}", self.actions_block(comparison_id, task))
+            v.set_text(f"block.evidence.{comparison_id}", self.evidence_block(comparison_id, comparison))
+        folders = self.folders(comparisons)
+        for name, key, separator, list_items, summary in (
+                ("deviations", "deviations", "; ", True, False), ("deviations_short", "deviations", "; ", True, True),
+                ("instrumentation", "instrumentation", " ", False, False)):
+            if folders:
+                text = self.manifest_texts.block(folders, key, separator, list_items, summary)
+            else:
+                lines = [line.rstrip(".") if list_items else line for line in self.config_lines(key)]
+                text = ManifestTexts.summary(lines) if summary else separator.join(lines)
+            if text is not None:
+                v.set_text(f"block.{name}", text or self.w("none"))
         v.set_text("block.after", self.after_block(comparisons))
         for key in ("page_url", "repo_url", "imprint_url"):
             value = self.config.get(f"publish.{key}")
             if value:
                 v.set_text(key, str(value))
+        v.set_text("method_url", str(self.config.get("publish.method_url") or "https://parula.app"))
         for key, value in self.credits().items():
             if value:
                 v.set_text(key, value)
@@ -218,7 +317,9 @@ class MethodTexts:
                 raise MethodError(f"No method template {template}")
             text, missing = MethodTemplate.render(template.read_text(encoding="utf-8"), self.values)
             if missing and not allow_missing:
-                raise MethodError(f"{template.name}: no value for {', '.join(missing)}")
+                untranslated = "".join(f"; no {self.language} translation in {where}: " + " | ".join(lines)
+                                       for where, lines in self.manifest_texts.untranslated.items())
+                raise MethodError(f"{template.name}: no value for {', '.join(missing)}{untranslated}")
             out = out_dir / template.name
             out.write_text(text, encoding="utf-8")
             entry = {"file": str(out), "characters": len(text), "missing": missing}

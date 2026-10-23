@@ -100,6 +100,9 @@ class CommandLine:
         analyze.add_argument("--comparison", help="default: every comparison with runs in the result folder")
         analyze.add_argument("--results", required=True, help="result folder")
         analyze.add_argument("--force", action="store_true")
+        analyze.add_argument("--recorded-config", action="store_true",
+                             help="use the config the result folder's session ran with (its manifest.json), e.g. to "
+                                  "analyze a Windows result folder again here; paths and tools from --config")
 
         compose = sub.add_parser("compose", help="side-by-side video, cards, timeline, subtitles, audio")
         compose.add_argument("--comparisons", help="default: all in results.json")
@@ -157,6 +160,8 @@ class CommandLine:
         folder = None
         if getattr(args, "results", None) and args.command in ("run", "analyze", "env", "run-linux"):
             folder = ResultFolder.open(args.results)
+            if getattr(args, "recorded_config", False):
+                config = Config.recorded(folder.manifest(), config)
         pipeline = Pipeline(config, self.progress, folder)
         handler = getattr(self, "cmd_" + args.command.replace("-", "_"))
         result = handler(pipeline, config, args)

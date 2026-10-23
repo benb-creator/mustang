@@ -142,7 +142,8 @@ VARIANTS = {"cf": ["open", "cf-tf1", "cf-tf2", "cf-tf3", "end"], "cf-gated": ["c
 COMPOSE = {"short": {"countdown_s": 0.8, "countdown_text": {"en": "Go!"},
                      "countdown_voice": "voice/<lang>/countdown-go.wav"},
            "race_budget_s": {"CF": 2.5}, "video_length_s": [3.0, 90.0],
-           "publish_when": {"cf-gated": "env.CF.cloud_sync_confirmed == 1"}, "publish_instead": {"cf-gated": "cf"}}
+           "publish_when": {"cf-gated": "env.CF.cloud_sync_confirmed == 1", "cf": "runs >= 1", "cf-neutral": "runs >= 1"},
+           "publish_instead": {"cf-gated": "cf"}}
 
 
 class E2E:

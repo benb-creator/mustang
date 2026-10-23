@@ -14,7 +14,7 @@ tools:
   ss: ss                            # iproute2; byte counters per connection for the network evidence
 
 server:                             # account mode: an existing server, one test account, nothing else is touched
-  name: Stalwart
+  software: Stalwart                 # the server software as the method texts name it; version optional (below)
   # version: "0.16.26"              # a user account can't ask the server for its version: set it for the report
   host: <mail.example.org>          # JMAP https://<host>/.well-known/jmap, IMAP <host>:993, SMTP <host>:465 unless set:
   # jmap_session_url: https://<host>/.well-known/jmap
@@ -65,7 +65,7 @@ evidence:
   poll_hz: 10
   task: T1
 
-runs: {measured: 5, warmup: 1, retries: 2, analyze_after_each: true}
+runs: {measured: 5, warmup: 1, retries: 2, analyze_after_each: true, max_cpu_pressure_pct: 15}
 
 driver:
   type_delay_ms: 40                 # the same typing speed for every app
@@ -153,6 +153,7 @@ procedures:
 
 publish:
   page_url: <https://parula.app/…>
+  method_url: https://parula.app    # the YouTube text's link to the full method text (all deviations)
   repo_url: https://github.com/mustang-im/mustang/tree/master/benchmark/speed-video
   imprint_url: <https://parula.app/…>
 

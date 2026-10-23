@@ -11,7 +11,7 @@ tools:
 
 server:
   mode: account
-  name: Stalwart
+  software: Stalwart
   host: "{{server}}"
 
 account:
@@ -94,7 +94,7 @@ apps:
   outlook-new:
     kind: outlook-new
     name: Outlook (new)
-    protocol: IMAP (via Microsoft cloud)
+    protocol: IMAP
     os: Windows
     microsoft_ui: true
     cloud_sync: true

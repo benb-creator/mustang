@@ -22,13 +22,14 @@ class EnvironmentProbe:
     def collect(self, app_ids: list[str]) -> dict:
         env = {"date": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "os": self.os_name(),
                "kernel": platform.release(), "cpu": self.cpu(), "cpu_cores": os.cpu_count(), "ram": self.ram(),
-               "gpu": self.gpu(), "python": platform.python_version(), "ffmpeg": self.ffmpeg_version()}
+               "ram_limit": self.ram_limit(), "gpu": self.gpu(), "python": platform.python_version(),
+               "ffmpeg": self.ffmpeg_version()}
         if self.desktop is not None:
             env["display"] = self.desktop.describe_display()
         env["window"] = self.config.get("display.app_region")
         env["apps"] = {app_id: self.app_version(app_id) for app_id in app_ids}
-        env["server"] = {"name": self.config.get("server.name", "Stalwart"), "version": self.server_version(),
-                         "host": self.config.get("server.host")}
+        env["server"] = {"software": self.config.get("server.software") or self.config.get("server.name"),
+                         "version": self.server_version(), "host": self.config.get("server.host")}
         env["rtt_ms"] = self.round_trip_ms()
         env.update(self.config.get("environment_overrides") or {})
         return env
@@ -69,6 +70,33 @@ class EnvironmentProbe:
             total = self.powershell("(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory")
             return f"{int(total) / 1024 ** 3:.0f} GB" if total.isdigit() else ""
         return ""
+
+    def ram_limit(self) -> str | None:
+        """The memory limit of the container the session runs in (cgroup v2 memory.max, v1 limit_in_bytes), when
+        it is below the computer's RAM."""
+        if platform.system() != "Linux":
+            return None
+        for path in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+            try:
+                text = Path(path).read_text().strip()
+                total_kb = int(re.search(r"MemTotal:\s+(\d+)", Path("/proc/meminfo").read_text()).group(1))
+            except (OSError, AttributeError):
+                continue
+            if text.isdigit() and int(text) < total_kb * 1024:
+                return f"{int(text) / 1024 ** 3:.0f} GB"
+        return None
+
+    @staticmethod
+    def published(env: dict) -> dict:
+        """The environment as the cards and method texts show it (spec v5): on Linux the CPU with its logical CPU
+        count, and the container's memory limit as the RAM when there is one (the host's RAM stays in `ram_host`)."""
+        out = dict(env)
+        linux = not str(env.get("os") or "").startswith("Windows")
+        if linux and env.get("cpu") and env.get("cpu_cores") and "vCPU" not in str(env["cpu"]):
+            out["cpu"] = f"{env['cpu']}, {env['cpu_cores']} vCPUs"
+        if env.get("ram_limit"):
+            out["ram"], out["ram_host"] = env["ram_limit"], env.get("ram")
+        return out
 
     def gpu(self) -> str:
         if platform.system() == "Linux":
