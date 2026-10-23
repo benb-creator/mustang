@@ -388,9 +388,11 @@ types there like a user (xdotool on Linux, `SendInput` on Windows).
   map `windows/uia-elements.yaml` (`probe: {type: uia, app: …, map: …}`).
 - The account setup is a flow (`benchlib/flows.py`, `scenarios/T1.yaml` `flow:`): the app's own default path —
   the configuration it finds (autoconfig), or, when the server's domain offers none for that app, its manual setup
-  (recorded per run as `flow_path`, and every input of it is a counted user action). Parula 0.9.39 doesn't find JMAP
-  by itself (Stalwart's autoconfig lists IMAP, POP3 and SMTP), so Parula's JMAP setup is always its manual setup
-  with protocol "JMAP" and the server's URL.
+  (recorded per run as `flow_path`, and every input of it is a counted user action). A found configuration that
+  names another server than the account's (e.g. the address's domain points to a different mail server) is
+  corrected in the app's own manual setup, as a user would; the password never goes to another server.
+  Parula 0.9.39 doesn't find JMAP by itself (Stalwart's autoconfig lists IMAP, POP3 and SMTP), so Parula's JMAP
+  setup is always its manual setup with protocol "JMAP" and the server's URL.
 - The instrumentation is never the timing source. Each measured step ends at the last significant screen change in
   the recording before the moment the app's probe confirmed the step's result (the next page, or "the Inbox lists
   all 30,000 messages"); the probe is asked only while the driver's low-resolution live view has been still for

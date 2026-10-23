@@ -397,12 +397,16 @@ class FakeProbe(AppProbe):
     """Pages in order; each measured step moves to the next page."""
     method = "fake"
 
-    def __init__(self, pages: list[str], values: dict | None = None):
+    def __init__(self, pages: list[str], values: dict | None = None, hosts: list[str] | None = None):
         self.pages = pages
         self.values = values or {}
+        self.hosts = hosts or []
 
     def page(self):
         return self.pages[0]
+
+    def found_hosts(self):
+        return self.hosts if self.pages[0] == "found" else []
 
     def find(self, name):
         if name == "found.option":
@@ -480,6 +484,44 @@ def test_thunderbird_flow_manual_configuration():
     assert [s[0] for s in driver.steps] == ["find-config", "choose-imap", "connect", "create-account", "finish",
                                            "open-inbox"]
     assert not any(i[2] == "ctrl+a" for i in driver.inputs)
+
+
+def test_parula_flow_uses_a_found_configuration_of_the_accounts_server():
+    probe = FakeProbe(["email", "found", "finalize", "mail"], {"focused": ["setup.email"]},
+                      ["mail.example.org", "mail.example.org"])
+    driver = FakeDriver(probe)
+    Flows.run({"name": "parula-setup", "protocol": "imap"}, driver, probe, {"complete": "inbox_listed"})
+    assert [s[0] for s in driver.steps] == ["find-config", "check-config", "open-inbox"]
+
+
+def test_parula_flow_corrects_a_found_configuration_of_another_server_in_its_manual_setup():
+    probe = FakeProbe(["email", "found", "manual", "finalize", "mail"], {"focused": ["setup.email"]},
+                      ["mail.other.example.net", "mail.other.example.net"])
+    driver = FakeDriver(probe)
+    path = Flows.run({"name": "parula-setup", "protocol": "imap"}, driver, probe, {"complete": "inbox_listed"})
+    assert [s[0] for s in driver.steps] == ["find-config", "manual-setup", "show-details", "check-config", "open-inbox"]
+    assert ("step", "type", "${server.imap_host}") in driver.inputs
+    assert any("mail.other.example.net" in note for note in path)
+
+
+def test_thunderbird_flow_edits_a_found_configuration_of_another_server():
+    probe = FakeProbe(["email", "found", "manual", "password", "success", "mail", "inbox"],
+                      {"manual.incoming_port": "993", "manual.outgoing_port": "465"}, ["mail.other.example.net"])
+    driver = FakeDriver(probe)
+    path = Flows.run({"name": "thunderbird-setup"}, driver, probe, {"complete": "inbox_listed", "verify": True})
+    assert [s[0] for s in driver.steps] == ["find-config", "edit-config", "connect", "create-account", "finish",
+                                           "open-inbox"]
+    assert ("step", "type", "${server.imap_host}") in driver.inputs
+    assert ("step", "type", "${server.smtp_host}") in driver.inputs
+    assert any("another server" in note for note in path)
+
+
+def test_thunderbird_flow_uses_a_found_configuration_of_the_accounts_server():
+    probe = FakeProbe(["email", "found", "password", "success", "mail", "inbox"], {},
+                      ["mail.example.org", "mail.example.org"])
+    driver = FakeDriver(probe)
+    Flows.run({"name": "thunderbird-setup"}, driver, probe, {"complete": "inbox_listed", "verify": True})
+    assert [s[0] for s in driver.steps] == ["find-config", "use-config", "create-account", "finish", "open-inbox"]
 
 
 def test_flow_actions_come_from_the_median_run():

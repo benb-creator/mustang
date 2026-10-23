@@ -104,6 +104,14 @@ class FlowContext:
         found = self.probe.find(element)
         return None if found is None else found.get("value")
 
+    def other_server(self) -> list[str] | None:
+        """None if the configuration the app found names only the account's server, else the host names it names
+        (empty if unreadable): the flow then corrects them in the app's manual setup, like a user, and the
+        password never goes to another server."""
+        hosts = self.probe.found_hosts()
+        own = {self.value("server.imap_host").lower(), self.value("server.smtp_host").lower()}
+        return None if hosts and set(hosts) <= own else hosts
+
 
 class ParulaSetupFlow:
     """Parula's own setup: e-mail address and password, then the configuration it finds (autoconfig) or, if it
@@ -139,7 +147,14 @@ class ParulaSetupFlow:
             ctx.note("configuration found by the app (autoconfig)")
             if self.protocol == "imap" or self.offers_protocol():
                 self.choose_found_option()
-                ctx.step("check-config", a("click", "setup.next"), until={"finalize"})
+                hosts = ctx.other_server()
+                if hosts is None:
+                    ctx.step("check-config", a("click", "setup.next"), until={"finalize"})
+                else:
+                    ctx.note(f"the found configuration names another server ({', '.join(hosts) or 'unreadable'}): "
+                             "manual setup")
+                    ctx.step("manual-setup", a("click", "setup.manual"), until=manual_pages, fail=())
+                    page = ctx.page(manual_pages, 30)
             else:
                 ctx.note("the found configuration offers no JMAP: manual setup")
                 ctx.step("manual-setup", a("click", "setup.manual"), until=manual_pages, fail=())
@@ -164,6 +179,9 @@ class ParulaSetupFlow:
         option = ctx.probe.find("found.option")
         if option is not None and not option.get("checked"):
             ctx.act(FlowContext.action("click", "found.option"))
+            deadline = time.monotonic() + 5
+            while not (ctx.probe.find("found.option") or {}).get("checked") and time.monotonic() < deadline:
+                time.sleep(0.1)
 
     def manual(self, page: str):
         ctx, a = self.ctx, FlowContext.action
@@ -206,22 +224,20 @@ class ThunderbirdSetupFlow:
         ctx.step("find-config", a("click", "hub.forward"),
                  until={"found", "protocol-select", "password"} | manual_pages)
         page = ctx.page({"found", "protocol-select", "password"} | manual_pages, 30)
-        if page == "found":
+        hosts = ctx.other_server() if page == "found" else None
+        if page == "found" and hosts is None:
             ctx.note("configuration found by the app (autoconfig)")
             ctx.step("use-config", a("click", "hub.forward"), until={"password"})
+        elif page == "found":
+            ctx.note(f"the configuration Thunderbird found names another server ({', '.join(hosts) or 'unreadable'}): "
+                     "manual configuration")
+            ctx.step("edit-config", a("click", "hub.edit"), until=manual_pages)
+            self.connect_manually()
         elif page == "protocol-select" or page in manual_pages:
             ctx.note("no complete configuration found: manual configuration")
             if page == "protocol-select":
                 ctx.step("choose-imap", a("click", "hub.forward"), until=manual_pages)
-            self.manual()
-            ctx.step("connect", a("click", "hub.forward"), until={"manual:success", "password", "found"})
-            page = ctx.page({"manual:success", "password", "found"}, 30)
-            if page == "manual:success":
-                ctx.note("Thunderbird completed the settings; Connect again")
-                ctx.step("connect-again", a("click", "hub.forward"), until={"password", "found"})
-                page = ctx.page({"password", "found"}, 30)
-            if page == "found":
-                ctx.step("use-config", a("click", "hub.forward"), until={"password"})
+            self.connect_manually()
         ctx.page({"password"}, 30)
         ctx.act(a("click", "hub.password"), a("type", "${account.password}"))
         ctx.step("create-account", a("key", "Return"), until={"sync", "success"})
@@ -233,6 +249,21 @@ class ThunderbirdSetupFlow:
         if page == "inbox":
             raise FlowError("Thunderbird opened the Inbox by itself; the final step needs the completion checks")
         ctx.step("open-inbox", a("click", "folder.inbox"), final=True)
+
+    def connect_manually(self):
+        ctx, a = self.ctx, FlowContext.action
+        self.manual()
+        ctx.step("connect", a("click", "hub.forward"), until={"manual:success", "password", "found"})
+        page = ctx.page({"manual:success", "password", "found"}, 30)
+        if page == "manual:success":
+            ctx.note("Thunderbird completed the settings; Connect again")
+            ctx.step("connect-again", a("click", "hub.forward"), until={"password", "found"})
+            page = ctx.page({"password", "found"}, 30)
+        if page == "found":
+            if ctx.other_server() is not None:
+                raise FlowError(f"Thunderbird's configuration names another server after the manual configuration: "
+                                f"{ctx.probe.found_hosts()}")
+            ctx.step("use-config", a("click", "hub.forward"), until={"password"})
 
     def manual(self):
         """Fields in their tab order; a field scrolled out of the form's view is reached with Tab, like a user would."""

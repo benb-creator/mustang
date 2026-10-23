@@ -90,6 +90,10 @@ class AppProbe:
     def page_text(self) -> str:
         return ""
 
+    def found_hosts(self) -> list[str]:
+        """The server host names of the configuration the app found and shows (lower case; empty if unreadable)."""
+        return []
+
     def interruption(self) -> str | None:
         return None
 
@@ -296,6 +300,13 @@ class ParulaProbe(AppProbe):
     def error_text(self) -> str | None:
         return self.state().get("error")
 
+    def found_hosts(self) -> list[str]:
+        hosts_script = r"""
+    [...document.querySelectorAll('.page-box .hostname')]
+      .filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+      .map(el => el.textContent.replace(/\s+/g, '').toLowerCase())"""
+        return [host for host in self.evaluate(hosts_script) or [] if host]
+
     def inbox_listed(self, expected: dict) -> dict:
         state = self.state()
         counts = [self.count_in(c) for c in state["counts"]]
@@ -420,6 +431,7 @@ const pane = () => tabmail && tabmail.currentAbout3Pane;
     const name = arguments[0];
     const ids = {'hub.realName': 'realName', 'hub.email': 'email', 'hub.forward': 'forward', 'hub.back': 'back',
       'hub.manual': 'manualConfiguration', 'hub.password': 'password', 'hub.custom': 'custom',
+      'hub.edit': 'editConfiguration',
       'manual.incoming_host': 'manualIncomingHostnameInput', 'manual.incoming_port': 'manualIncomingPortInput',
       'manual.outgoing_host': 'manualOutgoingHostnameInput', 'manual.outgoing_port': 'manualOutgoingPortInput'};
     if (name in ids) {
@@ -519,6 +531,16 @@ const pane = () => tabmail && tabmail.currentAbout3Pane;
 
     def notification(self) -> str | None:
         return self.state().get("notification")
+
+    def found_hosts(self) -> list[str]:
+        hosts_script = self.helpers + r"""
+    const h = hub(); if (!h) return [];
+    const form = deep(h.shadowRoot || h).concat(deep(h)).find(e => e.localName == 'email-config-found' && shown(e));
+    if (!form) return [];
+    return deep(form.shadowRoot || form).concat(deep(form))
+      .filter(e => (e.id == 'incomingHost' || e.id == 'outgoingHost') && shown(e))
+      .map(e => e.textContent.replace(/\s+/g, '').toLowerCase());"""
+        return [host for host in self.execute(hosts_script) or [] if host]
 
     def focused(self, name: str) -> bool:
         element_ids = {"manual.incoming_host": "manualIncomingHostnameInput", "manual.incoming_port": "manualIncomingPortInput",
