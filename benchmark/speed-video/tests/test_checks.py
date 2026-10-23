@@ -354,11 +354,17 @@ def synthetic_results(outcome: str) -> dict:
         task = {"title": {"en": "T"}, "left": side("Parula", left), "right": side("Other", right, right_status)}
         task["ratio"] = right / left if right_status == 0 else None
         evidence = {"values": {"left_direct_only": 1, "right_direct_only": 0}}
+        if c in ("C1", "C2"):
+            evidence["values"]["cpu_pressure"] = 0.8
         if c == "C4":
             evidence["values"].update({"cloud_login_confirmed": 1, "cloud_fetched_messages": 30000,
                                        "cloud_fetched_gb": 33.6, "cloud_ip_owner": "Microsoft Corporation",
                                        "cloud_asn": "AS8075", "cloud_logins_after_removal": 0,
-                                       "removal_watch_min": 10})
+                                       "removal_watch_min": 10, "right_logged_runs": 6,
+                                       "right_direct_connections": 0, "right_mail_port_elsewhere": 0,
+                                       "right_inbox_complete": 1, "right_inbox_counted": 1,
+                                       "right_remote_owner": "Microsoft Corporation", "right_remote_asn": "AS8075",
+                                       "right_remote_microsoft": 1, "right_remote_microsoft_share": 97})
         comparisons[c] = {"os": "Linux", "tasks": {"T1": task}, "evidence": evidence}
     environment = {c: {"date": "2026-10-20", "os": "Debian 13", "cpu": "CPU", "ram": "32 GB",
                        "display": {"resolution": "2560x1440"}, "server": {"version": "0.16.26"},
@@ -377,7 +383,7 @@ def test_every_variant_narration_resolves_without_spoken_placeholders():
     if not files:
         pytest.skip("BENCH_VOICEOVER not set")
     variants = json.loads((root / "variants" / "variants.json").read_text())
-    facts = {c: {"right_protocol_default": 1} for c in ("C1", "C2", "C3", "C4")}
+    facts = {"server_ours": 1, **{c: {"right_protocol_default": 1} for c in ("C1", "C2", "C3", "C4")}}
     facts["C4"].update({"cloud_sync_confirmed": 1, "dialog_text": "Sync with the Microsoft Cloud",
                         "microsoft_footage": 1})
     for path in files:
@@ -418,7 +424,7 @@ def test_method_templates_render_completely():
     root = Path(os.environ.get("BENCH_VOICEOVER", ""))
     if not (root / "method").is_dir():
         pytest.skip("BENCH_VOICEOVER not set")
-    facts = {c: {"right_protocol_default": 1} for c in ("C1", "C2", "C3", "C4")}
+    facts = {"server_ours": 1, **{c: {"right_protocol_default": 1} for c in ("C1", "C2", "C3", "C4")}}
     facts["C4"].update({"cloud_sync_confirmed": 1, "dialog_text": "Sync with the Microsoft Cloud",
                         "microsoft_footage": 1})
     with tempfile.TemporaryDirectory() as tmp:
@@ -427,6 +433,7 @@ def test_method_templates_render_completely():
             (voice / language).mkdir(parents=True)
             (voice / language / "credit.json").write_text(json.dumps({"engine": "Piper", "voice": "norman"}))
         config = Config({"workdir": tmp, "compose": {"voice_dir": str(voice)}, "deviations": ["start page off"],
+                         "instrumentation": ["DevTools find the setup's fields; never a time."],
                          "publish": {"page_url": "https://parula.app/speed", "repo_url": "https://github.com/x",
                                      "imprint_url": "https://parula.app/imprint"}}, Path(tmp))
         variants = json.loads((root / "variants" / "variants.json").read_text())

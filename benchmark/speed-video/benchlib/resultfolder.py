@@ -85,6 +85,13 @@ class ResultFolder:
             return []
         return sorted(p for p in root.iterdir() if (p / "meta.json").exists() and ".failed-" not in p.name)
 
+    def failed_attempt_dirs(self, app_id: str, task_id: str) -> list[Path]:
+        """Copies of runs that failed and were recorded again (`<run>.failed-<n>`)."""
+        root = self.runs_dir / app_id / task_id
+        if not root.exists():
+            return []
+        return sorted(p for p in root.iterdir() if (p / "meta.json").exists() and ".failed-" in p.name)
+
     def relative(self, path: Path) -> str:
         return Path(path).resolve().relative_to(self.path).as_posix()
 

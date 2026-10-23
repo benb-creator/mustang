@@ -195,16 +195,17 @@ def test_run_evidence_counts_direct_connections_and_other_networks(tmp_path):
     github = {"local": "10.0.0.2:5001", "remote": "140.82.1.1", "remote_port": 443}
     run_dir = network_run(tmp_path, "run-1", [
         {"type": "open", "t": 5.0, "pid": 7, "process": "parula", **conn, "state": "ESTABLISHED"},
-        {"type": "bytes", "t": 15.0, **conn, "received": 4000, "sent": 10},
-        {"type": "bytes", "t": 25.0, **conn, "received": 9000, "sent": 10},
+        {"type": "bytes", "t": 15.0, **conn, "received": 400000, "sent": 10},
+        {"type": "bytes", "t": 25.0, **conn, "received": 900000, "sent": 10},
         {"type": "open", "t": 2.0, "pid": 7, "process": "parula", **github, "state": "ESTABLISHED"},
         {"type": "close", "t": 3.0, "pid": 7, **github},
         {"type": "open", "t": 2.5, "pid": 8, "process": "parula", "local": "127.0.0.1:29222", "remote": "127.0.0.1",
          "remote_port": 40000, "state": "ESTABLISHED"},
     ])
-    summary = RunEvidence(run_dir, FakeOwners()).summarize()
+    summary = RunEvidence(run_dir, FakeOwners(), protocol="IMAP", endpoints={"imap": {"port": 993}}).summarize()
     assert summary["direct_connections"] == 1 and summary["direct_ports"] == {"993": 1}
-    assert summary["direct_bytes_received"] == 9000 and summary["direct_bytes_after_measured_end"] == 5000
+    assert summary["direct_mail_connections"] == 1
+    assert summary["direct_bytes_received"] == 900000 and summary["direct_bytes_after_measured_end"] == 500000
     assert summary["loopback_connections"] == 1 and summary["direct_only"] is True
     network = summary["remote_networks"][0]
     assert network["owner"] == "GitHub, Inc." and network["connections"] == 1 and network["connections_measured"] == 0
@@ -219,13 +220,15 @@ def test_session_evidence_for_a_cloud_synced_app(tmp_path):
     imap_elsewhere = network_run(tmp_path, "elsewhere", [
         {"type": "open", "t": 12.0, "pid": 9, "process": "x", "local": "10.0.0.2:6001", "remote": "52.97.1.1",
          "remote_port": 993, "state": "ESTABLISHED"}])
+    jmap = {"local": "10.0.0.2:6002", "remote": "203.0.113.5", "remote_port": 443}
     direct = network_run(tmp_path, "direct", [
-        {"type": "open", "t": 12.0, "pid": 3, "process": "parula", "local": "10.0.0.2:6002",
-         "remote": "203.0.113.5", "remote_port": 443, "state": "ESTABLISHED"}])
+        {"type": "open", "t": 12.0, "pid": 3, "process": "parula", **jmap, "state": "ESTABLISHED"},
+        {"type": "bytes", "t": 13.0, **jmap, "received": 800000, "sent": 1}])
     runs = {}
-    for name in ("cloud", "elsewhere", "direct"):
-        runs[name] = {"run": name, "status": "ok",
-                      "evidence": RunEvidence(tmp_path / name, FakeOwners()).summarize()}
+    for name, protocol in (("cloud", "IMAP"), ("elsewhere", "IMAP"), ("direct", "JMAP")):
+        runs[name] = {"run": name, "status": "ok", "evidence": RunEvidence(
+            tmp_path / name, FakeOwners(), protocol=protocol,
+            endpoints={"jmap_session_url": "https://mail.example.org/jmap/session", "imap": {"port": 993}}).summarize()}
     assert runs["elsewhere"]["evidence"]["mail_port_elsewhere"] == 1 and not runs["elsewhere"]["evidence"]["direct_only"]
     assert cloud.exists() and imap_elsewhere.exists() and direct.exists()
     comparison = {"tasks": {"T1": {"left": {"app": "parula-jmap", "name": "Parula", "runs": [runs["direct"]]},

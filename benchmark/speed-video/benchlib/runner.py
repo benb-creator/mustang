@@ -435,11 +435,12 @@ class Orchestrator:
     dropped frames) is recorded again at the end of the plan, at most `runs.retries` times, and listed in the report.
     Timeouts and wrong results are measurements and are never recorded again."""
 
-    def __init__(self, config, executor: RunExecutor, progress=print, analyzer=None):
+    def __init__(self, config, executor: RunExecutor, progress=print, analyzer=None, pressure_log: Path | None = None):
         self.config = config
         self.executor = executor
         self.progress = progress
         self.analyzer = analyzer
+        self.pressure_log = pressure_log
 
     def outcome(self, run_dir: Path) -> str:
         meta = json.loads((run_dir / "meta.json").read_text())
@@ -448,10 +449,28 @@ class Orchestrator:
         if meta.get("status") == "failed":
             return "technical"
         if self.analyzer is None:
-            return meta["status"]
-        analysis = self.analyzer.analyze_safely(run_dir)
-        return "technical" if analysis.get("status") == "failed" and analysis.get("failure") == "technical" \
-            else analysis.get("status", "failed")
+            status = meta["status"]
+        else:
+            analysis = self.analyzer.analyze_safely(run_dir)
+            status = "technical" if analysis.get("status") == "failed" and analysis.get("failure") == "technical" \
+                else analysis.get("status", "failed")
+        if status != "technical" and self.cpu_stalled(run_dir):
+            return "technical"
+        return status
+
+    def cpu_stalled(self, run_dir: Path) -> bool:
+        """The session's CPU stall share during the run above `runs.max_cpu_pressure_pct` (Linux)."""
+        if self.pressure_log is None:
+            return False
+        from .pressure import CpuPressure, CpuPressureLog
+        limit = self.config.get("runs.max_cpu_pressure_pct", 5)
+        result = CpuPressure(CpuPressureLog.read(self.pressure_log), None if limit is None else float(limit)
+                             ).write(run_dir)
+        if result and result["over_limit"]:
+            self.progress(f"    CPU stall {result['pct']:.1f} % during the {result['basis']} (limit {limit:g} %): "
+                          f"recorded again at the end of the series")
+            return True
+        return False
 
     def done_before(self, run_dir: Path) -> bool:
         meta_path = run_dir / "meta.json"
@@ -459,6 +478,9 @@ class Orchestrator:
             return False
         meta = json.loads(meta_path.read_text())
         if meta.get("status") not in ("complete", "timeout"):
+            return False
+        pressure = run_dir / "cpu-pressure.json"
+        if pressure.exists() and json.loads(pressure.read_text()).get("over_limit"):
             return False
         analysis = run_dir / "analysis.json"
         if analysis.exists():

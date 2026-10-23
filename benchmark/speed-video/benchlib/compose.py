@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from .cards import CardRenderer, Fonts
+from .facts import PersonFacts
 from .narration import Condition, Narration, NarrationValues, SpokenDuration
 from .settle import ChangeSeries, Rect
 
@@ -99,6 +100,9 @@ class ShortSettings:
         self.footage_when = {k.split("_")[0].upper(): v for k, v in data.items()
                              if k.endswith("_microsoft_footage_when")}
         self.voice_direction = dict(data.get("voice_direction") or {})
+        self.person_set_facts = data.get("person_set_facts") or PersonFacts.default_allowed
+        self.pane_protocol = dict(data.get("pane_protocol") or {})
+        self.pane_names = dict(data.get("pane_names") or {})
 
     @classmethod
     def find(cls, root: Path | None, config_compose: dict) -> "ShortSettings":
@@ -122,6 +126,44 @@ class ShortSettings:
         return [value] if isinstance(value, str) else list(value or [])
 
 
+class PaneLabels:
+    """What names an app on screen and in the method texts (spec v6): the narration's `pane_names` for the
+    language (left = Parula, right per comparison) and `pane_protocol` per side, both from compose.json. The protocol
+    is part of the narration's contract: an app whose own protocol (its config's, e.g. "IMAP (via Microsoft cloud)"
+    in older Windows results) doesn't name that protocol first is refused. Without compose.json the config's name
+    and protocol."""
+
+    def __init__(self, settings: ShortSettings, language: str):
+        self.protocols = settings.pane_protocol
+        self.names = settings.pane_names.get(language) or settings.pane_names.get("en") or {}
+
+    def name(self, comparison_id: str, side_name: str, side: dict) -> str:
+        return self.names.get("left" if side_name == "left" else comparison_id) or side["name"]
+
+    def protocol(self, comparison_id: str, side_name: str, side: dict) -> str | None:
+        wanted = self.protocols.get(side_name)
+        if not wanted:
+            return side.get("protocol")
+        recorded = str(side.get("protocol") or "").split()
+        if not recorded or recorded[0].upper() != str(wanted).upper():
+            raise ComposeError(f"{comparison_id} {side_name}: {side['name']} has the protocol "
+                               f"'{side.get('protocol')}', but the narration labels this side '{wanted}' "
+                               f"(compose.json pane_protocol)")
+        return str(wanted)
+
+    def named(self, comparison_id: str, side_name: str, side: dict) -> str:
+        """Name and protocol, e.g. "new Outlook (IMAP)"."""
+        protocol = self.protocol(comparison_id, side_name, side)
+        name = self.name(comparison_id, side_name, side)
+        return f"{name} ({protocol})" if protocol else name
+
+    def bar(self, comparison_id: str, side_name: str, side: dict, with_os: bool = True) -> str:
+        """The label bar: name and version · protocol · OS."""
+        name = f"{self.name(comparison_id, side_name, side)} {side.get('version') or ''}".strip()
+        parts = (name, self.protocol(comparison_id, side_name, side), side.get("os") if with_os else None)
+        return " · ".join(str(x) for x in parts if x)
+
+
 @dataclass
 class PaneRun:
     """The run a pane shows (the median run, or the run at the median position of a series that hit the time
@@ -141,7 +183,7 @@ class PaneRun:
 
     @classmethod
     def load(cls, config, comparison: str, task: str, side_name: str, side: dict, run_id: str,
-             result_folder: str | None = None) -> "PaneRun":
+             result_folder: str | None, labels: PaneLabels) -> "PaneRun":
         entry = next((r for r in side.get("runs", []) if r["run"] == run_id), {})
         if result_folder and entry.get("dir"):
             run_dir = Path(result_folder) / entry["dir"]
@@ -155,14 +197,14 @@ class PaneRun:
         steps = []
         for s in analysis["steps"]:
             steps.append((s["start_time"], s["duration_s"] if s.get("duration_s") is not None else s["limit_s"]))
-        label = " · ".join(str(x) for x in (f"{side['name']} {side.get('version') or ''}".strip(), side.get("protocol"),
-                                            side.get("os")) if x)
+        label = labels.bar(comparison, side_name, side)
         microsoft = side.get("microsoft_ui")
         if microsoft is None:
             microsoft = config.app(side["app"]).get("microsoft_ui")
         return cls(side_name, side["app"], run_dir / "capture.mkv", Rect.from_dict(meta["layout"]["app_in_capture"]),
-                   steps, analysis["status"] == "timeout", float(series.times[-1]), label, side["name"],
-                   bool(microsoft), series.times, analysis.get("opening_ranges") or [])
+                   steps, analysis["status"] == "timeout", float(series.times[-1]), label,
+                   labels.name(comparison, side_name, side), bool(microsoft), series.times,
+                   analysis.get("opening_ranges") or [])
 
     @property
     def first(self) -> float:
@@ -333,13 +375,14 @@ class Composer:
         compose = config.get("compose") or {}
         self.compose_config = compose
         self.settings = settings or ShortSettings(None, compose)
+        self.labels = PaneLabels(self.settings, language)
         self.facts = facts or {}
         self.fonts = Fonts(compose.get("font_regular"), compose.get("font_bold"))
         self.voice_dir = config.path(compose["voice_dir"]) if compose.get("voice_dir") else None
         self.music = config.path(compose["music"]) if compose.get("music") else None
         self.layout = ComposeLayout.for_pane(*self.pane_size())
         self.cards = CardRenderer(self.layout.width, self.layout.height, self.layout.scale, self.fonts)
-        self.values = ValuesBuilder(config, results, language, self.facts).build()
+        self.values = ValuesBuilder(config, results, language, self.facts, self.settings.person_set_facts).build()
         self.work = self.out_dir / "segments"
 
     def t(self, key: str, **kwargs):
@@ -483,7 +526,7 @@ class Composer:
             return self.neutral_race(segment, index, task)
         folder = self.results["comparisons"][comparison_id].get("result_folder")
         panes = [PaneRun.load(self.config, comparison_id, task_id, name, s,
-                              s["median_run"] if s["status"] == 0 else s["timeout_run"], folder)
+                              s["median_run"] if s["status"] == 0 else s["timeout_run"], folder, self.labels)
                  for name, s in zip(("left", "right"), sides)]
         footage_allowed = self.footage_allowed(comparison_id)
         mode = self.race_mode(panes)
@@ -680,8 +723,7 @@ class Composer:
         hook = (voice_before.duration + 0.6) if voice_before else 1.0
         hold = max(float(self.settings.short["min_hold_s"]),
                    (voice_after.duration + self.settings.short["hold_pad_s"] + 0.2) if voice_after else 0)
-        labels = [" · ".join(str(x) for x in (f"{s['name']} {s.get('version') or ''}".strip(), s.get("protocol")) if x)
-                  for s in (task["left"], task["right"])]
+        labels = [self.labels.bar(segment["comparison"], name, task[name], with_os=False) for name in ("left", "right")]
         background = self.cards.race_background(self.work / f"{index:03d}-bg.png", L, title, labels[0], labels[1],
                                                 self.footnote(segment, "start"))
         card = self.cards.pane_card(self.work / f"{index:03d}-neutral.png", L.width, L.pane_h,
@@ -738,8 +780,8 @@ class Composer:
             f"RTT {values.text.get(f'env.{comparison_id}.rtt_ms', '–')} ms",
             (env.get("server") or {}).get("name"), (env.get("server") or {}).get("version"), env.get("date")) if x))
         footer.append(f"{self.t('self_test')} · {self.t('how_tested')}")
-        left_name = f"{any_task['left']['name']} ({any_task['left']['protocol']})"
-        right_name = f"{any_task['right']['name']} ({any_task['right']['protocol']})"
+        left_name = self.labels.named(comparison_id, "left", any_task["left"])
+        right_name = self.labels.named(comparison_id, "right", any_task["right"])
         image = self.cards.result_card(self.work / f"{index:03d}-result.png", self.t("results"), left_name, right_name,
                                        rows, footer, {"task": self.t("task"), "ratio": self.t("ratio"),
                                                       "actions": self.t("actions")})
@@ -774,13 +816,16 @@ class Composer:
 
     def publication(self) -> dict:
         """May this variant be published? If not, the first variant of its `publish_instead` chain whose own
-        condition holds (or none)."""
+        condition holds (or none). With publication gates in compose.json, a variant without its own gate is never
+        published."""
         condition = self.settings.publish_when.get(self.variant) if self.variant else None
-        allowed = self.condition(condition)
+        ungated = bool(self.variant and self.settings.publish_when and condition is None)
+        allowed = not ungated and self.condition(condition)
         chain = self.settings.instead(self.variant) if self.variant and not allowed else []
-        instead = next((v for v in chain if self.condition(self.settings.publish_when.get(v))), None)
+        gates = self.settings.publish_when
+        instead = next((v for v in chain if (v in gates or not gates) and self.condition(gates.get(v))), None)
         return {"variant": self.variant, "publish_when": condition, "allowed": allowed, "chain": chain,
-                "instead": [instead] if instead else []}
+                "instead": [instead] if instead else [], "ungated": ungated}
 
     def compose(self) -> dict:
         if self.work.exists():
@@ -824,6 +869,8 @@ class Composer:
             {"language": self.language, "duration_s": total, "width": self.layout.width,
              "height": self.layout.height, "fps": self.fps, "segments": timeline,
              "audio": str(audio) if audio else None, "publication": self.publication(),
+             "facts": {"files": list(self.results.get("facts_files") or []),
+                       "person_set_facts": self.settings.person_set_facts},
              "music": self.music_record()}, indent=2, ensure_ascii=False), encoding="utf-8")
         SubtitleWriter([p for p in voice_parts if p.subtitled]).write(self.out_dir / "subtitles.vtt",
                                                                       self.out_dir / "subtitles.srt")
@@ -905,13 +952,14 @@ class ValuesBuilder:
     """All placeholder values of the narration and the method texts, from results.json, the environment records,
     the corpus, the server-log evidence and the person-set facts file."""
 
-    def __init__(self, config, results: dict, language: str, facts: dict):
+    def __init__(self, config, results: dict, language: str, facts: dict, allowed_facts: dict | None = None):
         self.config = config
         self.results = results
         self.language = language
-        self.facts = facts
+        self.facts = PersonFacts(facts, allowed_facts, ", ".join(results.get("facts_files") or []) or "facts.json")
 
     def build(self) -> NarrationValues:
+        facts = self.facts.check().env()
         values = NarrationValues(self.language)
         values.set_count("runs", int(self.results["runs"]["measured"]))
         for key, value in (self.results.get("corpus") or {}).items():
@@ -931,9 +979,6 @@ class ValuesBuilder:
             evidence = (comparison.get("evidence") or {}).get("values") or {}
             for key, value in evidence.items():
                 self.set_fact(values, f"env.{comparison_id}.{key}", value)
-            for key, value in (self.facts.get(comparison_id) or {}).items():
-                if not key.startswith("_"):
-                    self.set_fact(values, f"env.{comparison_id}.{key}", value)
             for task_id, task in comparison["tasks"].items():
                 for side in ("left", "right"):
                     s = task[side]
@@ -954,6 +999,8 @@ class ValuesBuilder:
             limit = limits.pop()
             values.set_count("env.timeout_s", int(limit))
             values.set_duration("time.limit", limit)
+        for name, value in facts.items():
+            self.set_fact(values, f"env.{name}", value)
         return values
 
     def set_fact(self, values: NarrationValues, name: str, value):
@@ -964,7 +1011,7 @@ class ValuesBuilder:
         if isinstance(value, int):
             values.set_count(name, value)
         elif isinstance(value, float):
-            values.set_text(name, values.number(value, 2), value)
+            values.set_text(name, values.number(value, 1 if name.endswith(".cpu_pressure") else 2), value)
         else:
             values.set_text(name, str(value), str(value))
 

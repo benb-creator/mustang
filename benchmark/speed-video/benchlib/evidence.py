@@ -3,13 +3,16 @@ session. Raw addresses stay in each run's network.jsonl; the summaries publish o
 
 import ipaddress
 import json
+import math
 import socket
 import urllib.error
 import urllib.request
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
+from .driver import EventLog
 from .netwatch import NetworkLog
 
 
@@ -95,21 +98,50 @@ class MailServerAddresses:
 
     @staticmethod
     def for_server(server) -> dict:
-        from urllib.parse import urlparse
         url = urlparse(server.jmap_session_url)
         ports = {server.imap_settings["port"], server.smtp_settings["port"], url.port or 443}
         return MailServerAddresses.resolve(server.mail_hostnames(), ports)
 
 
+class MicrosoftNetworks:
+    """Which networks count as registered to Microsoft (spec v5, v6): the origin AS is in the configured list
+    (`evidence.microsoft_asns`), or the RDAP registrant or the AS holder starts with "Microsoft". Never a fact a
+    person sets; the rule is published in manifest.json `evidence_rules`."""
+
+    def __init__(self, asns: list | None = None):
+        default = ["AS8075", "AS8068", "AS8069", "AS8070", "AS8071", "AS8072", "AS8073", "AS8074", "AS3598",
+                   "AS6584", "AS12076"]
+        self.asns = sorted({f"AS{str(a).upper().removeprefix('AS')}" for a in (asns or default)})
+
+    @classmethod
+    def from_config(cls, config) -> "MicrosoftNetworks":
+        return cls(config.get("evidence.microsoft_asns"))
+
+    def registered(self, owner: str | None, asn: str | None, as_holder: str | None = None) -> bool:
+        if asn and str(asn).upper() in self.asns:
+            return True
+        return any(str(name or "").casefold().startswith("microsoft") for name in (owner, as_holder))
+
+    def describe(self) -> dict:
+        return {"microsoft_asns": self.asns,
+                "microsoft_names": "RDAP registrant or AS holder starting with \"Microsoft\""}
+
+
 class RunEvidence:
-    """evidence.json of one run, from its network.jsonl, driver.jsonl window, analysis.json and verify.json."""
+    """evidence.json of one run, from its network.jsonl, driver.jsonl (the app's launch), analysis.json and
+    verify.json. `protocol` is the app's (JMAP or IMAP), `endpoints` the account's server endpoints (manifest.json
+    `server.endpoints`): together they give the app's own mail endpoint."""
 
     def __init__(self, run_dir: Path, owners: NetworkOwners | None, proxy_ports: set[int] | None = None,
-                 probe_bytes: int = 65536):
+                 probe_bytes: int = 65536, protocol: str | None = None, endpoints: dict | None = None,
+                 microsoft: MicrosoftNetworks | None = None):
         self.run_dir = Path(run_dir)
         self.owners = owners
         self.proxy_ports = set(proxy_ports or {1080, 3128})
         self.probe_bytes = probe_bytes
+        self.protocol = str(protocol).split()[0].upper() if protocol else None
+        self.endpoints = endpoints or {}
+        self.microsoft = microsoft or MicrosoftNetworks()
 
     def window(self) -> dict | None:
         analysis_path = self.run_dir / "analysis.json"
@@ -117,6 +149,24 @@ class RunEvidence:
             return None
         analysis = json.loads(analysis_path.read_text())
         return analysis.get("measured_window")
+
+    def launch_t(self) -> float | None:
+        """When the test script started the app (driver clock), from driver.jsonl."""
+        path = self.run_dir / "driver.jsonl"
+        if not path.exists():
+            return None
+        launch = next((e for e in EventLog.read(path) if e["type"] == "input" and e.get("action") == "launch"), None)
+        return None if launch is None else launch.get("t_before", launch["t"])
+
+    def endpoint_port(self) -> int | None:
+        """The port of the app's own mail endpoint: the IMAP port for IMAP apps, the JMAP URL's port for JMAP."""
+        if self.protocol == "JMAP":
+            url = urlparse(str(self.endpoints.get("jmap_session_url") or ""))
+            return url.port or {"https": 443, "http": 80}.get(url.scheme)
+        if self.protocol == "IMAP":
+            port = (self.endpoints.get("imap") or {}).get("port")
+            return int(port) if port else None
+        return None
 
     def connections(self, events: list[dict]) -> list[dict]:
         """One entry per connection: opened/closed times (driver clock), process, last byte counters."""
@@ -142,9 +192,30 @@ class RunEvidence:
                     del open_now[key]
         return done
 
+    @staticmethod
+    def outside_tree(events: list[dict], server_addresses: set[str], launch_t: float | None,
+                     script_pid: int | None) -> tuple[list[dict], dict]:
+        """Connections of processes outside the app's tree to the mail server's addresses (Windows
+        `open_outside_tree` lines) that count: first seen after the app's launch, in SYN_SENT, ESTABLISHED or a
+        later closing state; not counted: TIME_WAIT rows (leftovers, on Windows with pid 0), rows seen before the
+        launch, and the test script's own process."""
+        counted, ignored = [], Counter()
+        for e in events:
+            if e["type"] != "open_outside_tree" or e.get("remote") not in server_addresses:
+                continue
+            if e.get("state") in ("TIME_WAIT", "CLOSED", "DELETE_TCB"):
+                ignored[str(e.get("state"))] += 1
+            elif launch_t is None or e["t"] < launch_t:
+                ignored["before the app's launch"] += 1
+            elif script_pid is not None and e.get("pid") == script_pid:
+                ignored["the test script"] += 1
+            else:
+                counted.append({k: e.get(k) for k in ("t", "pid", "process", "remote_port", "state")})
+        return counted, dict(ignored)
+
     def carries_data(self, conn: dict, last_t: float) -> bool:
-        """A connection on a mail port that received more than a probe's few bytes, or whose byte count is unknown
-        although it stayed open long enough to be read (a guessing app's probes are short and small)."""
+        """A connection that received more than a probe's few bytes, or whose byte count is unknown although it
+        stayed open long enough to be read (a guessing app's probes are short and small)."""
         if conn["received"] is not None:
             return conn["received"] > self.probe_bytes
         closed = conn["closed_t"] if conn["closed_t"] is not None else last_t
@@ -161,6 +232,17 @@ class RunEvidence:
     def received_until(conn: dict, t: float) -> int:
         values = [v for when, v in conn["received_at"] if when <= t]
         return values[-1] if values else 0
+
+    @staticmethod
+    def inbox(verify: dict | None) -> tuple[bool | None, str | None]:
+        """Completeness and its basis: "count" (the app's own count of the folder), "unread count" or "oldest
+        message only" (nothing about the number was observed, so not complete). The Linux probes read the count."""
+        if verify is None:
+            return None, None
+        basis = verify.get("basis") or ("count" if verify.get("listed") is not None else None)
+        if basis == "oldest message only":
+            return None, basis
+        return verify.get("inbox_complete"), basis
 
     def summarize(self, mail_server: dict | None = None) -> dict:
         events = NetworkLog.read(self.run_dir / "network.jsonl")
@@ -180,11 +262,13 @@ class RunEvidence:
         window = self.window()
         connections = self.connections(events)
         last_t = max((e["t"] for e in events), default=0.0)
-        direct, elsewhere, proxies, loopback, unrelated = [], [], [], [], []
+        direct, other_ports, elsewhere, proxies, loopback, unrelated = [], [], [], [], [], []
         for conn in connections:
             remote = conn["remote"]
             if remote in server_addresses and conn["remote_port"] in ports:
                 direct.append(conn)
+            elif remote in server_addresses:
+                other_ports.append(conn)
             elif ipaddress.ip_address(remote).is_loopback:
                 loopback.append(conn)
             elif conn["remote_port"] in mail_only:
@@ -193,13 +277,18 @@ class RunEvidence:
                 proxies.append(conn)
             else:
                 unrelated.append(conn)
+        endpoint = self.endpoint_port()
+        direct_mail = [c for c in direct if c["remote_port"] == endpoint and self.carries_data(c, last_t)]
+        launch_t = self.launch_t()
+        outside, outside_ignored = self.outside_tree(events, server_addresses, launch_t, header.get("script_pid"))
         networks: dict[tuple, dict] = {}
         for conn in unrelated + elsewhere + proxies:
             info = self.owners.lookup(conn["remote"]) if self.owners else {}
             key = (info.get("owner"), info.get("asn"), info.get("prefix"))
-            entry = networks.setdefault(key, {"owner": key[0], "asn": key[1], "prefix": key[2], "as_holder":
-                                              info.get("as_holder"), "connections": 0, "connections_measured": 0,
-                                              "ports": set(), "processes": set(), "bytes_received": 0})
+            entry = networks.setdefault(key, {
+                "owner": key[0], "asn": key[1], "prefix": key[2], "as_holder": info.get("as_holder"),
+                "microsoft": self.microsoft.registered(key[0], key[1], info.get("as_holder")), "connections": 0,
+                "connections_measured": 0, "ports": set(), "processes": set(), "bytes_received": 0})
             entry["connections"] += 1
             entry["connections_measured"] += self.overlaps(conn, window)
             entry["ports"].add(conn["remote_port"])
@@ -208,31 +297,45 @@ class RunEvidence:
         for entry in networks.values():
             entry["ports"] = sorted(entry["ports"])
             entry["processes"] = sorted(entry["processes"])
+        measured_total = sum(self.overlaps(c, window) for c in connections if c not in loopback)
+        measured_microsoft = sum(n["connections_measured"] for n in networks.values() if n["microsoft"])
         verify_path = self.run_dir / "verify.json"
         verify = json.loads(verify_path.read_text()) if verify_path.exists() else None
+        inbox_complete, inbox_basis = self.inbox(verify)
         direct_bytes = sum(c["received"] or 0 for c in direct) if any(c["received"] is not None for c in direct) else None
         after_end = None
         if window and direct_bytes is not None:
             after_end = direct_bytes - sum(self.received_until(c, window["to_t"]) for c in direct)
         summary = {
-            "version": 1, "run": self.run_dir.name, "app": header.get("app"), "source": header.get("source"),
+            "version": 2, "run": self.run_dir.name, "app": header.get("app"), "source": header.get("source"),
             "poll_hz": header.get("poll_hz"),
             "mail_server": {"hosts": mail_server.get("hosts"), "addresses": sorted(server_addresses),
                             "ports": sorted(ports)},
-            "window": window,
+            "window": window, "launch_t": launch_t,
             "direct_connections": len(direct),
             "direct_connections_measured": sum(self.overlaps(c, window) for c in direct),
             "direct_ports": dict(Counter(str(c["remote_port"]) for c in direct)),
             "direct_processes": sorted({c.get("process") or "?" for c in direct}),
             "direct_bytes_received": direct_bytes,
             "direct_bytes_after_measured_end": after_end,
+            "mail_endpoint": {"protocol": self.protocol, "port": endpoint},
+            "direct_mail_connections": len(direct_mail),
+            "server_other_port_connections": len(other_ports),
+            "outside_tree_connections": len(outside),
+            "outside_tree_counted": outside,
+            "outside_tree_not_counted": outside_ignored,
+            "server_connections": len(direct) + len(other_ports) + len(outside),
             "mail_port_elsewhere": len(elsewhere),
             "mail_data_elsewhere": sum(1 for c in elsewhere if self.carries_data(c, last_t)),
             "proxy_connections": len(proxies),
             "loopback_connections": len(loopback),
             "remote_networks": sorted(networks.values(), key=lambda n: (-n["connections"], str(n["owner"]))),
-            "inbox_complete": verify.get("inbox_complete") if verify else None,
-            "direct_only": bool(direct) and not proxies and not any(self.carries_data(c, last_t) for c in elsewhere),
+            "connections_measured": measured_total,
+            "remote_microsoft_share": (100 * measured_microsoft) // measured_total if measured_total else None,
+            "inbox_complete": inbox_complete,
+            "inbox_basis": inbox_basis,
+            "direct_only": bool(direct_mail) and not proxies and not any(self.carries_data(c, last_t)
+                                                                         for c in elsewhere),
         }
         (self.run_dir / "evidence.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
         return summary
@@ -240,37 +343,77 @@ class RunEvidence:
 
 class SessionEvidence:
     """The per-comparison evidence facts of a result folder (the `env.<C>.*` narration values) and the session's
-    evidence.json."""
+    evidence.json. Positive facts (connected directly for its mail) need every completed run, the warm-up
+    included; negative ones (never connected to the mail server, no mail ports elsewhere) take every run with a
+    network log, re-recorded attempts included, and are missing unless every completed run has one."""
 
-    def __init__(self, comparisons: dict, cloud_apps: set[str]):
+    def __init__(self, comparisons: dict, cloud_apps: set[str], microsoft: MicrosoftNetworks | None = None):
         self.comparisons = comparisons
         self.cloud_apps = cloud_apps
+        self.microsoft = microsoft or MicrosoftNetworks()
 
     @staticmethod
-    def side(side: dict) -> dict:
-        runs = [r for r in side["runs"] if r.get("status") in ("ok", "timeout", "wrong-result")]
-        per_run = [{"run": r["run"], **{k: (r.get("evidence") or {}).get(k) for k in (
-            "direct_connections", "direct_connections_measured", "direct_bytes_received",
-            "direct_bytes_after_measured_end", "mail_port_elsewhere", "proxy_connections", "direct_only",
-            "inbox_complete")}, "remote_networks": [
-            {k: n.get(k) for k in ("owner", "asn", "prefix", "connections", "connections_measured", "ports",
-                                   "bytes_received")} for n in (r.get("evidence") or {}).get("remote_networks", [])]}
-            for r in runs]
-        complete = bool(runs) and all(r.get("evidence") for r in runs)
-        out = {"runs_with_evidence": sum(1 for r in runs if r.get("evidence")), "measured_runs": len(runs),
-               "runs": per_run,
-               "direct_only": 1 if complete and all(x["direct_only"] for x in per_run) else 0,
-               "direct_connections_max": max((x["direct_connections"] or 0 for x in per_run), default=None),
-               "inbox_complete": 1 if complete and all(x["inbox_complete"] for x in per_run) else 0}
+    def run_facts(run: dict, kind: str) -> dict:
+        evidence = run.get("evidence") or {}
+        return {"run": run["run"], "kind": kind, "logged": bool(evidence), **{k: evidence.get(k) for k in (
+            "direct_connections", "direct_connections_measured", "direct_mail_connections", "server_connections",
+            "outside_tree_connections", "direct_bytes_received", "direct_bytes_after_measured_end",
+            "mail_port_elsewhere", "proxy_connections", "direct_only", "inbox_complete", "inbox_basis",
+            "remote_microsoft_share")}, "remote_networks": [
+            {k: n.get(k) for k in ("owner", "asn", "as_holder", "prefix", "microsoft", "connections",
+                                   "connections_measured", "ports", "bytes_received")}
+            for n in evidence.get("remote_networks", [])]}
+
+    def side(self, side: dict) -> dict:
+        done = ("ok", "timeout", "wrong-result")
+        measured = [self.run_facts(r, "measured") for r in side["runs"] if r.get("status") in done]
+        warmups = [self.run_facts(r, "warm-up") for r in side.get("warmups", []) if r.get("status") in done]
+        others = [self.run_facts(r, "warm-up") for r in side.get("warmups", []) if r.get("status") not in done] + \
+            [self.run_facts(r, "measured") for r in side["runs"] if r.get("status") not in done] + \
+            [self.run_facts(r, "attempt") for r in side.get("failed_attempts", [])]
+        completed = warmups + measured
+        logged = [x for x in completed + others if x["logged"]]
+        all_logged = bool(measured) and all(x["logged"] for x in completed)
+        out = {"runs_with_evidence": sum(1 for x in measured if x["logged"]), "measured_runs": len(measured),
+               "logged_runs": sum(1 for x in completed if x["logged"]), "all_runs_logged": all_logged,
+               "runs": [x for x in completed + others if x["logged"]],
+               "direct_only": 1 if all_logged and all(x["direct_only"] for x in completed) else 0,
+               "direct_connections_max": max((x["direct_connections"] or 0 for x in logged), default=None),
+               "server_connections_max": max((x["server_connections"] if x["server_connections"] is not None
+                                              else x["direct_connections"] or 0 for x in logged), default=None)
+               if all_logged else None,
+               "mail_port_elsewhere_max": max((x["mail_port_elsewhere"] or 0 for x in logged), default=None)
+               if all_logged else None,
+               "inbox_complete": 1 if measured and all(x["inbox_complete"] for x in measured) else 0,
+               "inbox_counted": 1 if measured and all(x["inbox_basis"] == "count" for x in measured) else 0}
+        shares = [x["remote_microsoft_share"] for x in measured]
+        if measured and None not in shares:
+            out["remote_microsoft_share"] = min(shares)
         weights: Counter = Counter()
-        for x in per_run:
+        holders = {}
+        for x in measured:
             for n in x["remote_networks"]:
                 if n["owner"] and n["connections_measured"]:
                     weights[(n["owner"], n["asn"])] += n["bytes_received"] or n["connections_measured"]
+                    holders[(n["owner"], n["asn"])] = n.get("as_holder")
         if weights:
             (owner, asn), _ = weights.most_common(1)[0]
             out["remote_owner"], out["remote_asn"] = owner, asn
+            out["remote_microsoft"] = int(self.microsoft.registered(owner, asn, holders.get((owner, asn))))
         return out
+
+    @staticmethod
+    def cpu_pressure(task: dict | None) -> float | None:
+        """`env.<C>.cpu_pressure`: the highest CPU stall share (%, rounded up to 0.1) of the measured runs of both
+        sides (run cpu-pressure.json, Linux); missing unless every measured run has one."""
+        if task is None:
+            return None
+        runs = [r for name in ("left", "right") for r in task[name]["runs"]
+                if r.get("status") in ("ok", "timeout", "wrong-result")]
+        values = [(r.get("cpu_pressure") or {}).get("pct") for r in runs]
+        if not runs or None in values:
+            return None
+        return math.ceil(max(values) * 10 - 1e-9) / 10
 
     def comparison(self, comparison_id: str, comparison: dict, task_id: str) -> dict:
         task = comparison["tasks"][task_id]
@@ -280,13 +423,19 @@ class SessionEvidence:
             if data["runs_with_evidence"]:
                 values[f"{name}_direct_only"] = data["direct_only"]
             if task[name]["app"] in self.cloud_apps and data["runs_with_evidence"]:
-                values[f"{name}_direct_connections"] = data["direct_connections_max"]
+                values[f"{name}_direct_connections"] = data["server_connections_max"]
+                values[f"{name}_mail_port_elsewhere"] = data["mail_port_elsewhere_max"]
+                values[f"{name}_logged_runs"] = data["logged_runs"] if data["all_runs_logged"] else None
                 values[f"{name}_inbox_complete"] = data["inbox_complete"]
+                values[f"{name}_inbox_counted"] = data["inbox_counted"]
+                values[f"{name}_remote_microsoft"] = data.get("remote_microsoft", 0)
+                values[f"{name}_remote_microsoft_share"] = data.get("remote_microsoft_share")
                 if data.get("remote_owner"):
                     values[f"{name}_remote_owner"] = data["remote_owner"]
                     values[f"{name}_remote_asn"] = data["remote_asn"]
-        return {"kind": "client", "task": task_id, "sides": sides, "values": values,
-                "lines": self.lines(task, sides)}
+        return {"kind": "client", "task": task_id, "sides": sides,
+                "values": {k: v for k, v in values.items() if v is not None},
+                "rules": self.microsoft.describe(), "lines": self.lines(task, sides)}
 
     @staticmethod
     def lines(task: dict, sides: dict) -> list[str]:
@@ -296,10 +445,16 @@ class SessionEvidence:
             if not data["runs_with_evidence"]:
                 out.append(f"{app}: no network evidence")
                 continue
-            counts = [x["direct_connections"] for x in data["runs"]]
-            out.append(f"{app}: connections to the mail server per measured run {counts}; connected only to the "
-                       f"mail server for mail: {'yes' if data['direct_only'] else 'no'}; Inbox complete in every "
-                       f"measured run: {'yes' if data['inbox_complete'] else 'no'}")
+            counts = [f"{x['run']} {x['server_connections'] if x['server_connections'] is not None else x['direct_connections']}"
+                      for x in data["runs"]]
+            out.append(f"{app}: connections to the mail server per run ({', '.join(counts)}); runs with a network "
+                       f"log: {data['logged_runs']} (warm-up included){'' if data['all_runs_logged'] else ', not all'}; "
+                       f"connected directly for its mail in every run: {'yes' if data['direct_only'] else 'no'}; "
+                       f"Inbox complete in every measured run: {'yes' if data['inbox_complete'] else 'no'} (counted: "
+                       f"{'yes' if data['inbox_counted'] else 'no'})")
+            if data.get("remote_microsoft_share") is not None:
+                out.append(f"{app}: share of its connections in the measured window to Microsoft's networks, lowest "
+                           f"run: {data['remote_microsoft_share']} %")
             networks = Counter()
             for x in data["runs"]:
                 for n in x["remote_networks"]:
@@ -309,7 +464,7 @@ class SessionEvidence:
         return out
 
     def summarize(self, task_id: str = "T1") -> dict:
-        out = {"version": 1, "generated": datetime.now(timezone.utc).isoformat(), "comparisons": {}, "env": {}}
+        out = {"version": 2, "generated": datetime.now(timezone.utc).isoformat(), "comparisons": {}, "env": {}}
         for comparison_id, comparison in self.comparisons.items():
             if task_id not in comparison["tasks"]:
                 continue

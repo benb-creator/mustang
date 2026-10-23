@@ -48,6 +48,23 @@ class Config:
             return re.sub(r"\$\{([A-Z_][A-Z0-9_]*)\}", lookup, value)
         return value
 
+    @classmethod
+    def recorded(cls, manifest: dict, local: "Config") -> "Config":
+        """The config a result folder's session ran with (manifest.json, secrets removed), to analyze its results
+        again on another computer: this computer's paths and the analysis rules come from `local`."""
+        data = copy.deepcopy(manifest.get("config") or {})
+        if not data:
+            raise ConfigError("The result folder's manifest.json records no config")
+        for key in ("workdir", "tools", "scenario_dir", "compose", "publish", "translations", "speech", "encode"):
+            data.pop(key, None)
+            if key in local.data:
+                data[key] = copy.deepcopy(local.data[key])
+        for dotted in ("evidence.microsoft_asns", "evidence.proxy_ports", "runs.max_cpu_pressure_pct"):
+            section, name = dotted.split(".")
+            if local.get(dotted) is not None:
+                data.setdefault(section, {})[name] = copy.deepcopy(local.get(dotted))
+        return cls(data, local.base_dir)
+
     def apply_server_defaults(self):
         """In account mode only the host name is needed; the endpoints follow from it unless set."""
         server = self.data.get("server")
