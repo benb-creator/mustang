@@ -15,7 +15,7 @@ class FlowError(Exception):
 
 class WrongServer(FlowError):
     """The app would log in to a server the test can't confirm as the account's: the run stops before the password
-    is entered (a technical failure), so the test password never goes to another server."""
+    goes out (a technical failure), so the test password never goes to another server."""
 
 
 class FlowContext:
@@ -110,12 +110,32 @@ class FlowContext:
         found = self.probe.find(element)
         return None if found is None else found.get("value")
 
-    def other_server(self) -> list[str] | None:
-        """None if the configuration the app found names only the account's server, else the host names it names
-        (empty if unreadable): the flow then corrects them in the app's manual setup, like a user, and the
-        password never goes to another server."""
+    @property
+    def guarded(self) -> bool:
+        """The check before the session (`server.guard`, from manifest.json `server_discovery`) found a published
+        configuration that names another server than the account's, or couldn't check a source: the flows read the
+        server an app found and correct another one in the app's manual setup. Otherwise every app takes its own
+        path and a server it shows anyway is checked without any action."""
+        return self.value("server.guard") != "off"
+
+    def found_other(self) -> list[str] | None:
+        """None if the configuration the app shows names only the account's server, else the host names it names
+        (empty if unreadable)."""
         hosts = self.probe.found_hosts()
         return None if hosts and set(hosts) <= self.own_hosts() else hosts
+
+    def other_server(self, app: str) -> list[str] | None:
+        """Guarded: `found_other()`, which the flow corrects in the app's manual setup like a user, so the password
+        never goes to another server. Unguarded: None, after checking a server the app shows anyway; another one
+        stops the run before the password."""
+        hosts = self.found_other()
+        if self.guarded or hosts is None:
+            return hosts
+        if hosts:
+            raise WrongServer(f"{app} found {', '.join(hosts)}, although the configuration the address's domain "
+                              f"publishes names only the account's server; stopped before the password, which goes "
+                              f"only to {self.value('server.imap_host')}")
+        return None
 
     def own_hosts(self) -> set[str]:
         jmap_host = urlparse(self.value("server.jmap_url")).hostname or ""
@@ -134,7 +154,7 @@ class FlowContext:
                                   f"before the password, which goes only to {self.value('server.imap_host')}")
             if self.field_value(element) != self.value(variable):
                 self.replace_text(element, "${" + variable + "}")
-        left = self.other_server()
+        left = self.found_other()
         if left is not None:
             raise WrongServer(f"{app}'s server fields name {', '.join(left) or 'no readable server'} after the "
                               f"correction; stopped before the password, which goes only to "
@@ -175,7 +195,7 @@ class ParulaSetupFlow:
             ctx.note("configuration found by the app (autoconfig)")
             if self.protocol == "imap" or self.offers_protocol():
                 self.choose_found_option()
-                hosts = ctx.other_server()
+                hosts = ctx.other_server("Parula")
                 if hosts is None:
                     ctx.step("check-config", a("click", "setup.next"), until={"finalize"})
                 else:
@@ -252,7 +272,7 @@ class ThunderbirdSetupFlow:
         ctx.step("find-config", a("click", "hub.forward"),
                  until={"found", "protocol-select", "password"} | manual_pages)
         page = ctx.page({"found", "protocol-select", "password"} | manual_pages, 30)
-        hosts = ctx.other_server() if page == "found" else None
+        hosts = ctx.other_server("Thunderbird") if page == "found" else None
         if page == "found" and hosts is None:
             ctx.note("configuration found by the app (autoconfig)")
             ctx.step("use-config", a("click", "hub.forward"), until={"password"})
@@ -288,7 +308,7 @@ class ThunderbirdSetupFlow:
             ctx.step("connect-again", a("click", "hub.forward"), until={"password", "found"})
             page = ctx.page({"password", "found"}, 30)
         if page == "found":
-            if ctx.other_server() is not None:
+            if ctx.found_other() is not None:
                 raise FlowError(f"Thunderbird's configuration names another server after the manual configuration: "
                                 f"{ctx.probe.found_hosts()}")
             ctx.step("use-config", a("click", "hub.forward"), until={"password"})
@@ -317,10 +337,11 @@ class ThunderbirdSetupFlow:
 
 class OutlookClassicSetupFlow:
     """Outlook (classic), started with an empty profile: its own "Add account" dialog, the default way; the pages
-    that follow depend on what Outlook detects for the address. Its IMAP settings page names the servers: another
-    server than the account's is corrected there. A password page reached without that page doesn't show the
-    server: the flow goes back to the address and takes Outlook's manual setup ("Let me set up my account
-    manually"), or stops before the password."""
+    that follow depend on what Outlook detects for the address. Its IMAP settings page, where Outlook shows it, names
+    the servers: another server than the account's is corrected there (guarded) or stops the run before the password.
+    A password page reached without that page doesn't show the server: guarded, the flow goes back to the address and
+    takes Outlook's manual setup ("Let me set up my account manually"), or stops before the password; otherwise it
+    enters the password, as a user does."""
 
     hosts = [("field.incoming_server", "server.imap_host"), ("field.outgoing_server", "server.smtp_host")]
     ports = [("field.incoming_port", "server.imap_port"), ("field.outgoing_port", "server.smtp_port")]
@@ -346,7 +367,7 @@ class OutlookClassicSetupFlow:
             elif page == "imap-settings":
                 self.check_settings()
                 ctx.step("imap-settings", a("click", "button.next"), until={"password", "done", "error"}, fail=())
-            elif page == "password" and not self.checked:
+            elif page == "password" and not self.checked and ctx.guarded:
                 self.manual_setup(after_connect)
             elif page == "password":
                 ctx.type_into("field.password", "${account.password}")
@@ -362,9 +383,9 @@ class OutlookClassicSetupFlow:
 
     def check_settings(self):
         ctx = self.ctx
-        hosts = ctx.other_server()
+        hosts = ctx.other_server("Outlook (classic)")
         if hosts is None:
-            ctx.note("Outlook's IMAP settings name the account's server")
+            ctx.note("Outlook's IMAP settings show no other server than the account's")
         else:
             ctx.note(f"Outlook's IMAP settings name another server ({', '.join(hosts) or 'unreadable'}): corrected "
                      "on that page")
@@ -399,8 +420,9 @@ class OutlookClassicSetupFlow:
 class NewOutlookSetupFlow:
     """New Outlook for Windows: its own "Add account" flow for an IMAP address, which ends with its notice that the
     account is synced through the Microsoft Cloud. Its IMAP form names the servers the Microsoft Cloud will log in
-    to (behind "Show more", opened only to read them, not counted): another server than the account's is corrected
-    in that form before the password; a form without server fields stops the run before the password."""
+    to. Guarded, the flow opens "Show more" to read them (not counted), corrects another server than the account's in
+    the form before the password, and stops the run before the password when the form has no server fields;
+    otherwise the server fields the form shows anyway are checked, and another server stops the run."""
 
     hosts = [("field.imap_server", "server.imap_host"), ("field.smtp_server", "server.smtp_host")]
     ports = [("field.imap_port", "server.imap_port"), ("field.smtp_port", "server.smtp_port")]
@@ -442,7 +464,7 @@ class NewOutlookSetupFlow:
 
     def check_servers(self):
         ctx, a = self.ctx, FlowContext.action
-        hosts = ctx.other_server()
+        hosts = ctx.other_server("New Outlook")
         if hosts is not None and ctx.probe.find("field.imap_server") is None and \
                 ctx.probe.find("button.show_more") is not None:
             ctx.note("opened 'Show more' to read the servers of new Outlook's IMAP form (not counted)")
@@ -450,9 +472,9 @@ class NewOutlookSetupFlow:
             deadline = time.monotonic() + 5
             while ctx.probe.find("field.imap_server") is None and time.monotonic() < deadline:
                 time.sleep(0.2)
-            hosts = ctx.other_server()
+            hosts = ctx.found_other()
         if hosts is None:
-            ctx.note("new Outlook's IMAP form names the account's server")
+            ctx.note("new Outlook's IMAP form shows no other server than the account's")
             return
         ctx.note(f"new Outlook's IMAP form names another server ({', '.join(hosts) or 'unreadable'}): corrected in "
                  "the form")

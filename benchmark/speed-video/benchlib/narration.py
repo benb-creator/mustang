@@ -154,6 +154,13 @@ class NarrationValues:
             text = text.replace(",", " ").replace(".", ",").replace(" ", ".")
         return text
 
+    def recorded(self, value) -> str:
+        """A recorded value as text; a number keeps its own decimals in the language's format ("1,07" in German)."""
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return str(value)
+        decimals = str(value).partition(".")[2]
+        return self.number(value, len(decimals) if decimals.isdigit() else 0)
+
     def seconds_text(self, seconds: float) -> str:
         decimals = 2 if seconds < 1 else 1 if seconds < 10 else 0
         return self.number(seconds, decimals)

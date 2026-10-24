@@ -51,7 +51,9 @@ class Config:
     @classmethod
     def recorded(cls, manifest: dict, local: "Config") -> "Config":
         """The config a result folder's session ran with (manifest.json, secrets removed), to analyze its results
-        again on another computer: this computer's paths and the analysis rules come from `local`."""
+        again on another computer: this computer's paths and the analysis rules come from `local`, and so does what
+        a session can't record about its environment (`comparisons.<C>.environment`, e.g. the server's version),
+        merged into the recorded comparison of the same name."""
         data = copy.deepcopy(manifest.get("config") or {})
         if not data:
             raise ConfigError("The result folder's manifest.json records no config")
@@ -63,6 +65,15 @@ class Config:
             section, name = dotted.split(".")
             if local.get(dotted) is not None:
                 data.setdefault(section, {})[name] = copy.deepcopy(local.get(dotted))
+        recorded_comparisons = data.get("comparisons") or {}
+        for comparison_id, spec in (local.get("comparisons") or {}).items():
+            environment = (spec or {}).get("environment")
+            if environment and comparison_id in recorded_comparisons:
+                merged = dict(recorded_comparisons[comparison_id].get("environment") or {})
+                for key, value in copy.deepcopy(environment).items():
+                    merged[key] = {**merged[key], **value} if isinstance(value, dict) and \
+                        isinstance(merged.get(key), dict) else value
+                recorded_comparisons[comparison_id]["environment"] = merged
         return cls(data, local.base_dir)
 
     def apply_server_defaults(self):

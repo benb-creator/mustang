@@ -244,18 +244,30 @@ class RunEvidence:
             return None, basis
         return verify.get("inbox_complete"), basis
 
+    @staticmethod
+    def logged_server(events: list[dict]) -> dict:
+        """The mail server's addresses and ports as the run's network log recorded them at its start."""
+        resolved = [e for e in events if e["type"] == "resolve"]
+        logged = next((e for e in events if e["type"] == "mail_server"), {})
+        addresses = sorted(set(logged.get("addresses") or []) | {a for e in resolved for a in e.get("addresses", [])})
+        return {"hosts": {e["host"]: e.get("addresses", []) for e in resolved}, "addresses": addresses,
+                "ports": logged.get("ports") or sorted(MailServerAddresses.standard_ports),
+                "mail_only_ports": logged.get("mail_only_ports") or sorted(MailServerAddresses.mail_only_ports)}
+
+    def mail_elsewhere(self) -> list[dict]:
+        """The app's connections on mail ports to other addresses than the mail server's: where else its mail
+        connections went (the check after every run)."""
+        events = NetworkLog.read(self.run_dir / "network.jsonl")
+        server = self.logged_server(events)
+        addresses, mail_only = set(server["addresses"]), set(server["mail_only_ports"])
+        return [c for c in self.connections(events) if c["remote"] not in addresses and c["remote_port"] in mail_only
+                and not ipaddress.ip_address(c["remote"]).is_loopback]
+
     def summarize(self, mail_server: dict | None = None) -> dict:
         events = NetworkLog.read(self.run_dir / "network.jsonl")
         header = next((e for e in events if e["type"] == "header"), {})
-        resolved = [e for e in events if e["type"] == "resolve"]
         if mail_server is None:
-            logged = next((e for e in events if e["type"] == "mail_server"), {})
-            addresses = sorted(set(logged.get("addresses") or []) |
-                               {a for e in resolved for a in e.get("addresses", [])})
-            mail_server = {"hosts": {e["host"]: e.get("addresses", []) for e in resolved}, "addresses": addresses,
-                           "ports": logged.get("ports") or sorted(MailServerAddresses.standard_ports),
-                           "mail_only_ports": logged.get("mail_only_ports") or
-                           sorted(MailServerAddresses.mail_only_ports)}
+            mail_server = self.logged_server(events)
         server_addresses = set(mail_server.get("addresses") or [])
         ports = set(mail_server.get("ports") or MailServerAddresses.standard_ports)
         mail_only = set(mail_server.get("mail_only_ports") or MailServerAddresses.mail_only_ports)
@@ -460,7 +472,8 @@ class SessionEvidence:
                 for n in x["remote_networks"]:
                     networks[(n["owner"], n["asn"], n["prefix"])] += n["connections"]
             for (owner, asn, prefix), count in networks.most_common():
-                out.append(f"{app}: also {count} connection(s) to {owner} ({asn}, {prefix})")
+                out.append(f"{app}: also {count} connection(s) to {owner or 'unknown owner'} ({asn or '–'}, "
+                           f"{prefix or '–'})")
         return out
 
     def summarize(self, task_id: str = "T1") -> dict:

@@ -7,6 +7,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from .sessionnotes import SessionNotes
+
 
 class AppStateError(Exception):
     pass
@@ -252,8 +254,8 @@ class WindowsSettings:
         matched = re.search(rf"{re.escape(name)}\s+REG_DWORD\s+0x([0-9a-f]+)", output, re.I)
         return int(matched.group(1), 16) if matched else None
 
-    def apply(self) -> list[str]:
-        changes = []
+    def apply(self) -> SessionNotes:
+        notes = SessionNotes()
         saved = dict(self.state.get("settings_saved") or {})
         if "power_scheme" not in saved:
             active = self.parse_scheme(self.runner.run(["powercfg", "/getactivescheme"]).stdout)
@@ -262,19 +264,21 @@ class WindowsSettings:
                 saved["power_scheme"] = active
                 self.state.set("settings_saved", saved)
                 self.runner.run(["powercfg", "/setactive", self.high_performance])
-                changes.append("Power plan: High performance for the session (was " + active + ")")
+                notes.add("power_plan_set", plan=active)
+            elif active:
+                notes.add("power_plan_unchanged", plan=active)
             else:
-                changes.append(f"Power plan: unchanged ({active or 'unknown'})")
+                notes.add("power_plan_unknown")
         if "toasts" not in saved:
             query = self.runner.run(["reg", "query", self.toast_key, "/v", "ToastEnabled"])
             previous = self.parse_reg_dword(query.stdout, "ToastEnabled") if query.returncode == 0 else None
             saved["toasts"] = previous if previous is not None else "absent"
             self.state.set("settings_saved", saved)
             self.runner.run(["reg", "add", self.toast_key, "/v", "ToastEnabled", "/t", "REG_DWORD", "/d", "0", "/f"])
-            changes.append("Windows notifications (toasts) off for the session")
+            notes.add("toasts_off")
         self.keep_awake()
-        changes.append("Sleep and display timeout suspended while the session runs")
-        return changes
+        notes.add("awake")
+        return notes
 
     def keep_awake(self):
         ES_CONTINUOUS, ES_SYSTEM_REQUIRED, ES_DISPLAY_REQUIRED = 0x80000000, 0x00000001, 0x00000002

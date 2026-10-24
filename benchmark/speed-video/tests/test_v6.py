@@ -362,6 +362,73 @@ def test_every_shipped_deviation_and_instrumentation_line_has_a_german_text():
                 assert line in table, f"{config.name} {key}: no German text for {line[:60]}…"
 
 
+def test_every_session_note_the_windows_and_linux_code_can_produce_has_a_german_text():
+    import re
+    from benchlib.sessionnotes import SessionNotes
+    root = Path(__file__).resolve().parent.parent
+    produced = set()
+    for source in (root / "benchlib").glob("*.py"):
+        produced |= set(re.findall(r"notes\.add\(\"(\w+)\"", source.read_text(encoding="utf-8")))
+    assert produced == set(SessionNotes.templates), "every template is produced by the code, every note is a template"
+    table = yaml.safe_load((root / "translations" / "de.yaml").read_text(encoding="utf-8"))
+    texts = ManifestTexts(Config({}, root), "de")
+    for name, template in SessionNotes.templates.items():
+        placeholders = set(re.findall(r"\{(\w+)\}", template))
+        assert template in table, f"no German text for the note template {name}"
+        assert set(re.findall(r"\{(\w+)\}", table[template])) == placeholders, name
+        notes = SessionNotes()
+        notes.add(name, **{key: f"<{key} value 1,5>" for key in placeholders})
+        german = texts.translated(notes.lines[0])
+        assert german and all(f"<{key} value 1,5>" in german for key in placeholders), name
+    assert texts.translated("Power plan: unchanged (381b4222-f694-41f0-9685-ff5bb260df2e)") == \
+        "Energiesparplan: unverändert (381b4222-f694-41f0-9685-ff5bb260df2e)"
+    assert texts.translated("Power plan: unchanged") is None
+
+
+def test_session_notes_of_the_windows_settings_come_from_templates():
+    from benchlib.winapps import SessionState, WindowsSettings
+
+    class Commands:
+        def __init__(self, outputs):
+            self.outputs = outputs
+
+        def run(self, command):
+            return type("Result", (), {"stdout": self.outputs.get(" ".join(command[:2]), ""), "returncode": 0})()
+
+    texts = ManifestTexts(Config({}, Path(__file__).resolve().parent.parent), "de")
+    for outputs in ({"powercfg /getactivescheme": "GUID: 381b4222-f694-41f0-9685-ff5bb260df2e",
+                     "powercfg /list": "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"},
+                    {"powercfg /getactivescheme": "GUID: 381b4222-f694-41f0-9685-ff5bb260df2e"}, {}):
+        state = SessionState(Path("/nonexistent") / "state.json")
+        state.set = lambda key, value: None
+        notes = WindowsSettings(state, Commands(outputs)).apply()
+        assert len(notes) == 3 and all(texts.translated(line) for line in notes)
+
+
+def test_a_network_without_an_rdap_owner_reads_unknown_owner_and_german_numbers_use_a_comma():
+    from benchlib.method import MethodTexts
+    from benchlib.narration import NarrationValues
+    network = {"owner": None, "asn": "AS15169", "prefix": "8.8.8.0/24", "connections": 2}
+    sides = {"left": {"runs_with_evidence": 1, "logged_runs": 1, "all_runs_logged": True, "direct_only": 1,
+                      "inbox_complete": 1, "inbox_counted": 1,
+                      "runs": [{"run": "run-1", "server_connections": 3, "remote_networks": [network]}]}}
+    task = {"left": {"name": "Parula"}, "right": {"name": "Thunderbird"}}
+    lines = SessionEvidence.lines(task, sides)
+    assert lines[-1] == "Parula: also 2 connection(s) to unknown owner (AS15169, 8.8.8.0/24)"
+    results = results_for()
+    results["environment"]["C4"] = {"rtt_ms": {"imap_connect": 1.07, "https_connect": 1.02}, "ram": "48 GB",
+                                    "server": {"software": "Stalwart", "version": "0.16.27"}}
+    for language, rtt, owner in (("de", "1,07", "Eigentümer unbekannt"), ("en", "1.07", "unknown owner")):
+        values = ValuesBuilder(Config({}, Path(".")), results, language, {}).build()
+        assert values.text["env.C4.rtt_ms"] == rtt and values.text["env.C4.server"] == "0.16.27"
+        texts = MethodTexts(Config({}, Path(".")), results, values, language, None)
+        evidence = {"task": "T1", "sides": {"right": {"runs_with_evidence": 1, "runs": [
+            {"run": "run-1", "server_connections": 0, "remote_networks": [network]}]}}}
+        block = texts.client_evidence_block("C4", results["comparisons"]["C4"], evidence)
+        assert f"{owner} (AS15169, 8.8.8.0/24)" in block and "None" not in block
+    assert NarrationValues("de").recorded(30000) == "30.000" and NarrationValues("de").recorded("0.16.27") == "0.16.27"
+
+
 def test_recorded_config_analyzes_another_computers_result_folder(tmp_path):
     local = Config({"workdir": str(tmp_path / "work"), "tools": {"ffmpeg": "/usr/bin/ffmpeg"},
                     "evidence": {"microsoft_asns": ["AS8075"]}}, tmp_path)
@@ -372,6 +439,24 @@ def test_recorded_config_analyzes_another_computers_result_folder(tmp_path):
     assert config.workdir == tmp_path / "work" and config.tool("ffmpeg") == "/usr/bin/ffmpeg"
     assert config.app("outlook-new")["cloud_sync"] is True and config.get("evidence.poll_hz") == 10
     assert config.get("evidence.microsoft_asns") == ["AS8075"]
+    assert config.comparison("C4") == {"left": "a", "right": "b"}
+
+
+def test_recorded_config_takes_the_local_configs_environment_of_the_same_comparison(tmp_path):
+    local = Config({"comparisons": {
+        "C4": {"left": "x", "right": "y", "environment": {"server": {"software": "Stalwart", "version": "0.16.27"},
+                                                          "ram_limit": "32 GB"}},
+        "C9": {"left": "x", "right": "y", "environment": {"server": {"version": "1"}}}}}, tmp_path)
+    manifest = {"config": {"comparisons": {
+        "C3": {"left": "parula-jmap", "right": "outlook-classic", "session": "windows"},
+        "C4": {"left": "parula-jmap", "right": "outlook-new", "session": "windows",
+               "environment": {"server": {"software": "Stalwart", "host": "mail.pia.im"}, "gpu": "Intel"}}}}}
+    config = Config.recorded(manifest, local)
+    assert config.comparison("C4") == {"left": "parula-jmap", "right": "outlook-new", "session": "windows",
+                                       "environment": {"server": {"software": "Stalwart", "host": "mail.pia.im",
+                                                                  "version": "0.16.27"},
+                                                       "gpu": "Intel", "ram_limit": "32 GB"}}
+    assert "environment" not in config.comparison("C3") and "C9" not in config.get("comparisons")
 
 
 def test_published_environment_names_the_containers_cpus_and_memory_limit():

@@ -24,6 +24,7 @@ from benchlib.corpus import CorpusGenerator, CorpusSpec  # noqa: E402
 from benchlib.driver import Calibration, EventLog, ScenarioDriver, TextVariables  # noqa: E402
 from benchlib.flows import (FlowContext, FlowError, Flows, NewOutlookRemoval, NewOutlookSetupFlow,  # noqa: E402
                             OutlookClassicSetupFlow, ParulaSetupFlow, WrongServer)
+from benchlib.method import ManifestTexts  # noqa: E402
 from benchlib.probe import ParulaProbe, Probes  # noqa: E402
 from benchlib.runner import Orchestrator, RunExecutor  # noqa: E402
 from benchlib.settle import Rect  # noqa: E402
@@ -452,7 +453,7 @@ def test_outlook_classic_flow_german_unchecks_outlook_mobile_and_waits_for_the_i
                                                         "password"]
     assert starts[-1]["checks"]["complete"] == "inbox_listed" and starts[-1]["checks"]["after_end"] == "fail"
     assert "advanced-setup" in ctx.path and any("Outlook Mobile" in note for note in ctx.path)
-    assert "Outlook's IMAP settings name the account's server" in ctx.path
+    assert "Outlook's IMAP settings show no other server than the account's" in ctx.path
     assert ctx.probe.language == "de"
     actions = RunExecutor.user_actions(log.path, ctx.variables)
     assert actions["user_actions"] == 8 and actions["prepare_actions"] == []
@@ -514,6 +515,34 @@ def test_outlook_classic_settings_without_readable_server_fields_stop_before_the
     with pytest.raises(WrongServer, match="shows no field 'field.incoming_server'"):
         OutlookClassicSetupFlow(ctx).run()
     assert "Kennwort" not in app.typed
+
+
+def test_outlook_classic_unguarded_enters_the_password_on_its_own_path_without_a_detour(tmp_path):
+    app = outlook_classic_app({"n": 30000}, found_host=None)
+    ctx, log = make_context(tmp_path, app, "outlook-classic")
+    ctx.variables.values["server.guard"] = "off"
+    OutlookClassicSetupFlow(ctx).run()
+    assert app.history[:3] == ["account-email", "advanced-setup", "password"]
+    assert [e["step"] for e in logged(log, "step_start")] == ["connect", "choose-imap", "login", "open-inbox"]
+    assert not logged(log, "input", phase="prepare")
+    clicked = [e["arg"] for e in logged(log, "input", phase="step") if e["action"] == "click"]
+    assert "link.back" not in clicked and "checkbox.manual" not in clicked
+
+
+def test_outlook_classic_unguarded_checks_its_settings_page_without_actions_and_stops_at_another_server(tmp_path):
+    own = outlook_classic_app({"n": 30000})
+    own_ctx, own_log = make_context(tmp_path, own, "outlook-classic")
+    own_ctx.variables.values["server.guard"] = "off"
+    OutlookClassicSetupFlow(own_ctx).run()
+    assert RunExecutor.user_actions(own_log.path, own_ctx.variables)["user_actions"] == 8
+    (tmp_path / "other").mkdir()
+    app = outlook_classic_app({"n": 30000}, found_host="imap.beonex.example")
+    ctx, log = make_context(tmp_path / "other", app, "outlook-classic")
+    ctx.variables.values["server.guard"] = "off"
+    with pytest.raises(WrongServer, match="found imap.beonex.example, smtp.beonex.example, although"):
+        OutlookClassicSetupFlow(ctx).run()
+    assert "Kennwort" not in app.typed and ("imap-settings", "Server") not in app.typing
+    assert [e["step"] for e in logged(log, "step_start")] == ["connect", "choose-imap"]
 
 
 def test_an_unknown_page_stops_the_flow(tmp_path):
@@ -636,8 +665,8 @@ def test_new_outlook_flow_verify_and_removal_from_all_devices(tmp_path):
     NewOutlookSetupFlow(ctx).run()
     assert [e["step"] for e in logged(log, "step_start")] == ["continue", "choose-imap", "connect", "cloud-sync",
                                                               "open-inbox"]
-    assert ctx.path[:5] == ["choose-provider", "imap-form", "new Outlook's IMAP form names the account's server",
-                            "cloud-sync", "success"]
+    assert ctx.path[:5] == ["choose-provider", "imap-form",
+                            "new Outlook's IMAP form shows no other server than the account's", "cloud-sync", "success"]
     final = logged(log, "probe", step="open-inbox")
     assert final[-1]["complete"] and final[-1]["listed"] == 30000 and final[-1]["listed_from"] == "size_of_set"
     verify = json.loads((tmp_path / "verify.json").read_text())
@@ -684,6 +713,29 @@ def test_new_outlook_reads_the_servers_behind_show_more_and_corrects_another_ser
                          NEW_OUTLOOK_EXPECTED)
     NewOutlookSetupFlow(plain[0]).run()
     assert actions["user_actions"] == RunExecutor.user_actions(plain[1].path, plain[0].variables)["user_actions"] + 3 * 3
+
+
+def test_new_outlook_unguarded_doesnt_open_show_more_and_checks_only_the_servers_its_form_shows(tmp_path):
+    hidden = {"size": 30000, "unread": 1500, "hidden": True, "found_host": "mail.beonex.example"}
+    app, _ = new_outlook_app(hidden)
+    ctx, log = make_context(tmp_path, app, "outlook-new", NEW_OUTLOOK_EXPECTED)
+    ctx.variables.values["server.guard"] = "off"
+    NewOutlookSetupFlow(ctx).run()
+    assert not logged(log, "input", phase="prepare") and "IMAP password" in app.typed
+    (tmp_path / "plain").mkdir()
+    plain = make_context(tmp_path / "plain", new_outlook_app({"size": 30000, "unread": 1500})[0], "outlook-new",
+                         NEW_OUTLOOK_EXPECTED)
+    NewOutlookSetupFlow(plain[0]).run()
+    assert RunExecutor.user_actions(log.path, ctx.variables)["user_actions"] == \
+        RunExecutor.user_actions(plain[1].path, plain[0].variables)["user_actions"]
+    (tmp_path / "shown").mkdir()
+    shown = {"size": 30000, "unread": 1500, "found_host": "mail.beonex.example"}
+    app, _ = new_outlook_app(shown)
+    ctx, _ = make_context(tmp_path / "shown", app, "outlook-new", NEW_OUTLOOK_EXPECTED)
+    ctx.variables.values["server.guard"] = "off"
+    with pytest.raises(WrongServer, match="New Outlook found mail.beonex.example"):
+        NewOutlookSetupFlow(ctx).run()
+    assert "IMAP password" not in app.typed and app.page == "imap-form"
 
 
 def test_new_outlook_without_server_fields_stops_before_the_password(tmp_path):
@@ -1046,6 +1098,12 @@ def windows_env(tmp_path, monkeypatch):
     resources = tmp_path / "Programs" / "parula" / "resources"
     resources.mkdir(parents=True)
     (resources / "app-update.yml").write_text("provider: github")
+    found = {"checked_utc": "2026-10-24T08:00:00+00:00", "domain": "example.org", "server_hosts": ["mail.example.org"],
+             "sources": [{"source": "autoconfig (.well-known)", "url": "https://example.org/.well-known/x",
+                          "status": 200, "hosts": ["mail.beonex.example"]}],
+             "other_hosts": ["mail.beonex.example"], "other_sources": ["autoconfig (.well-known)"], "unchecked": [],
+             "guarded": True}
+    monkeypatch.setattr("benchlib.stages.PublishedConfig.check", lambda self: found)
     return tmp_path
 
 
@@ -1076,6 +1134,11 @@ def test_session_error_in_preflight_still_undoes_everything(windows_env, monkeyp
     assert manifest["config"]["account"]["email"] == "<redacted>@example.org"
     assert any("Power plan" in d for d in manifest["deviations"])
     assert any("moved aside" in d for d in manifest["deviations"])
+    assert manifest["server_discovery"]["other_hosts"] == ["mail.beonex.example"]
+    assert any(d.startswith("Server check: before the session, autoconfig (.well-known) named "
+                            "mail.beonex.example") for d in manifest["deviations"])
+    german = ManifestTexts(session.config, "de").lines(session.folder.path, "deviations")
+    assert german is not None and any("Energiesparplan" in d for d in german)
     assert "s3cret" not in json.dumps(manifest)
     done = session.cleanup()
     assert (tmp_path / "AppData/Roaming/Parula/settings.json").read_text() == "Ben's settings"

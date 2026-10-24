@@ -554,6 +554,33 @@ def test_thunderbird_flow_uses_a_found_configuration_of_the_accounts_server():
     assert [s[0] for s in driver.steps] == ["find-config", "use-config", "create-account", "finish", "open-inbox"]
 
 
+def test_unguarded_flows_check_a_shown_server_without_actions_and_stop_before_the_password_at_another():
+    from benchlib.flows import WrongServer
+    for name, protocol, pages in (("parula-setup", "imap", ["email", "found", "manual", "finalize", "mail"]),
+                                  ("thunderbird-setup", None, ["email", "found", "manual", "password", "mail"])):
+        probe = FakeProbe(pages, {"focused": ["setup.email"]}, ["mail.other.example.net"])
+        driver = FakeDriver(probe)
+        driver.variables.values["server.guard"] = "off"
+        with pytest.raises(WrongServer, match="found mail.other.example.net, although the configuration"):
+            Flows.run({"name": name, "protocol": protocol}, driver, probe, {"complete": "inbox_listed"})
+        assert [s[0] for s in driver.steps] == ["find-config"]
+        assert not any(i[2] in ("${server.imap_host}", "setup.manual", "hub.edit", "hub.password") for i in driver.inputs)
+
+
+def test_unguarded_flows_take_their_own_path_when_the_shown_server_is_the_accounts_or_unreadable():
+    for hosts in (["mail.example.org"], []):
+        probe = FakeProbe(["email", "found", "password", "success", "mail", "inbox"], {}, hosts)
+        driver = FakeDriver(probe)
+        driver.variables.values["server.guard"] = "off"
+        Flows.run({"name": "thunderbird-setup"}, driver, probe, {"complete": "inbox_listed", "verify": True})
+        assert [s[0] for s in driver.steps] == ["find-config", "use-config", "create-account", "finish", "open-inbox"]
+        probe = FakeProbe(["email", "found", "finalize", "mail"], {"focused": ["setup.email"]}, hosts)
+        driver = FakeDriver(probe)
+        driver.variables.values["server.guard"] = "off"
+        Flows.run({"name": "parula-setup", "protocol": "imap"}, driver, probe, {"complete": "inbox_listed"})
+        assert [s[0] for s in driver.steps] == ["find-config", "check-config", "open-inbox"]
+
+
 def test_flow_actions_come_from_the_median_run():
     side = {}
     runs = [{"run": "run-1", "user_actions": 13, "action_list": ["a"], "flow_path": ["manual"]},

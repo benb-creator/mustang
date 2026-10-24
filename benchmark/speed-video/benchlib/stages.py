@@ -10,6 +10,7 @@ from .analyze import Aggregator, ReportWriter, RunAnalyzer
 from .compose import Composer, ShortSettings, ValuesBuilder
 from .config import ConfigError
 from .corpus import CorpusGenerator, CorpusSpec
+from .discovery import PublishedConfig
 from .driver import AppProcess, Calibration, EventLog, ScenarioDriver
 from .encode import EncodeError, Encoder
 from .environment import EnvironmentProbe
@@ -24,6 +25,7 @@ from .runner import Desktops, Orchestrator, RunExecutor, RunPlan, SeriesStop
 from .scenario import ScenarioLibrary
 from .seed import Seeder
 from .serverlog import EvidenceSummary, ServerLog
+from .sessionnotes import SessionNotes
 from .settle import Rect
 from .snapshot import ClientProfiles, CommandRunner, ProtocolSnapshot, ServerReadiness, SnapshotError, StorageSnapshot
 from .speech import SpeechEngine, VoiceSynthesizer
@@ -82,7 +84,8 @@ class Pipeline:
         self.scenarios = ScenarioLibrary(config.scenario_dir)
         self.folder = folder
         self.lifecycles = dict(lifecycles or {})
-        self.notes: list[str] = []
+        self.notes = SessionNotes()
+        self.published_config: dict | None = None
         self._desktop = desktop
         self._server_log = None
         self._account = None
@@ -177,6 +180,37 @@ class Pipeline:
             instrumentation=list(self.config.get("instrumentation") or []),
             sessions=self.config.get("sessions") or {}, comparisons=self.config.get("comparisons") or {})
 
+    def check_published_config(self) -> dict | None:
+        """Before the session's runs (account mode): what the address's domain publishes for mail clients
+        (`PublishedConfig`), in manifest.json `server_discovery`, once per result folder, so a resumed session keeps
+        its answer. When a source names another server than the account's, or couldn't be checked, the setup flows
+        take their guarded path, which is listed with the deviations; otherwise every app takes its own path."""
+        account = self.account()
+        if self.published_config is not None or account is None or self.config.get("server.discovery") is False:
+            return self.published_config
+        folder = self.results_folder()
+        found = folder.manifest().get("server_discovery")
+        if found is None:
+            self.progress(f"checking the mail configuration that {account.server.email_domain} publishes "
+                          f"(no credentials)")
+            found = PublishedConfig(account.server.email, account.server.mail_hostnames()).check()
+            folder.write_manifest(server_discovery=found)
+        self.published_config = found
+        server = ", ".join(found["server_hosts"])
+        if found["other_hosts"]:
+            self.notes.add("server_guard", sources=", ".join(found["other_sources"]),
+                           hosts=", ".join(found["other_hosts"]), server=server)
+            self.progress(f"the published configuration names another server ({', '.join(found['other_hosts'])} in "
+                          f"{', '.join(found['other_sources'])}): the setups take the guarded path (a deviation)")
+        elif found["unchecked"]:
+            self.notes.add("server_guard_unchecked", sources=", ".join(found["unchecked"]))
+            self.progress(f"not every published configuration could be checked ({', '.join(found['unchecked'])}): "
+                          f"the setups take the guarded path (a deviation)")
+        else:
+            self.progress(f"the published configuration names only {server}: every app takes its own setup path")
+        folder.write_manifest(deviations=self.deviations("en"))
+        return found
+
     def executor(self) -> RunExecutor:
         return RunExecutor(self.config, self.desktop, self.scenarios, self.server_snapshots(),
                            ClientProfiles(self.config), self.progress, self.server_log, self.app_version,
@@ -217,6 +251,7 @@ class Pipeline:
             warmup: int | None, only_apps: list[str] | None = None):
         if self.stored_environment(comparison_id) is None:
             self.environment(comparison_id)
+        self.check_published_config()
         if self.server_log is not None:
             self.progress(f"benchmark computer as the server sees it: {', '.join(sorted(self.server_log.probe()))}")
         apps = self.config.group_apps(comparison_id)
@@ -382,6 +417,7 @@ class Pipeline:
         results["settle"] = comparison["settle"]
         results["corpus"] = comparison["corpus"]
         results["server_mode"] = self.server_mode
+        results["server_discovery"] = folder.manifest().get("server_discovery")
         results["result_folder"] = folder.name
         results["facts"] = self.facts(folder.path, list(results["comparisons"])).data
         results["generated"] = datetime.now(timezone.utc).isoformat()
@@ -399,7 +435,7 @@ class Pipeline:
     def deviations(self, language: str) -> list[str]:
         deviations = self.config.get("deviations") or []
         listed = deviations.get(language) or deviations.get("en") or [] if isinstance(deviations, dict) else deviations
-        return list(listed) + self.notes
+        return list(listed) + self.notes.lines
 
     def merged_results(self, results_paths: list[str] | None) -> dict:
         """results.json of one or several result folders (e.g. Linux + Windows); each comparison remembers its

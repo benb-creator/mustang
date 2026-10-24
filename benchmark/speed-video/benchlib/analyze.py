@@ -495,6 +495,7 @@ class Aggregator:
                 "steps": {s["name"]: s.get("duration_s") for s in (analysis or {}).get("steps", [])},
                 "tail": (analysis or {}).get("tail"), "app_version": meta.get("app_version"),
                 "closed_cleanly": meta.get("closed_cleanly"), "re_recorded_after": failed_attempts,
+                "wrong_server": meta.get("wrong_server"),
                 "measured_end_utc": (analysis or {}).get("measured_end_utc"),
                 "evidence": json.loads(evidence_path.read_text()) if evidence_path.exists() else None,
                 "server_evidence": json.loads(server_evidence_path.read_text()) if server_evidence_path.exists()
@@ -659,13 +660,64 @@ class ReportWriter:
                 value += f", load {pressure['loadavg_start'][0]:.1f} → {pressure['loadavg_end'][0]:.1f}"
         return f"{run['run']} (#{run['order']}{extra}): {value}"
 
+    def wrong_server_lines(self) -> list[str]:
+        """Runs whose mail connections went elsewhere than the mail server (the check after every run)."""
+        runs = {}
+        for comparison in self.results["comparisons"].values():
+            for task_id, task in comparison["tasks"].items():
+                for side in (task["left"], task["right"]):
+                    for run in side["runs"] + side.get("warmups", []) + side.get("failed_attempts", []):
+                        found = run.get("wrong_server")
+                        if found:
+                            runs[(task_id, side["name"], run["run"])] = (
+                                f"- {task_id} {side['name']} {run['run']}: {found['connections']} connection(s) on "
+                                f"mail ports ({', '.join(str(p) for p in found['ports'])}) to other addresses than "
+                                f"the mail server's (the networks are in the run's evidence.json)")
+        if not runs:
+            return []
+        return ["## Wrong server: the test password must be changed", "",
+                "The network evidence shows mail connections to another server than the account's, so the test "
+                "password may have gone there. Change the test password before the next session.", ""] + \
+            [runs[key] for key in sorted(runs)] + [""]
+
+    def published_config_lines(self) -> list[str]:
+        """What the address's domain published for mail clients, checked before the session without credentials."""
+        found = self.results.get("server_discovery")
+        if not found:
+            return []
+        own = set(found["server_hosts"])
+        lines = ["## Mail configuration published for the address's domain", "",
+                 f"Checked before the session, without credentials, on {found['checked_utc']}: domain "
+                 f"{found['domain']}, the account's server {', '.join(found['server_hosts'])}.", ""]
+        for source in found["sources"]:
+            if source.get("hosts"):
+                answer = ", ".join(h if h in own else f"{h} (another server)" for h in source["hosts"])
+            elif source.get("error"):
+                answer = source["error"]
+            elif source.get("status") is not None:
+                answer = f"HTTP {source['status']}, no server named"
+            else:
+                answer = "no record"
+            lines.append(f"- {source['source']} ({source.get('url') or source.get('name')}): {answer}")
+        if found["guarded"]:
+            verdict = ("another server named by " + ", ".join(found["other_sources"]) if found["other_hosts"] else
+                       "not every source could be checked (" + ", ".join(found["unchecked"]) + ")")
+            lines += ["", f"Result: {verdict}; every app's setup read the server it found before the password and "
+                          f"corrected another one (see deviations)."]
+        else:
+            lines += ["", "Result: only the account's server is named; every app took its own setup path. After "
+                          "every run its network log was checked for mail connections to other addresses than the "
+                          "mail server's (a run with any is listed under \"Wrong server\" at the top)."]
+        return lines + [""]
+
     def write(self, path: Path):
         r = self.results
         account_mode = r.get("server_mode", "account") == "account"
         lines = ["# Speed benchmark report", "",
                  f"Generated {r['generated']}. Median of {r['runs']['measured']} measured runs per app and task, "
-                 f"after {r['runs']['warmup']} discarded warm-up run(s) each.", "",
-                 "## Method", "",
+                 f"after {r['runs']['warmup']} discarded warm-up run(s) each.", ""]
+        lines += self.wrong_server_lines()
+        lines += ["## Method", "",
                  "- Same computer, OS, display resolution, window size, network"
                  + (", server and test account" if account_mode else " and server snapshot") + " for both apps.",
                  "- Apps recorded one after another, never at the same time; run order interleaved (A B A B …). A run "
@@ -689,6 +741,9 @@ class ReportWriter:
             lines += ["", "## Instrumentation", ""] + [f"- {i}" for i in self.instrumentation]
         if self.procedures:
             lines += ["", "## Procedure notes", ""] + [f"- {p}" for p in self.procedures]
+        published = self.published_config_lines()
+        if published:
+            lines += [""] + published[:-1]
         lines += ["", "## Settle detection parameters", "", "```json", json.dumps(r.get("settle", {}), indent=2), "```",
                   "", "## Environment", ""]
         for comparison_id, env in (r.get("environment") or {}).items():

@@ -16,8 +16,9 @@ class MethodError(Exception):
 class ManifestTexts:
     """Sentences a result folder's manifest.json records (`instrumentation`, `deviations`: what that session
     actually used), in the method text's language: as recorded (English), or translated sentence by sentence from
-    `translations/<lang>.yaml` and the config's `translations.<lang>`. A sentence without a translation leaves the
-    block without a value; `untranslated` names it."""
+    `translations/<lang>.yaml` and the config's `translations.<lang>`. An entry with {placeholders} translates every
+    sentence made from that template (a session note, benchlib/sessionnotes.py) with the same values filled in. A
+    sentence without a translation leaves the block without a value; `untranslated` names it."""
 
     def __init__(self, config, language: str):
         self.language = language
@@ -26,7 +27,23 @@ class ManifestTexts:
         if language != "en" and path.exists():
             self.table.update(yaml.safe_load(path.read_text(encoding="utf-8")) or {})
         self.table.update((config.get("translations") or {}).get(language) or {})
+        self.patterns = [(self.pattern(english), text) for english, text in self.table.items()
+                         if re.search(r"\{\w+\}", english)]
         self.untranslated: dict[str, list[str]] = {}
+
+    @staticmethod
+    def pattern(template: str) -> re.Pattern:
+        parts = re.split(r"\{(\w+)\}", template)
+        return re.compile("".join(f"(?P<{part}>.+?)" if i % 2 else re.escape(part) for i, part in enumerate(parts)))
+
+    def translated(self, line: str) -> str | None:
+        if self.table.get(line):
+            return self.table[line]
+        for pattern, text in self.patterns:
+            match = pattern.fullmatch(line)
+            if match:
+                return re.sub(r"\{(\w+)\}", lambda m: match.group(m.group(1)), text)
+        return None
 
     def lines(self, folder: Path, key: str) -> list[str] | None:
         path = Path(folder) / "manifest.json"
@@ -39,11 +56,12 @@ class ManifestTexts:
             return None
         if self.language == "en":
             return list(recorded)
-        missing = [line for line in recorded if not self.table.get(line)]
+        translated = [self.translated(line) for line in recorded]
+        missing = [line for line, text in zip(recorded, translated) if not text]
         if missing:
             self.untranslated[f"{Path(folder).name}/manifest.json {key}"] = missing
             return None
-        return [self.table[line] for line in recorded]
+        return translated
 
     def block(self, folders: list[Path], key: str, separator: str, list_items: bool = False,
               summary: bool = False) -> str | None:
@@ -99,7 +117,8 @@ class MethodTexts:
                "also": "also {n} connection(s) to {owner} ({asn}, {prefix})", "inbox_complete": "Inbox complete",
                "inbox_incomplete": "Inbox not complete", "no_network": "no network evidence",
                "after_download": "{mb} MB more from the mail server after the list was complete, until the app was closed",
-               "warmup_run": "warm-up", "failed_attempt": "failed attempt, recorded again", "none": "none"},
+               "warmup_run": "warm-up", "failed_attempt": "failed attempt, recorded again", "none": "none",
+               "unknown_owner": "unknown owner"},
         "de": {"warmup": "Aufwärmlauf, verworfen", "not_done": "nicht fertig in {limit}",
                "failed": "nicht gültig: {reason}",
                "attempt": "am Ende der Serie erneut aufgenommen (Versuch {attempt})",
@@ -119,7 +138,7 @@ class MethodTexts:
                "no_network": "keine Netzwerk-Belege",
                "after_download": "{mb} MB mehr vom Mailserver nach der vollständigen Liste bis zum Schließen der App",
                "warmup_run": "Aufwärmlauf", "failed_attempt": "fehlgeschlagener Versuch, erneut aufgenommen",
-               "none": "keine"},
+               "none": "keine", "unknown_owner": "Eigentümer unbekannt"},
     }
 
     def __init__(self, config, results: dict, values: NarrationValues, language: str, voice_dir: Path | None,
@@ -183,7 +202,8 @@ class MethodTexts:
                 parts = [self.w("connections", n=count) if count else self.w("no_connections")]
                 for network in run.get("remote_networks", []):
                     if network.get("connections"):
-                        parts.append(self.w("also", n=network["connections"], owner=network.get("owner"),
+                        parts.append(self.w("also", n=network["connections"],
+                                            owner=network.get("owner") or self.w("unknown_owner"),
                                             asn=network.get("asn") or "–", prefix=network.get("prefix") or "–"))
                 if run.get("inbox_complete") is not None:
                     parts.append(self.w("inbox_complete" if run["inbox_complete"] else "inbox_incomplete"))
@@ -214,7 +234,8 @@ class MethodTexts:
                     parts.append(self.w("benchmark_only"))
                 for source in run.get("sources", []):
                     if source["kind"] != "benchmark":
-                        parts.append(self.w("from", owner=source["owner"], asn=source["asn"], prefix=source["prefix"]))
+                        parts.append(self.w("from", owner=source["owner"] or self.w("unknown_owner"),
+                                            asn=source["asn"] or "–", prefix=source["prefix"] or "–"))
                 if run["cloud_full_messages"]:
                     parts.append(self.w("fetched", messages=self.values.number(run["cloud_full_messages"], 0),
                                         gb=self.values.number((run["cloud_full_bytes"] or 0) / 1e9, 2)))
@@ -246,8 +267,9 @@ class MethodTexts:
                 window = ((run.get("server_evidence") or {}).get("windows") or {}).get("after_steps")
                 if window:
                     downloads = sum(s.get("downloads", 0) for s in window["sources"])
-                    notes.append(self.w("after_fetch", messages=sum(window["full_messages"].values()),
-                                        downloads=downloads))
+                    messages = sum(window["full_messages"].values())
+                    notes.append(self.w("after_fetch", messages=self.values.number(messages, 0),
+                                        downloads=self.values.number(downloads, 0)))
                 if notes:
                     parts.append(f"{self.labels.named(comparison_id, side_name, side)}: " + "; ".join(notes))
         return " · ".join(parts) or self.w("none")

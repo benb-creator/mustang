@@ -42,7 +42,8 @@ of every run, but only the recordings the videos use) and `….zip` with everyth
 way. `analyze` needs nothing but the folder (the small zip is enough: it uses the recorded analyses, logs and
 checks), so newer evidence rules can be applied after the fact; for a folder made on another computer,
 `analyze --results <folder> --recorded-config` takes the config that session ran with from its manifest.json (paths,
-tools and the analysis rules from `--config`). Both OSes run the same code: one runner (`benchlib/runner.py`), the same flows, probes and analysis; the
+tools and the analysis rules from `--config`, and `comparisons.<C>.environment` of `--config`, e.g.
+`{server: {software: Stalwart, version: 0.16.27}}`, merged into the recorded comparison of the same name). Both OSes run the same code: one runner (`benchlib/runner.py`), the same flows, probes and analysis; the
 Windows session only adds what Windows needs around the runs (`benchlib/winsession.py`). `run` and `run-linux`
 continue an interrupted folder with `--results <folder>` (completed runs are kept).
 
@@ -96,7 +97,8 @@ scalings work when the screen fits a 1280×940 window at that scaling.
 **What it does:** fetches pinned tools into `parula-speed-test\tools\` (portable Python 3.13.16, numpy, Pillow,
 PyYAML, comtypes, websocket-client, ffmpeg 8.1.2; each file checked by SHA-256) and installs Parula 0.9.39 for the
 current user if Parula is missing; checks the prerequisites (apps installed and closed, display, disk, ffmpeg's
-`ddagrab`, the account reachable and seeded); asks to close other open apps (waits up to 10 minutes); runs a
+`ddagrab`, the account reachable and seeded); asks to close other open apps (waits up to 10 minutes); asks the
+address's domain what it publishes for mail clients (no credentials; see "Wrong server" below); runs a
 **preflight** (each app starts from a fresh state and its instrumentation finds the first page of its account
 setup; a 2-second capture test) and stops early with diagnostics if anything fails; then runs the series through
 the shared core (`Pipeline.run_session`, the same as `run-linux`): Parula (JMAP), Outlook (classic), new Outlook,
@@ -391,15 +393,33 @@ types there like a user (xdotool on Linux, `SendInput` on Windows).
   map `windows/uia-elements.yaml` (`probe: {type: uia, app: …, map: …}`).
 - The account setup is a flow (`benchlib/flows.py`, `scenarios/T1.yaml` `flow:`): the app's own default path —
   the configuration it finds (autoconfig), or, when the server's domain offers none for that app, its manual setup
-  (recorded per run as `flow_path`, and every input of it is a counted user action). A found configuration that
-  names another server than the account's (e.g. the address's domain points to a different mail server) is
-  corrected in the app's own manual setup, as a user would; the password never goes to another server. Parula
-  ("Manual setup") and Thunderbird ("Edit configuration") show the found host names; on Windows Parula runs the same
-  flow. Outlook (classic): its IMAP settings page (`server_fields` in the element map) is corrected there; a
-  password page without that page (the found server isn't shown) leads back to the address and its "Let me set up
-  my account manually". New Outlook: its IMAP form's server fields (behind "Show more", opened only to read them and
-  not counted) are corrected in the form before the password. Where an app doesn't show the server it would log in
-  to, the run stops before the password as a technical failure (`WrongServer`).
+  (recorded per run as `flow_path`, and every input of it is a counted user action).
+- Wrong server: the test password must only ever go to the account's server, and our check must never cost an app
+  counted actions or waiting time. Before the session the script asks the address's domain, without credentials,
+  what it publishes for mail clients, as the apps ask (`benchlib/discovery.py`): autoconfig.<domain> (HTTPS and
+  HTTP), `https://<domain>/.well-known/autoconfig/mail/config-v1.1.xml`, the ISPDBs of Thunderbird and Parula,
+  Autodiscover POX (autodiscover.<domain> and the domain) and JSON v1.0, the SRV records `_imaps`, `_imap`,
+  `_submissions`, `_submission`, `_autodiscover` (DNS over HTTPS), and autoconfig and the ISPDBs of the MX host's
+  domain when it differs. The address goes only to the domain's own autoconfig and Autodiscover, where the apps send
+  it. Each answer is in manifest.json `server_discovery` and the report.
+  - No source names another host than the account's server: every app takes its own path, without any detour or
+    extra click. Where an app shows the server anyway (Parula's and Thunderbird's found configuration, Outlook's IMAP
+    settings page, server fields new Outlook's form shows), the flow checks it without an action; another server
+    stops the run before the password (`WrongServer`, a technical failure).
+  - A source names another host, or a source couldn't be checked: the guarded path, listed with the deviations
+    ("Server check: …"). A found configuration that names another server is corrected in the app's own manual
+    setup, as a user would (counted). Parula ("Manual setup") and Thunderbird ("Edit configuration") show the found
+    host names. Outlook (classic): its IMAP settings page (`server_fields` in the element map) is corrected there; a
+    password page without that page leads back to the address and its "Let me set up my account manually". New
+    Outlook: its IMAP form's server fields (behind "Show more", opened only to read them and not counted) are
+    corrected in the form before the password. Where an app doesn't show the server it would log in to, the run
+    stops before the password (`WrongServer`).
+  - After every run, on both paths: the app's connections on mail ports (`mail_only_ports` of `network.jsonl`) went
+    only to the mail server's addresses. Otherwise the run fails with `failure: wrong-server` (`wrong_server` in its
+    meta.json), the series stops (the next run would send the password there again), and the report says at the top
+    that the test password must be changed. New Outlook's mail connections come from the Microsoft Cloud and can't be
+    seen on the test computer.
+  The config's `server.discovery: false` skips the check before the session (the flows then take the guarded path).
   Parula 0.9.39 doesn't find JMAP by itself (Stalwart's autoconfig lists IMAP, POP3 and SMTP), so Parula's JMAP
   setup is always its manual setup with protocol "JMAP" and the server's URL.
 - The instrumentation is never the timing source. Each measured step ends at the last significant screen change in
@@ -474,11 +494,15 @@ results-<os>-<yyyymmdd-hhmm>/                 os = linux | windows
   manifest.json      format "parula-speed-results", version 1, tool (git commit, dirty), config (secrets removed,
                      the account address reduced to its domain), server (mode, host, endpoints), corpus (profile,
                      counts, oldest/newest subject, digest), environment per session, apps, deviations, procedures,
-                     instrumentation, sessions, comparisons, run plan (order, app, run, warm-up) and run counts
+                     instrumentation, sessions, comparisons, run plan (order, app, run, warm-up) and run counts,
+                     server_discovery (the published mail configuration checked before the session: each source's
+                     URL or DNS name with the address as {address}, HTTP status, host names; other_hosts, guarded)
   facts.json         person-set facts (template; never filled in by the pipeline)
   runs/<app>/<task>/<run>/     run = warmup-1, run-1 … run-5; run-N.failed-K = a failed attempt recorded again
     meta.json        status (complete | timeout | failed + reason), app version, order, attempt, setup path,
-                     user actions (count and list), benchmark-only inputs, inbox_complete, timestamps
+                     user actions (count and list), benchmark-only inputs, inbox_complete, timestamps;
+                     failure wrong-server + wrong_server (connections, ports, processes) after mail connections to
+                     other addresses than the mail server's
     driver.jsonl     every input, marker, step start, live-gate result and probe answer (monotonic clock)
     capture.mkv      the lossless capture (app area + sync-marker strip), capture.json how it was made
     changes.npz      per-frame change measures (analysis), analysis.json the run's analysis (steps, durations,
@@ -651,7 +675,9 @@ start and finish sounds (`sfx_start`, `sfx_finish`) are the same for both panes.
 `.expander.md`) with every run in run order, the action lists, the evidence, the deviations and the
 instrumentation (`block.deviations`, `block.instrumentation`: what each result folder's manifest.json recorded,
 "Linux: … Windows: …" for several folders; German from `translations/de.yaml` or the config's `translations.de`,
-sentence by sentence, else the block is missing and the error names the sentence; `block.deviations_short` for
+sentence by sentence, else the block is missing and the error names the sentence; the session notes with variable
+text, `benchlib/sessionnotes.py`, are translated by their template, `{placeholders}` and all, and a test checks
+that every template has a German text; numbers in German texts have a decimal comma, "1,07 ms"; `block.deviations_short` for
 the YouTube text: the number of deviations and the subjects they start with, e.g. "7 (Test computer, Thunderbird,
 Parula)", next to the link `method_url` = `publish.method_url`, default https://parula.app, to the full list), what
 each app kept doing after the list was complete, the server software (`env.<C>.server_software` from

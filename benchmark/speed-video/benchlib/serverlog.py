@@ -469,12 +469,14 @@ class EvidenceSummary:
             out.append(f"{app}: logins per measured run {logins}; all from the benchmark computer: "
                        f"{'yes' if data['direct_only'] else 'no'}")
             if "cloud_login_confirmed" in data:
-                out.append(f"{app}: logins from {data.get('cloud_ip_owner')} ({data.get('cloud_asn')}) in every run: "
+                out.append(f"{app}: logins from {data.get('cloud_ip_owner') or 'unknown owner'} "
+                           f"({data.get('cloud_asn') or '–'}) in every run: "
                            f"{'yes' if data['cloud_login_confirmed'] else 'no'}; fewest messages fetched in full by "
                            f"those addresses before the account was removed: {data.get('cloud_fetched_messages')}"
                            f" ({data.get('cloud_fetched_bytes')} bytes); most logins after a removal: "
                            f"{data.get('cloud_logins_after_removal')}")
             for x in data["runs"]:
                 for other in x["other_sources"]:
-                    out.append(f"{app} {x['run']}: login(s) from {other['source']} ({other['owner']}, {other['asn']})")
+                    out.append(f"{app} {x['run']}: login(s) from {other['source']} "
+                               f"({other['owner'] or 'unknown owner'}, {other['asn'] or '–'})")
         return out

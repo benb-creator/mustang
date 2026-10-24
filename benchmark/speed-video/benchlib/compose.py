@@ -980,7 +980,7 @@ class ValuesBuilder:
                 elif isinstance(value, dict):
                     value = value.get("resolution") or value.get("version") or next(iter(value.values()), None)
                 if value is not None:
-                    values.set_text(f"env.{comparison_id}.{key}", str(value), value)
+                    values.set_text(f"env.{comparison_id}.{key}", values.recorded(value), value)
             evidence = (comparison.get("evidence") or {}).get("values") or {}
             for key, value in evidence.items():
                 self.set_fact(values, f"env.{comparison_id}.{key}", value)

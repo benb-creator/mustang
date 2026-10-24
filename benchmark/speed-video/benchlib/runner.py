@@ -119,6 +119,8 @@ class RunExecutor:
         }
         planted = (self.config.get("corpus") or {}).get("planted") or [{"term": "kumquat"}]
         values["search.term"] = str(self.config.get("corpus_facts.search_term") or planted[0]["term"])
+        discovery = (self.folder.manifest().get("server_discovery") if self.folder is not None else None) or {}
+        values["server.guard"] = "off" if discovery and not discovery.get("guarded") else "on"
         for key, value in (self.config.get("variables") or {}).items():
             values[key] = str(value)
         if self.config.get("account.password_env"):
@@ -264,6 +266,26 @@ class RunExecutor:
                 probe.dump(shots / f"{label}-ui.json")
             except Exception as ex:
                 (shots / f"{label}-ui-error.txt").write_text(f"{type(ex).__name__}: {ex}")
+
+    def check_mail_destinations(self, run_dir: Path, meta: dict):
+        """After every run: the app's mail connections went only to the mail server's addresses (network.jsonl);
+        otherwise the run is a technical failure (WrongServer), the series stops, and the test password must be
+        changed, as it may have gone to another server."""
+        from .evidence import RunEvidence
+        elsewhere = RunEvidence(run_dir, None).mail_elsewhere()
+        if not elsewhere:
+            return
+        ports = sorted({c["remote_port"] for c in elsewhere})
+        meta["wrong_server"] = {"connections": len(elsewhere), "ports": ports,
+                                "processes": sorted({c.get("process") or "?" for c in elsewhere})}
+        meta["status"] = "failed"
+        meta["failure"] = "wrong-server"
+        meta["error"] = (f"WrongServer: {len(elsewhere)} connection(s) on mail ports ({', '.join(map(str, ports))}) "
+                         f"to other addresses than the mail server's; the test password may have gone to another "
+                         f"server and must be changed")
+        with open(run_dir / "error.txt", "a", encoding="utf-8") as error:
+            error.write(meta["error"] + "\n")
+        self.progress(f"    {meta['error']}")
 
     @staticmethod
     def user_actions(log_path: Path, variables: TextVariables) -> dict:
@@ -416,6 +438,8 @@ class RunExecutor:
             log.close()
             meta["finished"] = datetime.now(timezone.utc).isoformat()
             meta.update(self.user_actions(run_dir / "driver.jsonl", driver.variables))
+            if watcher is not None:
+                self.check_mail_destinations(run_dir, meta)
             if self.server_log is not None and self.server_log.enabled:
                 try:
                     events = EventLog.read(run_dir / "driver.jsonl")
@@ -432,8 +456,9 @@ class RunExecutor:
 
 class Orchestrator:
     """Runs the interleaved plan. A run that failed for a technical reason (window, capture, crash, clock fit,
-    dropped frames) is recorded again at the end of the plan, at most `runs.retries` times, and listed in the report.
-    Timeouts and wrong results are measurements and are never recorded again."""
+    dropped frames) is recorded again at the end of the plan, at most `runs.retries` times, and listed in the report;
+    a run whose mail connections went to another server than the mail server stops the series (the next run would
+    send the password there again). Timeouts and wrong results are measurements and are never recorded again."""
 
     def __init__(self, config, executor: RunExecutor, progress=print, analyzer=None, pressure_log: Path | None = None):
         self.config = config
@@ -444,6 +469,8 @@ class Orchestrator:
 
     def outcome(self, run_dir: Path) -> str:
         meta = json.loads((run_dir / "meta.json").read_text())
+        if meta.get("failure") == "wrong-server":
+            return "wrong-server"
         if meta.get("failure") in ("finish", "disk", "stop"):
             return "series-stop"
         if meta.get("status") == "failed":
@@ -513,6 +540,9 @@ class Orchestrator:
                               + (f" (attempt {attempt}, re-recorded at the end of the series)" if attempt > 1 else ""))
                 self.executor.execute(comparison_id, task, app_id, run_id, is_warmup, order, attempt=attempt)
                 outcome = self.outcome(run_dir)
+                if outcome == "wrong-server":
+                    raise SeriesStop(f"{comparison_id} {task} {app_id} {run_id}: the series stops: "
+                                     + json.loads((run_dir / "meta.json").read_text())["error"])
                 if outcome == "series-stop":
                     raise SeriesStop(f"{comparison_id} {task} {app_id} {run_id}: the series stops (see "
                                      f"{run_dir / 'error.txt'})")

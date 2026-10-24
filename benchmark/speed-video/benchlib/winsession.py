@@ -12,6 +12,7 @@ from .driver import AppProcess, Calibration, DriverError, EventLog, FocusError, 
 from .flows import FlowContext, NewOutlookRemoval
 from .probe import Probes
 from .runner import AppLifecycle, RunExecutor, SeriesStop
+from .sessionnotes import SessionNotes
 from .settle import Rect
 from .winapps import (LocalCommands, OutlookClassicProfile, ParulaProfile, ParulaUpdates, ProcessGuard,
                       SessionState, WindowsSettings)
@@ -277,8 +278,8 @@ class WindowsLifecycle(AppLifecycle):
     def app_process(self, app_id: str, spec: dict, desktop, region, log, output) -> AppProcess:
         return WindowsAppProcess(app_id, spec, desktop, region, log, output, self.session.hide_address)
 
-    def before_session(self) -> list[str]:
-        return []
+    def before_session(self) -> SessionNotes:
+        return SessionNotes()
 
     def cleanup(self) -> list[str]:
         return []
@@ -290,15 +291,13 @@ class ParulaLifecycle(WindowsLifecycle):
         self.profile = ParulaProfile(session.state, session.root / "state" / "user-profiles")
         self.updates = ParulaUpdates(session.state, Path(self.spec["launch"][0]).parent)
 
-    def before_session(self) -> list[str]:
-        notes = []
+    def before_session(self) -> SessionNotes:
+        notes = SessionNotes()
         moved = self.profile.move_user_profile_aside()
         if moved:
-            notes.append(f"Parula: the computer user's Parula profile was moved aside for the session and moved "
-                         f"back afterwards ({len(moved)} folders)")
+            notes.add("parula_profile_aside", count=len(moved))
         if self.updates.disable():
-            notes.append("Parula: its update check was off for the session (resources/app-update.yml renamed), "
-                         "like the Linux .deb, which has none")
+            notes.add("parula_updates_off")
         return notes
 
     def reset(self):
@@ -330,10 +329,11 @@ class OutlookClassicLifecycle(WindowsLifecycle):
                                              str(self.spec.get("profile_name", "ParulaBench")),
                                              runner=session.commands)
 
-    def before_session(self) -> list[str]:
+    def before_session(self) -> SessionNotes:
         self.profile.remember_existing()
-        return [f"Outlook (classic): started with its own profile '{self.profile.profile_name}' (/profile), which "
-                f"holds only the test account and is deleted after every run"]
+        notes = SessionNotes()
+        notes.add("outlook_profile", profile=self.profile.profile_name)
+        return notes
 
     def reset(self):
         self.profile.create_empty()
@@ -542,12 +542,13 @@ class WindowsSession:
         self.folder = pipeline.results_folder()
         notes = WindowsSettings(self.state, self.commands).apply()
         for lifecycle in self.lifecycles.values():
-            notes += lifecycle.before_session()
+            notes.extend(lifecycle.before_session())
         still_open = OpenApps(pipeline.desktop).wait_closed(pipeline.progress)
         if still_open:
-            notes.append(f"Windows: other apps were open during the session: {', '.join(still_open)}")
+            notes.add("open_apps", apps=", ".join(still_open))
         self.console_aside()
-        pipeline.notes += notes
+        pipeline.notes.extend(notes)
+        pipeline.check_published_config()
         pipeline.write_manifest()
         preflight = Preflight(self).run()
         if not preflight["ok"]:
