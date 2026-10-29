@@ -1,0 +1,34 @@
+/* The message content is a document of its own, which doesn't see the CSS variables, so these are the values of ../../app.css */
+blockquote {
+  border-inline-start-color: #9FC2D7;
+}
+
+*::selection {
+  background-color: #22719A;
+  color: #FFFFFF;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #B6C0CB;
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #E4E9EF;
+    background-color: #1E262F;
+  }
+  * {
+    color: #E4E9EF !important;
+    background-color: #1E262F !important;
+  }
+  blockquote {
+    border-inline-start-color: #2E5A73;
+  }
+  *::selection {
+    background-color: #2879A5;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #3C4856;
+  }
+}

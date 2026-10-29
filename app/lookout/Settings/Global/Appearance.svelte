@@ -3,7 +3,7 @@
     <OptionsRow icon={UserInterfaceIcon}>
       <hbox class="field-row">
         <label for="options-frontend" class="field-label">{$t`User interface`}</label>
-        <ComboBox options={[ { value: "classic", label: appName == "Lookout" ? "Parula" : appName }, { value: "lookout", label: "Lookout" } ]}
+        <ComboBox options={[ { value: "classic", label: appName == "Lookout" ? "Parula" : appName }, { value: "lookout", label: "Lookout" }, { value: "fresh", label: "Fresh" } ]}
           bind:value={frontend} label={$t`User interface`} width="200px" />
         {#if frontend != $frontendSetting.value}
           <DialogButton label={$t`Switch`} icon={SwitchIcon} onClick={onSaveFrontend} />

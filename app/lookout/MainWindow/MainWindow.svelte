@@ -70,7 +70,8 @@
   $: rtl = rtlLocales.includes(getUILocale()) ? 'rtl' : null;
   /* </copied> */
 
-  // Not a plain CSS import: the global CSS must go away when the user switches to the classic frontend at runtime
+  /* <copied to="../../fresh/MainWindow/MainWindow.svelte"> */
+  // Not a plain CSS import: the global CSS must go away when the user switches to another frontend at runtime
   const globalStyle = document.createElement("style");
   globalStyle.textContent = lookoutCSS;
   document.head.append(globalStyle);
@@ -78,6 +79,7 @@
 
   // svelte-navigator's types don't declare the default slot, so svelte-check rejects any content
   const RouterWithContent = Router as unknown as Component<RouterProps & { children: Snippet }>;
+  /* </copied> */
 
   const unlistenHistory = history.listen(onNavigate);
   onDestroy(unlistenHistory);

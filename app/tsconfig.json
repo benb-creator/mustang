@@ -35,7 +35,11 @@
     "lookout/**/*.d.ts",
     "lookout/**/*.ts",
     "lookout/**/*.js",
-    "lookout/**/*.svelte"
+    "lookout/**/*.svelte",
+    "fresh/**/*.d.ts",
+    "fresh/**/*.ts",
+    "fresh/**/*.js",
+    "fresh/**/*.svelte"
   ],
   "exclude": [
     "frontend/**/vite.config.ts"

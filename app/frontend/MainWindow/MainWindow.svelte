@@ -13,6 +13,10 @@
   {#await lookoutWindow then lookout}
     <svelte:component this={lookout.default} />
   {/await}
+{:else if frontend == "fresh"}
+  {#await freshWindow then fresh}
+    <svelte:component this={fresh.default} {sidebar} {rtl} />
+  {/await}
 {:else}
   <vbox flex class="main-window"
     dir={rtl}
@@ -102,11 +106,14 @@
   $: frontend = $frontendSetting.value;
   // For Vite, the import must be in `<script>` to pre-bundle, otherwise "504 Outdated Optimize Dep"
   $: lookoutWindow = frontend == "lookout" ? import("../../lookout/MainWindow/MainWindow.svelte") : null;
+  $: freshWindow = frontend == "fresh" ? import("../../fresh/MainWindow/MainWindow.svelte") : null;
 
   // $: sidebarApp = $mustangApps.filter(app => app.showSidebar).first; // TODO watch `app` property changes
+  /* <copied to="../../lookout/MainWindow/MainWindow.svelte"> */
   $: $sidebarApp = $meetMustangApp.showSidebar ? meetMustangApp : null;
   $: sidebar = $sidebarApp?.sidebar;
   $: rtl = rtlLocales.includes(getUILocale()) ? 'rtl' : null;
+  /* </copied> */
   categoriesLoaded; /* make sure to import the file, so that that categories load */
 
   onMount(() => catchErrors(onLoad));

@@ -1,0 +1,403 @@
+/* Defined on :root, not on .fresh: applyColors() writes the user's colors inline on <html>, and a rule on a descendant would hide them */
+:root {
+  --appbar-bg: #17212C;
+  --appbar-fg: #AEB9C6;
+  --leftbar-bg: #E2E8EE;
+  --leftbar-fg: #141B24;
+  --main-bg: #FFFFFF;
+  --main-fg: #141B24;
+
+  --spine-hover-bg: #223041;
+  --spine-fg-active: #FFFFFF;
+  --l2-bg: #F1F4F7;
+  --float-bg: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --fill-subtle: #E6EBF0;
+  --scrim: rgba(12, 20, 30, 0.38);
+
+  --fg-1: #141B24;
+  --fg-2: #3D4856;
+  --fg-3: #5B6674;
+  --fg-disabled: #8C96A2;
+  --fg-on-accent: #FFFFFF;
+  --fg-on-signal: #1F1700;
+  --ink: #1E2833;
+  --ink-fg: #FFFFFF;
+
+  --accent: #22719A;
+  --accent-hover: #1B5F82;
+  --accent-active: #154C69;
+  --accent-fg: #1B5F82;
+  --accent-tint: #E3EDF3;
+  --accent-border: #9FC2D7;
+
+  --signal: #F2C230;
+  --signal-strong: #A87500;
+  --signal-tint: #FDF3D3;
+
+  --danger: #B42318;
+  --danger-hover: #961C13;
+  --danger-fg: #B42318;
+  --danger-tint: #FBE9E7;
+  --warning-fg: #9A4D00;
+  --warning-strip: #D97000;
+  --warning-tint: #FDEEDD;
+  --success-fg: #1D7A3A;
+  --success-tint: #E3F2E7;
+  --info-fg: #1B5F82;
+  --info-tint: #E3EDF3;
+
+  --row-hover: rgba(20, 32, 48, 0.055);
+  --row-press: rgba(20, 32, 48, 0.10);
+  --sel-fg-2: #D6E7F1;
+  --sel-inactive-bg: #D6DDE5;
+  --focus-ring: #22719A;
+  --focus-ring-on-dark: #7CC0E3;
+  --unread: var(--accent);
+  --star: var(--signal-strong);
+  --switch-off: #8A95A3;
+  --btn-sec-bg: var(--l3-bg);
+
+  --border: #CED6DF;
+  --border-subtle: #E3E8EE;
+  --border-control: #B6C0CB;
+  --border-input: #8A95A3;
+  --border-float: #D3DAE2;
+
+  --shadow-pop: 0 1px 2px rgba(15, 25, 40, 0.10), 0 8px 24px rgba(15, 25, 40, 0.14);
+  --shadow-dialog: 0 2px 6px rgba(15, 25, 40, 0.10), 0 24px 56px rgba(15, 25, 40, 0.24);
+  --tint-strength: 16%;
+
+  --link-hover-fg: var(--accent-hover);
+  --button-bg: var(--l3-bg);
+  --shadow-color: 15, 25, 40;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --appbar-bg: #07090C;
+    --appbar-fg: #9AA6B4;
+    --leftbar-bg: #0F141A;
+    --leftbar-fg: #E4E9EF;
+    --main-bg: #1E262F;
+    --main-fg: #E4E9EF;
+
+    --spine-hover-bg: #141A21;
+    --spine-fg-active: #FFFFFF;
+    --l2-bg: #161D25;
+    --float-bg: #262F3A;
+    --input-bg: #131920;
+    --fill-subtle: #2A3440;
+    --scrim: rgba(0, 0, 0, 0.55);
+
+    --fg-1: #E4E9EF;
+    --fg-2: #B3BDC8;
+    --fg-3: #8D99A6;
+    --fg-disabled: #5D6874;
+    --fg-on-accent: #FFFFFF;
+    --fg-on-signal: #1F1700;
+    --ink: #E4E9EF;
+    --ink-fg: #10151B;
+
+    --accent: #2879A5;
+    --accent-hover: #2F86B5;
+    --accent-active: #236C93;
+    --accent-fg: #6FB8DE;
+    --accent-tint: #16303F;
+    --accent-border: #2E5A73;
+
+    --signal: #F2C230;
+    --signal-strong: #F2C230;
+    --signal-tint: #3A3115;
+
+    --danger: #C8372B;
+    --danger-hover: #D9473A;
+    --danger-fg: #F07B6E;
+    --danger-tint: #3A1E1C;
+    --warning-fg: #F2A14D;
+    --warning-strip: #F2A14D;
+    --warning-tint: #3A2A16;
+    --success-fg: #5CC27A;
+    --success-tint: #17301F;
+    --info-fg: #6FB8DE;
+    --info-tint: #16303F;
+
+    --row-hover: rgba(255, 255, 255, 0.05);
+    --row-press: rgba(255, 255, 255, 0.09);
+    --sel-fg-2: #CFE3EF;
+    --sel-inactive-bg: #2A3440;
+    --focus-ring: #6FB8DE;
+    --focus-ring-on-dark: #7CC0E3;
+    --unread: var(--accent-fg);
+    --star: var(--signal);
+    --switch-off: #5A6673;
+    --btn-sec-bg: transparent;
+
+    --border: #2B3540;
+    --border-subtle: #232C36;
+    --border-control: #3C4856;
+    --border-input: #64717F;
+    --border-float: #36414D;
+
+    --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-dialog: 0 2px 6px rgba(0, 0, 0, 0.5), 0 24px 56px rgba(0, 0, 0, 0.6);
+    --tint-strength: 28%;
+
+    --link-hover-fg: #8CCBEA;
+    --button-bg: transparent;
+    --shadow-color: 0, 0, 0;
+  }
+}
+
+:root {
+  --spine-bg: var(--appbar-bg);
+  --spine-fg: var(--appbar-fg);
+  --l1-bg: var(--leftbar-bg);
+  --l1-fg: var(--leftbar-fg);
+  --l3-bg: var(--main-bg);
+  --l3-fg: var(--main-fg);
+  --sel-bg: var(--selected-bg);
+  --sel-fg: var(--selected-fg);
+
+  --cal-1: #1F6F8B;
+  --cal-2: #2B7A4B;
+  --cal-3: #5F7314;
+  --cal-4: #8F6A00;
+  --cal-5: #A9531A;
+  --cal-6: #AD3A2E;
+  --cal-7: #A3245D;
+  --cal-8: #6D3A9C;
+  --cal-9: #3A4FB0;
+  --cal-10: #4F6273;
+
+  --font: Karla, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+  --text-xs: 11px;
+  --line-xs: 14px;
+  --text-s: 12px;
+  --line-s: 16px;
+  --text-m: 13px;
+  --line-m: 18px;
+  --text-l: 14px;
+  --line-l: 21px;
+  --text-xl: 16px;
+  --line-xl: 22px;
+  --text-2xl: 20px;
+  --line-2xl: 26px;
+  --text-3xl: 26px;
+  --line-3xl: 32px;
+
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-s: 3px;
+  --radius-m: 4px;
+  --radius-l: 6px;
+
+  --motion-fast: 100ms;
+  --motion-base: 160ms;
+  --motion-slow: 200ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  --topbar-height: 44px;
+  --pane-header-height: 48px;
+  --control-height: 30px;
+  --control-height-s: 26px;
+  --control-height-l: 36px;
+  --icon-button-size: 30px;
+  --icon-button-size-s: 24px;
+  --nav-row-height: 30px;
+  --nav-row-indent: 16px;
+  --list-row-height: 30px;
+  --list-row-2-height: 56px;
+  --contact-row-height: 48px;
+  --file-row-height: 32px;
+  --menu-item-height: 28px;
+  --section-header-height: 28px;
+
+  --bg: var(--l3-bg);
+  --fg: var(--fg-1);
+  --selected-bg: var(--accent);
+  --selected-fg: var(--fg-on-accent);
+  --selected-hover-bg: var(--accent-hover);
+  --selected-hover-fg: var(--fg-on-accent);
+  --hover-bg: var(--row-hover);
+  --hover-fg: var(--fg-1);
+  --inverted-bg: var(--accent);
+  --inverted-fg: var(--fg-on-accent);
+  --icon-primary: var(--accent-fg);
+  --offset-bg: var(--accent-tint);
+  --offset-fg: var(--fg-1);
+  --headerbar-bg: var(--l1-bg);
+  --headerbar-fg: var(--l1-fg);
+  --windowheader-bg: var(--l1-bg);
+  --windowheader-fg: var(--l1-fg);
+  --outstanding-bg: var(--fg-3);
+  --outstanding-fg: var(--l3-bg);
+  --input-fg: var(--fg-1);
+  --input-line: var(--border-input);
+  --input-placeholder: var(--fg-3);
+  --input-focus: var(--accent);
+  --link-fg: var(--accent-fg);
+  --button-fg: var(--fg-1);
+  --button-border: var(--border-control);
+  --button-secondary-line: var(--border-control);
+  --border-radius: var(--radius-m);
+  --chat-bubble-incoming-bg: var(--fill-subtle);
+  --chat-bubble-incoming-fg: var(--fg-1);
+  --chat-bubble-outgoing-bg: var(--accent-tint);
+  --chat-bubble-outgoing-fg: var(--fg-1);
+  --thread-line: var(--accent-border);
+  --thread-unread: var(--accent-fg);
+  --thread-node-bg: var(--fill-subtle);
+
+  --island-radius: var(--radius-m);
+  --island-overlap: 0;
+  --button-radius: var(--radius-m);
+  --button-padding: 0 12px;
+  --button-label-padding: 0;
+  --button-min-height: var(--control-height);
+  --button-filled-border: var(--accent);
+  --button-filled-hover-bg: var(--accent-hover);
+  --button-filled-hover-fg: var(--fg-on-accent);
+  --search-field-radius: var(--radius-m);
+  --search-field-bg: var(--input-bg);
+  --group-box-border: none;
+  --group-box-margin-top: var(--space-6);
+  --group-box-radius: 0;
+  --group-box-header-bg: transparent;
+  --group-box-header-border: 1px solid var(--border-subtle);
+  --group-box-header-padding: 0 0 var(--space-1) 0;
+  --group-box-header-weight: 600;
+  --group-box-content-padding: var(--space-3) 0 var(--space-2) 0;
+  --pane-margin: 0;
+  --pane-radius: 0;
+  --pane-bg: transparent;
+  --pane-shadow: none;
+  --left-pane-shadow: none;
+
+  color: var(--fg-1);
+  background-color: var(--l1-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+}
+
+:where(.fresh) :is(input[type="number"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="time"], input[type="tel"], input[type="text"]),
+:where(.fresh) select,
+:where(.fresh) textarea {
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  padding: 0 10px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-m);
+  background-color: var(--input-bg);
+  color: var(--fg-1);
+  font-family: inherit;
+  font-size: var(--text-m);
+}
+:where(.fresh) textarea {
+  padding: 6px 10px;
+}
+:where(.fresh) :is(input[type="number"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="time"], input[type="tel"], input[type="text"], select, textarea):hover {
+  border-color: var(--fg-3);
+}
+:where(.fresh) :is(input[type="number"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="time"], input[type="tel"], input[type="text"], select, textarea):focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+:where(.fresh) :is(input[type="number"], input[type="password"], input[type="email"], input[type="url"], input[type="date"], input[type="time"], input[type="tel"], input[type="text"], select, textarea):disabled {
+  border-color: var(--border);
+  background-color: var(--fill-subtle);
+  color: var(--fg-disabled);
+}
+:where(.fresh) :is(input, textarea)::placeholder {
+  color: var(--fg-3);
+}
+:where(.fresh) input[type="color"] {
+  box-sizing: border-box;
+  width: var(--control-height);
+  height: var(--control-height);
+  padding: 3px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--radius-m);
+  background-color: var(--input-bg);
+  cursor: pointer;
+}
+:where(.fresh) input[type="color"]:hover {
+  border-color: var(--fg-3);
+}
+:where(.fresh) input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+:where(.fresh) input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
+:where(.fresh) select option {
+  background-color: var(--float-bg);
+  color: var(--fg-1);
+}
+:where(.fresh) :is(input[type="radio"], input[type="checkbox"]) {
+  accent-color: var(--accent);
+}
+
+.fresh ::selection {
+  background-color: var(--accent);
+  color: var(--fg-on-accent);
+}
+
+.fresh :focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.fresh ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.fresh ::-webkit-scrollbar:hover {
+  background-color: transparent;
+}
+.fresh ::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: var(--border-control);
+}
+.fresh ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--fg-3);
+}
+.fresh :not(:hover)::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+
+.fresh .fast-list .row.selected > * {
+  --fg-1: var(--sel-fg);
+  --fg-2: var(--sel-fg-2);
+  --fg-3: var(--sel-fg-2);
+  --accent-fg: var(--sel-fg);
+  --focus-ring: var(--sel-fg);
+}
+.fresh .fast-list:not(:focus-within) .row.selected > *,
+.fresh .fast-list:not(:focus-within) .row.selected:hover > * {
+  --fg-1: inherit;
+  --fg-2: inherit;
+  --fg-3: inherit;
+  --accent-fg: inherit;
+  --focus-ring: inherit;
+  background-color: var(--sel-inactive-bg);
+  color: var(--fg-1);
+}

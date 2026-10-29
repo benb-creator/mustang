@@ -11,6 +11,10 @@
           <input type="radio" value="lookout" bind:group={frontend} />
           Lookout
         </label>
+        <label>
+          <input type="radio" value="fresh" bind:group={frontend} />
+          Fresh
+        </label>
         {#if frontend != $frontendSetting.value}
           <Button
             label={$t`Switch`}
