@@ -53,4 +53,7 @@
   :global(.message-display):has(.invitation) :global(.message-header) {
     min-height: unset;
   }
+  :global(.fresh) .appointment {
+    padding: 16px 24px 24px 24px;
+  }
 </style>

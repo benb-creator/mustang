@@ -215,4 +215,14 @@
     margin-block-start: 1px;
     margin-inline-start: 8px;
   }
+  :global(.fresh) .header {
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .day-header {
+    border-top: none;
+    border-left: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .top-left {
+    height: auto;
+  }
 </style>

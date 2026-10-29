@@ -41,4 +41,19 @@
     padding: 8px 12px;
     word-break: break-all;
   }
+  :global(.fresh) .description {
+    margin-top: 0;
+  }
+  :global(.fresh) .editor-wrapper {
+    margin-block-start: 4px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-m);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+    overflow: hidden;
+  }
+  :global(.fresh) .editor {
+    padding: 8px 12px;
+    font-size: var(--text-l);
+  }
 </style>

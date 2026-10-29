@@ -406,4 +406,65 @@
   .buttons :global(.menu .label) {
     color: unset;
   }
+  /* <copied from="../DisplayEvent/DialogHeader.svelte"> Fresh header look */
+  :global(.fresh) .header {
+    height: calc(var(--pane-header-height) + 4px);
+    margin-block-end: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .title-background {
+    height: 4px;
+  }
+  :global(.fresh) .window-title-bar {
+    box-sizing: border-box;
+    align-items: center;
+    gap: 4px;
+    padding-block-start: 4px;
+    padding-inline: 12px;
+  }
+  :global(.fresh) .buttons {
+    gap: 4px;
+    padding: 0;
+  }
+  :global(.fresh) .buttons :global(.button.button) {
+    margin-inline-start: 0;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .buttons :global(.button.button:hover:not(.disabled)) {
+    color: var(--fg-1);
+  }
+  :global(.fresh) .buttons :global(.button.button.delete) {
+    background-color: transparent;
+  }
+  :global(.fresh) .buttons :global(.button.button.delete:hover:not(.disabled)) {
+    background-color: var(--danger-tint);
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .buttons :global(.save-or-close path) {
+    stroke-width: 2px;
+  }
+  :global(.fresh) .buttons :global(.menu .menuitem),
+  :global(.fresh) .buttons :global(.menu .label) {
+    color: var(--fg-1);
+  }
+  /* </copied> */
+
+  :global(.fresh) .buttons :global(.button.button.save-or-close) {
+    border-color: var(--border-control);
+  }
+  :global(.fresh) .buttons :global(.button.button.save-or-close.filled),
+  :global(.fresh) .buttons :global(.button.button.save-or-close.filled:hover:not(.disabled)) {
+    border-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .account-selector {
+    align-self: center;
+    align-items: center;
+    margin: 0 4px;
+    font-size: var(--text-s);
+    color: var(--fg-2);
+    white-space: nowrap;
+    overflow: hidden;
+  }
 </style>

@@ -73,4 +73,28 @@
   .end-time {
     opacity: 50%;
   }
+  :global(.fresh) .header {
+    margin-inline-start: 0;
+    color: var(--fg-2);
+    font-size: var(--text-s);
+  }
+  :global(.fresh) .option {
+    min-height: var(--control-height);
+    border: 1px solid var(--border-subtle);
+    border-inline-start: 3px solid var(--accent);
+    border-radius: var(--radius-s);
+    box-shadow: none;
+    background-color: var(--accent-tint);
+    color: var(--fg-1);
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .option:hover {
+    border-color: var(--accent-border);
+    border-inline-start-color: var(--accent);
+  }
+  :global(.fresh) .end-separator,
+  :global(.fresh) .end-time {
+    opacity: 1;
+    color: var(--fg-2);
+  }
 </style>

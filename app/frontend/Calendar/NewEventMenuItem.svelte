@@ -26,4 +26,8 @@
     background-color: var(--calendar-color);
     color: lch(from var(--calendar-color) calc((49.44 - l) * infinity) 0 0);
   }
+  :global(.fresh) .new-event-menuitem :global(.menuitem .icon) {
+    padding: 1px;
+    border-radius: var(--radius-s);
+  }
 </style>

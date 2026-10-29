@@ -21,4 +21,10 @@
     border-radius: 3px;
     margin: 8px;
   }
+  :global(.fresh) .cancelled-text {
+    border: 1px solid color-mix(in srgb, var(--warning-fg) 30%, transparent);
+    border-radius: var(--radius-m);
+    background-color: var(--warning-tint);
+    color: var(--fg-1);
+  }
 </style>

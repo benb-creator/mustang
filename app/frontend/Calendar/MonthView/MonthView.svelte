@@ -1,12 +1,14 @@
 <vbox class="month-view" flex
   on:mousewheel={event => catchErrors(() => onScrollWheel(event))}>
-  <hbox class="range-header">
-    <slot name="top-left" />
-    <hbox flex />
-    <DateRange bind:date={start} dateInterval={showDays} />
-    <hbox flex />
-    <slot name="top-right" />
-  </hbox>
+  <slot name="header">
+    <hbox class="range-header">
+      <slot name="top-left" />
+      <hbox flex />
+      <DateRange bind:date={start} dateInterval={showDays} />
+      <hbox flex />
+      <slot name="top-right" />
+    </hbox>
+  </slot>
   <grid flex class="month"
     style="--selected-calendar-color: {$selectedCalendar?.color ?? "black"}"
     on:swipeleft={onNextMonth}
@@ -108,10 +110,36 @@
     text-transform: uppercase;
     font-weight: 300;
   }
-  .month-view :global(.date-range) {
+  .range-header :global(.date-range) {
     font-weight: bold;
   }
-  .month-view :global(.date-range .year) {
+  .range-header :global(.date-range .year) {
     font-weight: normal;
+  }
+  :global(.fresh) .month-view {
+    min-width: 0;
+    min-height: 0;
+    container: calendar-pane / inline-size;
+  }
+  :global(.fresh) grid.month {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border-right: none;
+  }
+  :global(.fresh) .weekday {
+    align-items: center;
+    height: 28px;
+    padding: 0 8px;
+    border: none;
+    border-inline-start: 1px solid var(--border-subtle);
+    border-block-end: 1px solid var(--border-subtle);
+    font-size: var(--text-s);
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--fg-2);
+    opacity: 1;
+  }
+  :global(.fresh) .weekday:first-child {
+    border-inline-start: none;
   }
 </style>

@@ -91,4 +91,46 @@
   .time {
     font-weight: 600;
   }
+  :global(.fresh) .day,
+  :global(.fresh) .time {
+    align-items: center;
+    min-height: var(--list-row-height);
+    padding-inline-start: 8px;
+    font-size: var(--text-s);
+    font-weight: 400;
+    color: var(--fg-2);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  :global(.fresh) .event {
+    align-items: center;
+    display: flex;
+    min-height: var(--list-row-height);
+    padding-inline: 12px 8px;
+    background-color: transparent;
+    background-image: linear-gradient(var(--color), var(--color));
+    background-repeat: no-repeat;
+    background-position: left 0 center;
+    background-size: 3px calc(100% - 8px);
+    background-blend-mode: normal;
+    color: var(--fg-1);
+    opacity: 1;
+  }
+  :global([dir="rtl"].fresh) .event {
+    background-position: right 0 center;
+  }
+  :global(.fresh) .event:hover {
+    background-color: transparent;
+  }
+  :global(.fresh) .event.unanswered {
+    background-image:
+      linear-gradient(var(--color), var(--color)),
+      repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--color) 18%, transparent) 6px 8px);
+    background-size: 3px calc(100% - 8px), 100% 100%;
+  }
+  :global(.fresh) .event.cancelled {
+    background-image: linear-gradient(var(--color), var(--color));
+    background-size: 3px calc(100% - 8px);
+    opacity: 60%;
+  }
 </style>

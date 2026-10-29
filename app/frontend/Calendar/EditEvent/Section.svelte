@@ -30,4 +30,9 @@
     width: 36px;
     align-items: start;
   }
+  :global(.fresh) .icon {
+    width: 32px;
+    padding-block-start: 4px;
+    color: var(--fg-3);
+  }
 </style>

@@ -62,4 +62,18 @@
     flex-wrap: wrap;
     max-width: 100%;
 }
+  :global(.fresh) grid.event-display-grid {
+    column-gap: 12px;
+    row-gap: 12px;
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+    color: var(--fg-1);
+  }
+  :global(.fresh) grid.event-display-grid :global(> svg) {
+    margin-block-start: 2px;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .recurrence {
+    font-weight: 600;
+  }
 </style>

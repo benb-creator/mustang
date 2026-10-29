@@ -47,4 +47,17 @@
     border-block: 5px solid transparent;
     border-inline-start: 8px solid red;
   }
+  :global(.fresh) .current-time-marker {
+    border-top: 2px solid var(--signal-strong);
+    opacity: 1;
+  }
+  :global(.fresh) .current-time-marker::before {
+    top: -5px;
+    inset-inline-start: -4px;
+    width: 8px;
+    height: 8px;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--signal-strong);
+  }
 </style>

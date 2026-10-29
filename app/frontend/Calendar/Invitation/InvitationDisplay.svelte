@@ -28,4 +28,13 @@
   .details-grid {
     margin: 20px 16px;
   }
+  :global(.fresh) .title {
+    font-size: var(--text-2xl);
+    line-height: var(--line-2xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  :global(.fresh) .details-grid {
+    margin: 16px 0;
+  }
 </style>

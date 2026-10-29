@@ -36,4 +36,10 @@
   .more-events:hover {
     text-decoration: underline;
   }
+  :global(.fresh) .more-events {
+    padding-inline-start: 6px;
+    color: var(--accent-fg);
+    font-size: var(--text-s);
+    font-weight: 600;
+  }
 </style>

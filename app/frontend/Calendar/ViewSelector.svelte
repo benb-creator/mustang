@@ -1,12 +1,14 @@
 <hbox class="container">
-  <select name="" id="" bind:value={dateIntervalSelected}>
-    {#each dateIntervalOptions as opt}
-      <option value={opt.value}>{opt.label}</option>
-    {/each}
-  </select>
-  <hbox class="icon">
-    <ChevronsUpDownIcon size={16} strokeWidth={2}/>
-  </hbox>
+  <slot {dateIntervalLabel}>
+    <select name="" id="" bind:value={dateIntervalSelected}>
+      {#each dateIntervalOptions as opt}
+        <option value={opt.value}>{opt.label}</option>
+      {/each}
+    </select>
+    <hbox class="icon">
+      <ChevronsUpDownIcon size={16} strokeWidth={2}/>
+    </hbox>
+  </slot>
 </hbox>
 
 

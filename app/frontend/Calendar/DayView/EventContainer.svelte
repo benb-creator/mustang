@@ -29,4 +29,13 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+  :global(.fresh) .event.selected {
+    z-index: 2;
+    overflow: visible;
+  }
+  :global(.fresh) .event.selected :global(.event) {
+    outline: 2px solid color-mix(in srgb, var(--color) 70%, var(--fg-1));
+    outline-offset: -2px;
+    box-shadow: var(--shadow-pop);
+  }
 </style>

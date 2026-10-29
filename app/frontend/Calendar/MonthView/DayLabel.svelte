@@ -87,4 +87,38 @@
   .today-icon :global(svg) {
     stroke-width: 1px;
   }
+  :global(.fresh) .day {
+    align-items: center;
+    min-height: 26px;
+    box-sizing: border-box;
+    padding: 2px 6px;
+    border-left: 1px solid var(--border-subtle);
+    background-color: transparent;
+    color: var(--fg-1);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .date-number {
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    border-radius: 11px;
+  }
+  :global(.fresh) .today .date-number {
+    padding: 0 5px;
+    background-color: var(--signal);
+    color: var(--fg-on-signal);
+  }
+  :global(.fresh) .month {
+    align-self: center;
+    margin-inline-start: 4px;
+    font-weight: 400;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .day.today .today-icon {
+    display: none;
+  }
 </style>

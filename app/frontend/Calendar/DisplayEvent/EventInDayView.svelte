@@ -77,4 +77,18 @@
     background-color: rgb(0, 159, 159);
     color: white;
   }
+  :global(.fresh) .header {
+    min-height: 40px;
+    font-weight: 600;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .calendar :global(.header) {
+    background-color: var(--l2-bg);
+  }
+  :global(.fresh) .proposal :global(.event-proposal) {
+    border-inline-start: 3px solid var(--accent);
+    border-radius: var(--radius-s);
+    background-color: color-mix(in srgb, var(--accent) var(--tint-strength), var(--l3-bg));
+    color: var(--fg-1);
+  }
 </style>

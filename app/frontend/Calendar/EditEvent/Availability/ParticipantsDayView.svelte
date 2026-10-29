@@ -316,4 +316,64 @@
     margin: 12px;
     opacity: 70%;
   }
+  :global(.fresh) .header {
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .participant-header {
+    border-top: none;
+    border-left: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .status {
+    font-size: var(--text-s);
+    color: var(--fg-2);
+    opacity: 1;
+  }
+  :global(.fresh) .status.status-free {
+    color: var(--success-fg);
+  }
+  :global(.fresh) .status.status-busy {
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .appointment {
+    border: none;
+    border-inline-start: 3px solid var(--appointment-color);
+    border-radius: var(--radius-s);
+    background-color: color-mix(in srgb, var(--appointment-color) var(--tint-strength), var(--l3-bg));
+    color: var(--fg-1);
+    --stripe-color: color-mix(in srgb, var(--appointment-color) 18%, transparent);
+  }
+  :global(.fresh) .appointment.status-busy,
+  :global(.fresh) .appointment.status-tentative {
+    --appointment-color: var(--cal-9);
+  }
+  :global(.fresh) .appointment.status-tentative {
+    background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--stripe-color) 6px 8px);
+  }
+  :global(.fresh) .appointment.status-out-of-office {
+    --appointment-color: var(--cal-8);
+  }
+  :global(.fresh) .appointment.status-elsewhere {
+    --appointment-color: var(--cal-2);
+    border-inline-start-style: dashed;
+  }
+  :global(.fresh) .location {
+    color: var(--fg-2);
+    opacity: 1;
+  }
+  :global(.fresh) .no-info {
+    background-image: repeating-linear-gradient(135deg,
+      color-mix(in srgb, var(--fg-3) 25%, transparent) 0 1px,
+      transparent 1px 6px);
+  }
+  :global(.fresh) .no-info-label {
+    border-radius: var(--radius-m);
+    background-color: var(--l3-bg);
+    color: var(--fg-2);
+    font-size: var(--text-s);
+    opacity: 1;
+  }
+  :global(.fresh) .no-info-message {
+    color: var(--fg-2);
+    opacity: 1;
+  }
 </style>

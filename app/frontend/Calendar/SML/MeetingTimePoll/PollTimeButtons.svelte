@@ -83,4 +83,19 @@
   .buttons :global(button.reject:not(.selected) .icon) {
     color: red;
   }
+  :global(.fresh) .buttons :global(.button.accept svg) {
+    stroke-width: 2px;
+  }
+  :global(.fresh) .buttons :global(.button.accept:not(.selected) .icon) {
+    color: var(--success-fg);
+  }
+  :global(.fresh) .buttons :global(.button.maybe:not(.selected) .icon) {
+    color: var(--warning-fg);
+  }
+  :global(.fresh) .buttons :global(.button.bad:not(.selected) .icon) {
+    color: var(--warning-strip);
+  }
+  :global(.fresh) .buttons :global(.button.reject:not(.selected) .icon) {
+    color: var(--danger-fg);
+  }
 </style>

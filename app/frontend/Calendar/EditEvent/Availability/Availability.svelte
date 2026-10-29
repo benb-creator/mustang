@@ -247,4 +247,8 @@
     flex: 1 1 0;
     min-height: 0;
   }
+  :global(.fresh) .view {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-m);
+  }
 </style>

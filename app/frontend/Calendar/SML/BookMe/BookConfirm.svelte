@@ -91,4 +91,11 @@
   .buttons :global(.send) {
     min-width: 15em;
   }
+  :global(.fresh) .book-confirm {
+    margin: 24px;
+  }
+  :global(.fresh) .icon,
+  :global(.fresh) .buttons :global(.send .icon) {
+    color: var(--accent-fg);
+  }
 </style>

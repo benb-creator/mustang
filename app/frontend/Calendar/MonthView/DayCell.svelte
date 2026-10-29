@@ -100,4 +100,26 @@
       display: none;
     }
   }
+  :global(.fresh) .day-cell {
+    border-left: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .day-cell.selected {
+    background-color: var(--accent-tint);
+  }
+  :global(.fresh) .day-cell:hover,
+  :global(.fresh) .day-cell:hover:not(.selected) {
+    background-color: var(--row-hover);
+    background-image: none;
+    color: inherit;
+  }
+  :global(.fresh) .day-cell.selected:hover {
+    background-color: var(--accent-tint);
+    color: inherit;
+  }
+  :global(.fresh) .month-name {
+    color: var(--fg-3);
+    opacity: 35%;
+    font-weight: 600;
+  }
 </style>

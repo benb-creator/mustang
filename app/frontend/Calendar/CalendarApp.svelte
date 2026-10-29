@@ -44,9 +44,11 @@
   import Splitter from "../Shared/Splitter.svelte";
   import { getLocalStorage } from "../Util/LocalStorage";
 
+  // <copied to="../../fresh/Calendar/CalendarApp.svelte">
   $: if (!$selectedCalendar) { $selectedCalendar = appGlobal.calendars.first; }
 
   let dateIntervalSetting = getLocalStorage("calendar.view", 2 as DateInterval);
+  // </copied>
 </script>
 
 <style>

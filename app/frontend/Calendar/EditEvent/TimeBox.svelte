@@ -322,4 +322,34 @@
       flex-wrap: wrap;
     }
   }
+  :global(.fresh) .time-box {
+    padding: 12px 16px;
+  }
+  :global(.fresh) grid.time {
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+  :global(.fresh) .date-input {
+    margin-inline-end: 0;
+  }
+  :global(.fresh) .time :global(input) {
+    margin-block-start: 0;
+    padding: 0 8px;
+  }
+  :global(.fresh) .time-box :global(input[type="time"]) {
+    width: 8.5em;
+    max-width: none;
+    text-align: start;
+  }
+  :global(.fresh) .date-input :global(input),
+  :global(.fresh) .time-input :global(input) {
+    font-size: var(--text-l);
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .start :global(input) {
+    font-weight: 600;
+  }
+  :global(.fresh) .timezone {
+    margin-block-start: 0;
+  }
 </style>

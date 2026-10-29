@@ -47,4 +47,16 @@
     background-color: color-mix(in srgb, var(--selected-calendar-color) 10%, transparent);
     color: white;
   }
+  :global(.fresh) .hour-slot {
+    background-image:
+      linear-gradient(var(--border-subtle), var(--border-subtle)),
+      repeating-linear-gradient(to right, var(--border-subtle) 0 3px, transparent 3px 6px);
+    background-size: 100% 1px, 100% 1px;
+    background-position: bottom, center;
+    background-repeat: no-repeat;
+  }
+  :global(.fresh) .hour-slot:hover {
+    background-color: color-mix(in srgb, var(--selected-calendar-color) 8%, transparent);
+    color: inherit;
+  }
 </style>

@@ -84,4 +84,48 @@
   .event:hover {
     background-color: #20AF9E70;
   }
+  /* <copied to="EventContent.svelte, ../MonthView/EventContent.svelte"> Fresh event look */
+  :global(.fresh) .event {
+    box-sizing: border-box;
+    height: 22px;
+    align-items: center;
+    padding-block: 0;
+    padding-inline: 6px;
+    margin-block-end: 2px;
+    margin-inline: 1px 3px;
+    border-inline-start: 3px solid var(--account-color);
+    border-radius: var(--radius-s);
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--account-color) var(--tint-strength), var(--l3-bg));
+    background-image: none;
+    background-blend-mode: normal;
+    color: var(--fg-1);
+    font-size: var(--text-s);
+    font-weight: 600;
+  }
+  :global(.fresh) .event:hover {
+    background-color: color-mix(in srgb, var(--account-color) calc(var(--tint-strength) + 6%), var(--l3-bg));
+  }
+  :global(.fresh) .event.unanswered {
+    background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--account-color) 18%, transparent) 6px 8px);
+  }
+  :global(.fresh) .event.cancelled {
+    background-image: none;
+    opacity: 60%;
+  }
+  :global(.fresh) .event.cancelled.unanswered {
+    opacity: 40%;
+  }
+  /* </copied> */
+  :global(.fresh) .event.selected {
+    outline: 2px solid color-mix(in srgb, var(--account-color) 70%, var(--fg-1));
+    outline-offset: -2px;
+    box-shadow: var(--shadow-pop);
+  }
+  :global(.fresh) .title {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 </style>

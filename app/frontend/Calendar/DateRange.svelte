@@ -69,4 +69,27 @@
     margin-inline-end: 8px;
     min-width: 9em;
   }
+  :global(.fresh) .date-range-header {
+    align-self: center;
+    gap: 2px;
+    margin-block-end: 0;
+    min-width: 0;
+  }
+  :global(.fresh) .date-range {
+    display: block;
+    order: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-inline: 8px 0;
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+    color: var(--fg-1);
+    white-space: nowrap;
+  }
+  :global(.fresh) .date-range :global(.year) {
+    font-weight: 400;
+    color: var(--fg-2);
+  }
 </style>

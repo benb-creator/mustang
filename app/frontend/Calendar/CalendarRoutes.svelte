@@ -1,5 +1,7 @@
 <Route path="event">
-  <ShowEvent event={params?.event ?? requiredParam()} />
+  <vbox flex class="event-page">
+    <ShowEvent event={params?.event ?? requiredParam()} />
+  </vbox>
 </Route>
 <Route path="todos">
   <TODOsM />
@@ -11,7 +13,9 @@
   <SearchM searchTerm={params?.searchTerm} />
 </Route>
 <Route path="/">
-  <CalendarApp />
+  <slot name="app">
+    <CalendarApp />
+  </slot>
 </Route>
 
 <script lang="ts">
@@ -38,3 +42,17 @@
     }
   }
 </script>
+
+<style>
+  .event-page {
+    display: contents;
+  }
+  :global(.fresh) .event-page {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    border-block-start: 1px solid var(--border);
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
+  }
+</style>

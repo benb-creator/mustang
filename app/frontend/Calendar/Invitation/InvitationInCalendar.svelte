@@ -39,13 +39,14 @@
   import Paper from "../../Shared/Paper.svelte";
   import cssContent from "../../Mail/Message/content.css?inline";
   import cssBody from "../../Mail/Message/content-body.css?inline";
+  import { contentStyle } from "../../Mail/Message/contentStyle";
   import { t } from "../../../l10n/l10n";
 
   export let event: Event;
 
   $: attachments = $event.attachments;
 
-  let headHTML = `<style>\n${cssBody}\n${cssContent}\n</style>`;
+  $: headHTML = `<style>\n${cssBody}\n${cssContent}\n${$contentStyle}</style>`;
 </script>
 
 <style>
@@ -66,5 +67,18 @@
     padding: 8px 12px;
     border-radius: 3px;
     margin: 8px;
+  }
+  :global(.fresh) .content {
+    padding: 16px;
+    margin-block-end: 16px;
+  }
+  :global(.fresh) .cancelled-text,
+  :global(.fresh) .moved-text {
+    margin: 8px 0;
+    padding: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--warning-fg) 30%, transparent);
+    border-radius: var(--radius-m);
+    background-color: var(--warning-tint);
+    color: var(--fg-1);
   }
 </style>

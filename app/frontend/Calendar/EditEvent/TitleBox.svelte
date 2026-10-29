@@ -16,4 +16,24 @@
     padding: 6px 12px;
     max-width: 40em;
   }
+  :global(.fresh) .title input,
+  :global(.fresh) .title input:hover {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 40em;
+    height: 40px;
+    padding: 0 2px;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  :global(.fresh) .title input:focus {
+    border-bottom: 2px solid var(--accent);
+    box-shadow: none;
+  }
 </style>

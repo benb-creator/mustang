@@ -124,4 +124,10 @@
   .option :global(button.remove .icon) {
     color: red;
   }
+  :global(.fresh) .option :global(.button.accepted .icon) {
+    color: var(--success-fg);
+  }
+  :global(.fresh) .option :global(.button.remove .icon) {
+    color: var(--danger-fg);
+  }
 </style>

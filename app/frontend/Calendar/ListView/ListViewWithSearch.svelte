@@ -1,19 +1,21 @@
-<hbox class="range-header">
-  <slot name="top-left" />
-  <hbox flex />
-  <slot name="top-right" />
-</hbox>
+<slot name="header" count={$filteredEvents.length}>
+  <hbox class="range-header">
+    <slot name="top-left" />
+    <hbox flex />
+    <slot name="top-right" />
+  </hbox>
 
-{#if $globalSearchTerm}
-  <vbox class="search">
-    <hbox>
-      <SearchField bind:searchTerm={$globalSearchTerm} />
-    </hbox>
-    <hbox class="result-count font-normal">
-      {$t`Found ${filteredEvents.length} events`}
-    </hbox>
-  </vbox>
-{/if}
+  {#if $globalSearchTerm}
+    <vbox class="search">
+      <hbox>
+        <SearchField bind:searchTerm={$globalSearchTerm} />
+      </hbox>
+      <hbox class="result-count font-normal">
+        {$t`Found ${filteredEvents.length} events`}
+      </hbox>
+    </vbox>
+  {/if}
+</slot>
 
 <ListView events={filteredEvents} />
 

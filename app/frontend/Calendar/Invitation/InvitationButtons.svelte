@@ -266,4 +266,44 @@
     background-color: #A86F69;
     opacity: 100%;
   }
+  :global(.fresh) .buttons {
+    justify-content: start;
+    gap: 8px;
+    padding-block-start: 12px;
+  }
+  :global(.fresh) .buttons > :global(.button.button) {
+    margin: 0;
+  }
+  :global(.fresh) .buttons :global(.button.button.menu-button) {
+    position: static;
+    margin: 0;
+  }
+  :global(.fresh) .buttons > :global(.button.button.accept:not(.done)) {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .buttons > :global(.button.button.accept:not(.done):hover:not(.disabled)) {
+    border-color: var(--accent-hover);
+    background-color: var(--accent-hover);
+  }
+  :global(.fresh) .buttons > :global(.button.button.decline:not(.done)) {
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .buttons > :global(.button.button.accept.done) {
+    border: 1px solid color-mix(in srgb, var(--success-fg) 40%, transparent);
+    background-color: var(--success-tint);
+    color: var(--success-fg);
+  }
+  :global(.fresh) .buttons > :global(.button.button.decline.done) {
+    border: 1px solid color-mix(in srgb, var(--danger-fg) 40%, transparent);
+    background-color: var(--danger-tint);
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .buttons :global(.menuitem.accept .icon) {
+    color: var(--success-fg);
+  }
+  :global(.fresh) .buttons :global(.menuitem.decline .icon) {
+    color: var(--danger-fg);
+  }
 </style>

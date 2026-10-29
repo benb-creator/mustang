@@ -103,4 +103,8 @@
   .event-proposal :global(button .label) {
     white-space: nowrap;
   }
+  :global(.fresh) .event-proposal {
+    border-radius: var(--radius-s);
+    box-shadow: none;
+  }
 </style>

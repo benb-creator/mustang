@@ -24,6 +24,7 @@
   import type { Event } from "../../../logic/Calendar/Event";
   import cssContent from "../../Mail/Message/content.css?inline";
   import cssBody from "../../Mail/Message/content-body.css?inline";
+  import { contentStyle } from "../../Mail/Message/contentStyle";
   import DialogHeader from "./DialogHeader.svelte";
   import DetailsGrid from "./DetailsGrid.svelte";
   import Attachments from "../../Mail/Message/AttachmentsUI.svelte";
@@ -34,7 +35,7 @@
 
   $: attachments = $event.attachments;
 
-  let headHTML = `<style>\n${cssBody}\n${cssContent}\n</style>`;
+  $: headHTML = `<style>\n${cssBody}\n${cssContent}\n${$contentStyle}</style>`;
 </script>
 
 <style>
@@ -55,5 +56,22 @@
   }
   .attachments {
     margin: 0px 12px 12px 12px;
+  }
+  :global(.fresh) .title-row {
+    margin-block-start: 16px;
+    margin-inline: 16px;
+  }
+  :global(.fresh) .title {
+    font-size: var(--text-2xl);
+    line-height: var(--line-2xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .details-grid {
+    margin: 16px;
+  }
+  :global(.fresh) .attachments {
+    margin: 0 16px 16px 16px;
   }
 </style>

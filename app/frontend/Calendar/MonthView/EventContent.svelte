@@ -101,4 +101,40 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* <copied from="../DayView/AllDayEvent.svelte"> Fresh event look */
+  :global(.fresh) .event {
+    box-sizing: border-box;
+    align-items: center;
+    padding-inline: 4px;
+    margin-inline-end: 2px;
+    border-inline-start: 3px solid var(--color);
+    border-radius: var(--radius-s);
+    background-color: color-mix(in srgb, var(--color) var(--tint-strength), var(--l3-bg));
+    background-image: none;
+    background-blend-mode: normal;
+    color: var(--fg-1);
+    font-size: var(--text-s);
+  }
+  :global(.fresh) .event:hover {
+    background-color: color-mix(in srgb, var(--color) calc(var(--tint-strength) + 6%), var(--l3-bg));
+  }
+  :global(.fresh) .event.unanswered {
+    background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--color) 18%, transparent) 6px 8px);
+  }
+  :global(.fresh) .event.cancelled {
+    background-image: none;
+    opacity: 60%;
+  }
+  :global(.fresh) .event.cancelled.unanswered {
+    opacity: 40%;
+  }
+  /* </copied> */
+  :global(.fresh) .time {
+    font-weight: 400;
+    color: var(--fg-2);
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .title {
+    font-weight: 600;
+  }
 </style>

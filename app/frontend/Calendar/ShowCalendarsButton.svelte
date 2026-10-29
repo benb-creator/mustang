@@ -28,4 +28,10 @@
     border-left-color: #F6CC41;
     border-right-color: red;
   }
+  :global(.fresh) .show-calendars-button {
+    margin-inline: 0;
+  }
+  :global(.fresh) .show-calendars-button.closed :global(.button.button) {
+    border-color: var(--border-control);
+  }
 </style>

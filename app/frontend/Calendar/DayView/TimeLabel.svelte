@@ -15,4 +15,15 @@
     font-weight: 300;
     justify-content: end;
   }
+  :global(.fresh) .time {
+    box-sizing: border-box;
+    width: 56px;
+    margin: -0.6em 0 0 0;
+    padding-inline-end: 8px;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-3);
+  }
 </style>

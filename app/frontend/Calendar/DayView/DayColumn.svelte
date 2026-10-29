@@ -70,4 +70,7 @@
     position: relative;
     border-left: 1px dotted var(--border);
   }
+  :global(.fresh) .day-column {
+    border-left: 1px solid var(--border-subtle);
+  }
 </style>

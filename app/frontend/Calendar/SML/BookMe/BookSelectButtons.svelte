@@ -36,4 +36,10 @@
   .buttons :global(button.accept:not(.selected) .icon) {
     color: rgb(0, 182, 0);
   }
+  :global(.fresh) .buttons :global(.button.accept svg) {
+    stroke-width: 2px;
+  }
+  :global(.fresh) .buttons :global(.button.accept:not(.selected) .icon) {
+    color: var(--success-fg);
+  }
 </style>

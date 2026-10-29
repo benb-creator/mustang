@@ -307,4 +307,47 @@
     margin: 12px;
     opacity: 70%;
   }
+  :global(.fresh) .header {
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .day-header {
+    border-left: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .date {
+    font-size: var(--text-m);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .weekday {
+    font-size: var(--text-xs);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .slot {
+    border: 1px solid color-mix(in srgb, var(--slot-color) 35%, transparent);
+    border-inline-start: 3px solid var(--slot-color);
+    border-radius: var(--radius-s);
+    background-color: color-mix(in srgb, var(--slot-color) var(--tint-strength), var(--l3-bg));
+    color: var(--fg-1);
+  }
+  :global(.fresh) .slot.availability-free {
+    --slot-color: var(--success-fg);
+  }
+  :global(.fresh) .slot.availability-partly {
+    --slot-color: var(--warning-strip);
+  }
+  :global(.fresh) .slot.availability-busy {
+    --slot-color: var(--danger-fg);
+  }
+  :global(.fresh) .slot:hover {
+    border-color: var(--fg-3);
+    border-inline-start-color: var(--slot-color);
+  }
+  :global(.fresh) .slot.meeting {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+  :global(.fresh) .no-info {
+    color: var(--fg-2);
+    opacity: 1;
+  }
 </style>

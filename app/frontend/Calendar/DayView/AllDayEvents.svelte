@@ -35,4 +35,12 @@
   .day {
     border-left: 1px dotted var(--border);
   }
+  :global(.fresh) .all-day-events {
+    border-bottom: 1px solid var(--border);
+    background-color: var(--l3-bg);
+    padding-block: 2px;
+  }
+  :global(.fresh) .day {
+    border-left: 1px solid var(--border-subtle);
+  }
 </style>

@@ -50,4 +50,13 @@
   .duration, .duration-prefix {
     opacity: 80%;
   }
+  :global(.fresh) .starttime {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .duration,
+  :global(.fresh) .duration-prefix {
+    opacity: 1;
+    color: var(--fg-2);
+  }
 </style>

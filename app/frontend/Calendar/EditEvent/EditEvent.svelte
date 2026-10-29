@@ -239,4 +239,17 @@
   :global(.inline) {
     display: inline-flex !important;
   }
+  :global(.fresh) .columns {
+    padding: 16px 24px 8px 24px;
+  }
+  :global(.fresh) .time-box {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .mycalendar {
+    width: 240px;
+    margin-block-start: 0;
+    border-inline-start: 1px solid var(--border-subtle);
+    background-color: var(--l2-bg);
+  }
 </style>
