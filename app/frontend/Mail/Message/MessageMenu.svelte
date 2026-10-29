@@ -115,15 +115,7 @@
     mailMustangApp.writeMail(mail);
   }
   async function forward(event: MouseEvent) {
-    let setting = getLocalStorage("mail.send.forward", "inline").value;
-    let shift = !!event?.shiftKey;
-    let forward: EMail;
-    if (setting == "attachment" && !shift || setting == "inline" && shift) {
-      forward = await message.compose.forwardAsAttachment();
-    } else {
-      forward = await message.compose.forwardInline();
-    }
-    mailMustangApp.writeMail(forward);
+    await mailMustangApp.forward(message, !!event?.shiftKey);
   }
   async function redirect() {
     let redirect = await message.compose.redirect();

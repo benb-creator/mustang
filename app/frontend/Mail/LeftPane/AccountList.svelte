@@ -38,4 +38,9 @@
   .header :global(button) {
     margin-inline-start: 4px;
   }
+  :global(.fresh) .header-label {
+    font-size: var(--text-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
 </style>

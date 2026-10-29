@@ -1,18 +1,20 @@
-<vbox flex class="message-list"
-  on:keydown={event => catchErrors(() => onKeyOnList(event))}
-  tabindex={0}
-  >
-  <FastList items={sortedMessages}
-    bind:selectedItem={selectedMessage}
-    bind:selectedItems={selectedMessages}
-    bind:isAtTop
-    on:init={ev => ev.detail.scrollToItem(selectedMessage)}
-    columns="auto">
-    <svelte:fragment slot="header">
-    </svelte:fragment>
-    <VerticalMessageListItem slot="row" let:item message={item} on:click />
-  </FastList>
-</vbox>
+<slot {sortedMessages}>
+  <vbox flex class="message-list"
+    on:keydown={event => catchErrors(() => onKeyOnList(event))}
+    tabindex={0}
+    >
+    <FastList items={sortedMessages}
+      bind:selectedItem={selectedMessage}
+      bind:selectedItems={selectedMessages}
+      bind:isAtTop
+      on:init={ev => ev.detail.scrollToItem(selectedMessage)}
+      columns="auto">
+      <svelte:fragment slot="header">
+      </svelte:fragment>
+      <VerticalMessageListItem slot="row" let:item message={item} on:click />
+    </FastList>
+  </vbox>
+</slot>
 
 <script lang="ts">
   import type { EMail } from "../../../logic/Mail/EMail";

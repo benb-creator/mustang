@@ -1,46 +1,48 @@
-<vbox flex class="folder-pane">
-    <hbox class="top">
-      <vbox class="island">
-        <SearchSwitcher bind:active={activeTab} />
-      </vbox>
-      <hbox flex />
-      <hbox class="buttons">
-        {#if activeTab == SearchView.Folder}
-          <GetMailButton folder={selectedFolder ?? selectedAccount?.inbox} />
-        {/if}
-        {#if activeTab == SearchView.Folder || activeTab == SearchView.Person}
-          <WriteButton account={selectedAccount}
-            to={activeTab == SearchView.Person && $selectedPerson ? PersonUID.fromPerson($selectedPerson) : null } />
-        {/if}
+<slot {showPerson} {endSearchMode} {onFolderSettings}>
+  <vbox flex class="folder-pane">
+      <hbox class="top">
+        <vbox class="island">
+          <SearchSwitcher bind:active={activeTab} />
+        </vbox>
+        <hbox flex />
+        <hbox class="buttons">
+          {#if activeTab == SearchView.Folder}
+            <GetMailButton folder={selectedFolder ?? selectedAccount?.inbox} />
+          {/if}
+          {#if activeTab == SearchView.Folder || activeTab == SearchView.Person}
+            <WriteButton account={selectedAccount}
+              to={activeTab == SearchView.Person && $selectedPerson ? PersonUID.fromPerson($selectedPerson) : null } />
+          {/if}
+        </hbox>
       </hbox>
-    </hbox>
 
-  {#if activeTab == SearchView.Person}
-    <PersonsList
-      persons={appGlobal.persons}
-      bind:selected={$selectedPerson}
-      selectedPersons={new ArrayColl()}
-      on:selected={ev => showPerson(ev.detail as Person)}
-      />
-    <ViewSwitcher />
-  {:else if activeTab == SearchView.Search}
-    <SearchPane bind:searchMessages on:clear={endSearchMode} />
-  {:else}
-    <AccountList {accounts} bind:selectedAccount />
-    <FolderList {folders} bind:selectedFolder bind:selectedFolders>
-      <svelte:fragment slot="buttons" let:folder>
-        <GetMailButton {folder} />
-        <Button label={$t`Folder properties`} icon={MoreIcon} iconOnly plain
-          onClick={() => onFolderSettings(folder)} />
-      </svelte:fragment>
-    </FolderList>
-    {#if selectedFolder && !(selectedFolder instanceof SavedSearchFolder)}
-      <TagsList folder={selectedFolder} bind:searchMessages />
+    {#if activeTab == SearchView.Person}
+      <PersonsList
+        persons={appGlobal.persons}
+        bind:selected={$selectedPerson}
+        selectedPersons={new ArrayColl()}
+        on:selected={ev => showPerson(ev.detail as Person)}
+        />
+      <ViewSwitcher />
+    {:else if activeTab == SearchView.Search}
+      <SearchPane bind:searchMessages on:clear={endSearchMode} />
+    {:else}
+      <AccountList {accounts} bind:selectedAccount />
+      <FolderList {folders} bind:selectedFolder bind:selectedFolders>
+        <svelte:fragment slot="buttons" let:folder>
+          <GetMailButton {folder} />
+          <Button label={$t`Folder properties`} icon={MoreIcon} iconOnly plain
+            onClick={() => onFolderSettings(folder)} />
+        </svelte:fragment>
+      </FolderList>
+      {#if selectedFolder && !(selectedFolder instanceof SavedSearchFolder)}
+        <TagsList folder={selectedFolder} bind:searchMessages />
+      {/if}
+      <hbox class="separator" />
+      <ViewSwitcher />
     {/if}
-    <hbox class="separator" />
-    <ViewSwitcher />
-  {/if}
-</vbox>
+  </vbox>
+</slot>
 
 <script lang="ts">
   import type { MailAccount } from "../../../logic/Mail/MailAccount";

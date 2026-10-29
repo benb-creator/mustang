@@ -29,4 +29,13 @@
     padding: 4px;
     overflow-y: auto;
   }
+  :global(.fresh) .attachments {
+    min-height: 0;
+    max-height: 120px;
+    padding-block: 8px 4px;
+  }
+  :global(.fresh) .attachments-list {
+    gap: 8px;
+    padding: 0;
+  }
 </style>

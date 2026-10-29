@@ -197,4 +197,76 @@
   .unread-dot.unread :global(svg) {
     fill: green;
   }
+  :global(.fresh) .folder-header {
+    flex: 1 1 0;
+    justify-content: end;
+    gap: 4px;
+    min-width: 0;
+    max-height: none;
+    padding: 0;
+    overflow: visible;
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .folder-header :global(.msg-count) {
+    order: -3;
+    flex: 0 1 auto;
+  }
+  :global(.fresh) .folder-header :global(div:has(> .no-search)) {
+    display: contents;
+  }
+  :global(.fresh) .no-search {
+    order: -2;
+    flex: 1 1 0;
+    align-self: stretch;
+    height: auto;
+  }
+  :global(.fresh) .folder-header :global(.search) {
+    order: -2;
+    flex: 1 1 0;
+    height: auto;
+    margin: 0;
+  }
+  :global(.fresh) .folder-header :global(input[type="search"]) {
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .result-msg-count {
+    order: -1;
+    padding: 0;
+    opacity: 1;
+    font-size: var(--text-s);
+    color: var(--fg-2);
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .buttons {
+    gap: 2px;
+  }
+  :global(.fresh) .folder-header :global(.button.button) {
+    margin: 0;
+  }
+  :global(.fresh) .unread-dot {
+    order: 1;
+  }
+  :global(.fresh) .star {
+    order: 2;
+  }
+  :global(.fresh) .attachment {
+    order: 3;
+  }
+  :global(.fresh) .show-search {
+    order: 4;
+  }
+  :global(.fresh) .attachment:not(.on) {
+    opacity: 1;
+  }
+  :global(.fresh) .star.starred :global(svg) {
+    fill: var(--star);
+    color: var(--star);
+  }
+  :global(.fresh) .unread-dot :global(svg) {
+    color: var(--fg-2);
+  }
+  :global(.fresh) .unread-dot.unread :global(svg) {
+    fill: var(--unread);
+    color: var(--unread);
+  }
 </style>

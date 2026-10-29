@@ -242,4 +242,34 @@
     background-color: unset;
     color: green;
   }*/
+  :global(.fresh) .message-popup {
+    background-color: transparent;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .header {
+    font-size: var(--text-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .buttons {
+    gap: 2px;
+    padding: 4px;
+    border-top: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .buttons > :global(.button.button) {
+    padding: 0 8px;
+    border-left: none;
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .tags {
+    margin: 8px 12px;
+  }
+  :global(.fresh) .folders-header {
+    align-items: center;
+    padding-inline: 8px 4px;
+    font-size: var(--text-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
 </style>

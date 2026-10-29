@@ -4,6 +4,7 @@
   import cssContent from "./content.css?inline";
   import cssBody from "./content-body.css?inline";
   import cssFont from "../../asset/font/Karla.css?inline";
+  import { contentStyle } from "./contentStyle";
   import WebView from "../../Shared/WebView.svelte";
   import { t } from "../../../l10n/l10n";
 
@@ -14,5 +15,5 @@
   /** out only */
   export let webviewE: HTMLIFrameElement = null;
 
-  $: headHTML = `<style>\n${cssBody}\n${cssContent}\n</style>`;
+  $: headHTML = `<style>\n${cssBody}\n${cssContent}\n${$contentStyle}</style>`;
 </script>

@@ -118,4 +118,17 @@
     font-style: italic;
     margin-inline-start: 6px;
   }
+  :global(.fresh) .domain {
+    margin-inline-start: 4px;
+    font-style: normal;
+    font-size: var(--text-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .invalid {
+    font-style: normal;
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .recipient.is-contact:hover {
+    color: var(--accent-fg);
+  }
 </style>

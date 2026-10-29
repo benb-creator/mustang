@@ -1,5 +1,5 @@
 <Route path="compose">
-  <MailComposer mail={params?.mail ?? $selectedFolder.newEMail()} />
+  <svelte:component this={mailComposer} mail={params?.mail ?? $selectedFolder.newEMail()} />
 </Route>
 {#if appGlobal.isMobile}
   <Route path="folder/:accountID/:folderID/message-list">
@@ -28,7 +28,7 @@
   </Route>
 {:else}
   <Route path="/">
-    <MailApp />
+    <svelte:component this={mailApp} />
   </Route>
 {/if}
 
@@ -52,6 +52,9 @@
   import { requiredParam } from "../Util/route";
   import { catchErrors } from "../Util/error";
   import { Route, useLocation } from "svelte-navigator";
+
+  export let mailApp: ConstructorOfATypedSvelteComponent = MailApp;
+  export let mailComposer: ConstructorOfATypedSvelteComponent = MailComposer;
 
   $: accounts = showAccounts.filterObservable(acc => acc.workspace == $selectedWorkspace || !$selectedWorkspace); // ?? acc == allAccountsAccount
   $: folders = $selectedAccount?.rootFolders ?? new ArrayColl<Folder>();

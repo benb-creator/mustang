@@ -1,14 +1,16 @@
 <Splitter name="persons-list" initialRightRatio={4}>
   <vbox class="left-pane" slot="left">
-    <hbox class="buttons">
-      <AccountDropDown
-        bind:selectedAccount={$selectedAccount}
-        accounts={accounts}
-        filterByWorkspace={true}
-        />
-      <hbox flex class="spacer" />
-      <WriteButton account={$selectedAccount} />
-    </hbox>
+    <slot name="toolbar">
+      <hbox class="buttons">
+        <AccountDropDown
+          bind:selectedAccount={$selectedAccount}
+          accounts={accounts}
+          filterByWorkspace={true}
+          />
+        <hbox flex class="spacer" />
+        <WriteButton account={$selectedAccount} />
+      </hbox>
+    </slot>
     <PersonsList {persons} bind:selected={selectedPerson} />
     <ViewSwitcher />
   </vbox>
@@ -26,6 +28,8 @@
       <vbox class="editor">
         <MsgEditor to={chatRoom} />
       </vbox>
+    {:else}
+      <slot name="no-person" />
     {/if}
   </vbox>
 </Splitter>
@@ -87,5 +91,24 @@
   }
   .spacer {
     min-width: 8px;
+  }
+  :global(.fresh) .left-pane {
+    background-color: var(--l1-bg);
+    color: var(--l1-fg);
+    box-shadow: inset -1px 0 0 var(--border);
+  }
+  :global(.fresh) .right-pane {
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
+    border-block-start: 1px solid var(--border);
+  }
+  :global(.fresh) .left-pane > :global(.switcher) {
+    flex: none;
+    margin: 0;
+    padding: 8px 12px;
+    border-block-start: 1px solid var(--border);
+  }
+  :global(.fresh) .messages {
+    background: var(--l2-bg);
   }
 </style>

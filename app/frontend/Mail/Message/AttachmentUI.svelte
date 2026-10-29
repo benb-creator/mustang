@@ -112,4 +112,62 @@
   .bottom-row :global(.svelteui-Popper-root) {
     position: fixed;
   }
+  :global(.fresh) .attachment {
+    position: relative;
+    box-sizing: border-box;
+    height: 36px;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background-color: var(--l3-bg);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .attachment:hover {
+    border-color: var(--fg-3);
+  }
+  :global(.fresh) .icon {
+    width: 32px;
+    aspect-ratio: auto;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .attachment:hover .icon {
+    background-color: transparent;
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .info {
+    justify-content: center;
+    width: 168px;
+    padding: 0 28px 0 0;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+    box-shadow: none;
+  }
+  :global(.fresh) .filename {
+    display: block;
+    font-size: var(--text-m);
+    line-height: 16px;
+  }
+  :global(.fresh) .bottom-row :global(.menu.button) {
+    position: absolute;
+    inset-inline-end: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  :global(.fresh) .bottom-row :global(.menu.button .button.button) {
+    min-width: var(--icon-button-size-s);
+    min-height: var(--icon-button-size-s);
+    height: var(--icon-button-size-s);
+  }
+  :global(.fresh) .size {
+    display: block;
+    font-size: var(--text-s);
+    line-height: 16px;
+    color: var(--fg-2);
+    font-variant-numeric: tabular-nums;
+  }
 </style>

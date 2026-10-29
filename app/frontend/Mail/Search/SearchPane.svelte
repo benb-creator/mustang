@@ -160,4 +160,47 @@
     margin: 12px 24px;
     justify-content: end;
   }
+  :global(.fresh) .search {
+    margin: 0;
+    padding: 0 12px 8px;
+    min-height: 0;
+  }
+  :global(.fresh) .header-bar {
+    align-items: center;
+    min-height: var(--section-header-height);
+    margin: 0;
+  }
+  :global(.fresh) .header {
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .header.top {
+    margin: 0;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .buttons.top-right {
+    align-items: center;
+  }
+  :global(.fresh) .term {
+    margin: 4px 0 8px;
+  }
+  :global(.fresh) .term :global(.search) {
+    flex: 1 1 0;
+    margin: 0;
+  }
+  :global(.fresh) .term :global(input) {
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .search-criteria {
+    margin: 0 0 8px;
+  }
+  :global(.fresh) .results-count {
+    margin: 8px 0;
+    font-size: var(--text-s);
+    color: var(--fg-2);
+  }
 </style>

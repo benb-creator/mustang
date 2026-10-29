@@ -1,12 +1,14 @@
-<RoundButton
-  label={$t`Write new email`}
-  icon={WriteIcon}
-  iconSize="22px"
-  padding="6px"
-  classes="create"
-  disabled={!account}
-  onClick={newMail}
-  />
+<slot {newMail}>
+  <RoundButton
+    label={$t`Write new email`}
+    icon={WriteIcon}
+    iconSize="22px"
+    padding="6px"
+    classes="create"
+    disabled={!account}
+    onClick={newMail}
+    />
+</slot>
 
 <script lang="ts">
   import type { MailAccount } from "../../../logic/Mail/MailAccount";

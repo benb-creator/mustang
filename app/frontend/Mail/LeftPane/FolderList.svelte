@@ -6,11 +6,15 @@
         <hbox class="header font-smallest">{$t`Folders`}</hbox>
       </slot>
     </svelte:fragment>
-    <TreeItemLine slot="row" let:item={folder} item={folder}>
-      <FolderLine {folder} slot="row" on:click>
-        <slot name="buttons" slot="buttons" let:folder {folder} />
-      </FolderLine>
-    </TreeItemLine>
+    <svelte:fragment slot="row" let:item={folder} let:indentionLevel>
+      <slot name="row" {folder} {indentionLevel}>
+        <TreeItemLine item={folder}>
+          <FolderLine {folder} slot="row" on:click>
+            <slot name="buttons" slot="buttons" let:folder {folder} />
+          </FolderLine>
+        </TreeItemLine>
+      </slot>
+    </svelte:fragment>
   </FastTree>
 </vbox>
 
@@ -33,5 +37,11 @@
   .header {
     padding-inline-start: 10px !important;
     color: grey;
+  }
+  :global(.fresh) .header {
+    padding-inline-start: 12px !important; /* beats the !important above */
+    font-size: var(--text-s);
+    font-weight: 600;
+    color: var(--fg-2);
   }
 </style>

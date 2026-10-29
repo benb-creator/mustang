@@ -1,6 +1,7 @@
 import type { EMail } from "../../logic/Mail/EMail";
 import { MustangApp } from "../AppsBar/MustangApp";
 import { openApp } from "../AppsBar/selectedApp";
+import { getLocalStorage } from "../Util/LocalStorage";
 import { OAuth2Tab, oAuth2TabsOpen } from "../../logic/Auth/UI/OAuth2Tab";
 import { appGlobal } from "../../logic/app";
 import mailIcon from '../asset/icon/appBar/mail.svg?raw';
@@ -21,6 +22,17 @@ export class MailMustangApp extends MustangApp {
     composerApp.windowParams = { mail: mail };
     mailMustangApp.subApps.add(composerApp);
     openApp(composerApp, composerApp.windowParams);
+  }
+
+  async forward(message: EMail, invertSetting = false) {
+    let setting = getLocalStorage("mail.send.forward", "inline").value;
+    let forward: EMail;
+    if (setting == "attachment" && !invertSetting || setting == "inline" && invertSetting) {
+      forward = await message.compose.forwardAsAttachment();
+    } else {
+      forward = await message.compose.forwardInline();
+    }
+    this.writeMail(forward);
   }
 
   login(tab: OAuth2Tab): LoginDialogMustangApp {

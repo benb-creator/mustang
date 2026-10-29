@@ -1,19 +1,19 @@
 {#if $openFolderProperties}
-  <FolderPropertiesPage
+  <svelte:component this={folderPropertiesPage}
     bind:folder={$selectedFolder}
     bind:selectedAccount={$selectedAccount}
     {accounts} />
 {:else if view == "chat"}
-  <MailChat {accounts} />
+  <svelte:component this={mailChat} {accounts} />
 {:else if view == "vertical"}
-  <VerticalLayout {accounts} {folders} {messages}
+  <svelte:component this={verticalLayout} {accounts} {folders} {messages}
     bind:searchMessages
     bind:selectedAccount={$selectedAccount}
     bind:selectedFolder={$selectedFolder}
     bind:selectedMessage={$selectedMessage}
     bind:selectedMessages={$selectedMessages} />
 {:else}
-  <ThreePane {accounts} {folders} {messages}
+  <svelte:component this={threePane} {accounts} {folders} {messages}
     bind:searchMessages
     bind:selectedAccount={$selectedAccount}
     bind:selectedFolder={$selectedFolder}
@@ -34,6 +34,12 @@
   import MailChat from "./MailChat/MailChat.svelte";
   import FolderPropertiesPage, { openFolderProperties } from "./FolderPropertiesPage.svelte";
   import { ArrayColl } from "svelte-collections";
+  import type { Component } from "svelte";
+
+  export let verticalLayout = VerticalLayout;
+  export let threePane = ThreePane;
+  export let folderPropertiesPage: Component<any> = FolderPropertiesPage;
+  export let mailChat: Component<any> = MailChat;
 
   $: accounts = showAccounts.filterObservable(acc => acc.workspace == $selectedWorkspace || !$selectedWorkspace); // || acc == allAccountsAccount
   $: folders = $selectedAccount?.rootFolders ?? new ArrayColl<Folder>();

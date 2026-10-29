@@ -1,109 +1,111 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<vbox class="message"
-  class:unread={!$message.isRead}
-  draggable="true" on:dragstart={(event) => catchErrors(() => onDragStartMail(event, message))}
-  style="--account-color: {$message.folder.account.color};"
-  on:contextmenu={contextMenu.onContextMenu}
-  on:click
-  on:swiperight={() => catchErrors(deleteMessage)}
-  on:swipeleft={() => catchErrors(markAsSpam)}
-  bind:this={popupAnchor}
-  >
-  <hbox class="top-row">
-    <hbox class="direction">
-      {#if $message.isSending}
-        <SendingIcon size={16} class="sending" />
-      {:else if $message.outgoing}
-        <OutgoingIcon size={16} class="outgoing" />
-      {:else if $message.isReplied}
-        <ReplyIcon size={16} class="reply" />
-      {:else if $message.isForwarded}
-        <ForwardIcon size={16} class="forward" />
-      {:else if $message.isImportant}
-        <ImportantIcon size={16} class="important" />
+<slot {contactName} {toggleRead} {toggleStar} {toggleSpam} {deleteMessage} {onPopupToggle} {contextMenu}>
+  <vbox class="message"
+    class:unread={!$message.isRead}
+    draggable="true" on:dragstart={(event) => catchErrors(() => onDragStartMail(event, message))}
+    style="--account-color: {$message.folder.account.color};"
+    on:contextmenu={contextMenu.onContextMenu}
+    on:click
+    on:swiperight={() => catchErrors(deleteMessage)}
+    on:swipeleft={() => catchErrors(markAsSpam)}
+    bind:this={popupAnchor}
+    >
+    <hbox class="top-row">
+      <hbox class="direction">
+        {#if $message.isSending}
+          <SendingIcon size={16} class="sending" />
+        {:else if $message.outgoing}
+          <OutgoingIcon size={16} class="outgoing" />
+        {:else if $message.isReplied}
+          <ReplyIcon size={16} class="reply" />
+        {:else if $message.isForwarded}
+          <ForwardIcon size={16} class="forward" />
+        {:else if $message.isImportant}
+          <ImportantIcon size={16} class="important" />
+        {/if}
+      </hbox>
+      <hbox class="contact font-small">{contactName}</hbox>
+      <hbox flex />
+      {#if $tags.hasItems}
+        <hbox class="tags">
+          <TagSelector tags={$tags} object={message} canAdd={false} />
+        </hbox>
       {/if}
-    </hbox>
-    <hbox class="contact font-small">{contactName}</hbox>
-    <hbox flex />
-    {#if $tags.hasItems}
-      <hbox class="tags">
-        <TagSelector tags={$tags} object={message} canAdd={false} />
-      </hbox>
-    {/if}
-    <hbox class="date font-smallest">{getDateTimeString($message.sent)}</hbox>
-    <hbox class="unread-dot button" class:unread={!$message.isRead}>
-      {#key message} <!-- Rebuild per mail, otherwise the spinner from the previous mail stays. -->
-      <Button
-        icon={CircleIcon}
-        iconSize="7px"
-        iconOnly
-        label={$message.isRead ? $t`Mark this message as unread` : $t`Mark this message as read`}
-        onClick={toggleRead}
-        plain
-        />
-      {/key}
-    </hbox>
-    <!--
-    <hbox class="buttons hover">
-      <hbox class="spam button">
+      <hbox class="date font-smallest">{getDateTimeString($message.sent)}</hbox>
+      <hbox class="unread-dot button" class:unread={!$message.isRead}>
+        {#key message} <!-- Rebuild per mail, otherwise the spinner from the previous mail stays. -->
         <Button
-          icon={$message.isSpam ? NotSpamIcon : SpamIcon}
-          iconSize="16px"
+          icon={CircleIcon}
+          iconSize="7px"
           iconOnly
-          label={$message.isSpam ? $t`Mark as not spam` : $t`Mark as spam`}
-          tooltip={$message.isSpam ? $t`This email is *not* spam` : $t`Treat this email as spam: Move it to the Spam folder, and train the spam filter`}
-          onClick={toggleSpam}
+          label={$message.isRead ? $t`Mark this message as unread` : $t`Mark this message as read`}
+          onClick={toggleRead}
           plain
           />
+        {/key}
       </hbox>
-      <hbox class="delete button">
-        <Button
-          icon={DeleteIcon}
-          iconSize="16px"
-          iconOnly
-          label={$t`Delete this message`}
-          onClick={deleteMessage}
-          plain
-          />
+      <!--
+      <hbox class="buttons hover">
+        <hbox class="spam button">
+          <Button
+            icon={$message.isSpam ? NotSpamIcon : SpamIcon}
+            iconSize="16px"
+            iconOnly
+            label={$message.isSpam ? $t`Mark as not spam` : $t`Mark as spam`}
+            tooltip={$message.isSpam ? $t`This email is *not* spam` : $t`Treat this email as spam: Move it to the Spam folder, and train the spam filter`}
+            onClick={toggleSpam}
+            plain
+            />
+        </hbox>
+        <hbox class="delete button">
+          <Button
+            icon={DeleteIcon}
+            iconSize="16px"
+            iconOnly
+            label={$t`Delete this message`}
+            onClick={deleteMessage}
+            plain
+            />
+        </hbox>
       </hbox>
+      -->
     </hbox>
-    -->
-  </hbox>
-  <hbox class="bottom-row">
-    <hbox class="subject font-small">{$message.subject}</hbox>
-    <hbox flex />
-    {#if !isMobile}
-      <hbox class="move button">
-        <Button
-          icon={FolderActionsIcon}
-          iconSize="16px"
-          iconOnly
-          label={$t`Move, tag, or delete`}
-          onClick={onPopupToggle}
-          plain
-          />
-      </hbox>
-    {/if}
-    <hbox class="star button" class:starred={$message.isStarred}>
-      {#key message}
-      <Button
-        icon={StarIcon}
-        iconSize="16px"
-        iconOnly
-        label={$t`Remember this message`}
-        onClick={toggleStar}
-        plain
-        />
-      {/key}
-    </hbox>
-    <hbox class="attachments">
-      {#if $message.hasVisibleAttachments}
-        <AttachmentIcon size="14px" />
+    <hbox class="bottom-row">
+      <hbox class="subject font-small">{$message.subject}</hbox>
+      <hbox flex />
+      {#if !isMobile}
+        <hbox class="move button">
+          <Button
+            icon={FolderActionsIcon}
+            iconSize="16px"
+            iconOnly
+            label={$t`Move, tag, or delete`}
+            onClick={onPopupToggle}
+            plain
+            />
+        </hbox>
       {/if}
+      <hbox class="star button" class:starred={$message.isStarred}>
+        {#key message}
+        <Button
+          icon={StarIcon}
+          iconSize="16px"
+          iconOnly
+          label={$t`Remember this message`}
+          onClick={toggleStar}
+          plain
+          />
+        {/key}
+      </hbox>
+      <hbox class="attachments">
+        {#if $message.hasVisibleAttachments}
+          <AttachmentIcon size="14px" />
+        {/if}
+      </hbox>
     </hbox>
-  </hbox>
-</vbox>
+  </vbox>
+</slot>
 <ContextMenu bind:this={contextMenu}>
   <MessageMenu {message} />
 </ContextMenu>
@@ -165,7 +167,7 @@
   let contextMenu: ContextMenu;
 
   // Popup
-  let popupAnchor: HTMLElement;
+  export let popupAnchor: HTMLElement = null; /** in, optional */
   let popupOpen = false;
   function onPopupToggle(event) {
     popupOpen = !popupOpen;

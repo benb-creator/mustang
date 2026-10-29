@@ -1,98 +1,100 @@
-<hbox class="buttons">
-  {#key message} <!-- Rebuild per mail, otherwise the spinner from the previous mail stays. -->
-  {#if message.isDraft || message.folder?.specialFolder == SpecialFolder.Drafts }
-    <hbox class="draft">
+<slot {recipients} {toggleRead} {toggleStar} {reply} {replyAll} {deleteMessage} {toggleSpam} {editDraft} {printE}>
+  <hbox class="buttons">
+    {#key message} <!-- Rebuild per mail, otherwise the spinner from the previous mail stays. -->
+    {#if message.isDraft || message.folder?.specialFolder == SpecialFolder.Drafts }
+      <hbox class="draft">
+        <Button
+          icon={WriteIcon}
+          iconSize={$appGlobal.isSmall ? "32px" : "24px" }
+          iconOnly={$appGlobal.isSmall}
+          label={$t`Edit draft`}
+          onClick={editDraft}
+          classes="primary"
+          />
+      </hbox>
+    {/if}
+    <hbox class="reply">
       <Button
-        icon={WriteIcon}
-        iconSize={$appGlobal.isSmall ? "32px" : "24px" }
-        iconOnly={$appGlobal.isSmall}
-        label={$t`Edit draft`}
-        onClick={editDraft}
-        classes="primary"
-        />
-    </hbox>
-  {/if}
-  <hbox class="reply">
-    <Button
-      icon={ReplyIcon}
-      iconSize="22px"
-      iconOnly
-      label={$t`Reply to author`}
-      onClick={reply}
-      plain
-      />
-  </hbox>
-  {#if recipients.length > 1 && (message.bcc.isEmpty || message.outgoing)}
-    <hbox class="reply-all">
-      <Button
-        icon={ReplyAllIcon}
+        icon={ReplyIcon}
         iconSize="22px"
         iconOnly
-        label={$t`Reply to all`}
-        onClick={replyAll}
+        label={$t`Reply to author`}
+        onClick={reply}
         plain
         />
     </hbox>
-  {/if}
-  <hbox class="trash">
-    <Button
-      icon={TrashIcon}
-      iconSize="16px"
-      iconOnly
-      label={$t`Delete this message`}
-      onClick={deleteMessage}
-      disabled={!message}
-      plain
-      />
+    {#if recipients.length > 1 && (message.bcc.isEmpty || message.outgoing)}
+      <hbox class="reply-all">
+        <Button
+          icon={ReplyAllIcon}
+          iconSize="22px"
+          iconOnly
+          label={$t`Reply to all`}
+          onClick={replyAll}
+          plain
+          />
+      </hbox>
+    {/if}
+    <hbox class="trash">
+      <Button
+        icon={TrashIcon}
+        iconSize="16px"
+        iconOnly
+        label={$t`Delete this message`}
+        onClick={deleteMessage}
+        disabled={!message}
+        plain
+        />
+    </hbox>
+    <hbox class="spam" class:notspam={$message.isSpam}>
+      <Button
+        icon={$message.isSpam ? NotSpamIcon : SpamIcon}
+        iconSize="16px"
+        iconOnly
+        label={$message.isSpam ? $t`This email is *not* spam` : $t`Treat this email as spam: Move it to the Spam folder, and train the spam filter`}
+        onClick={toggleSpam}
+        disabled={!message}
+        plain
+        />
+    </hbox>
+    <hbox class="unread" class:read={$message.isRead}>
+      <Button
+        icon={CircleIcon}
+        iconSize={$appGlobal.isSmall ? "20px" : "16px" }
+        iconOnly
+        label={$message.isRead ? $t`Mark this message as unread` : $t`Mark this message as read`}
+        onClick={toggleRead}
+        plain
+        />
+    </hbox>
+    <hbox class="star" class:starred={$message.isStarred}>
+      <Button
+        icon={StarIcon}
+        iconSize={$appGlobal.isSmall ? "28px" : "18px" }
+        iconOnly
+        label={$t`Remember this message`}
+        onClick={toggleStar}
+        plain
+        />
+    </hbox>
+    {/key}
+    <hbox class="move button" bind:this={popupAnchorE}>
+      <Button
+        icon={FolderActionsIcon}
+        iconSize="16px"
+        iconOnly
+        label={$t`Move to folder, or add tag`}
+        onClick={onPopupToggle}
+        plain
+        />
+    </hbox>
+    <hbox class="menu button">
+      <ButtonMenu bind:isMenuOpen>
+        <MessageMenu {message} {printE} />
+      </ButtonMenu>
+    </hbox>
   </hbox>
-  <hbox class="spam" class:notspam={$message.isSpam}>
-    <Button
-      icon={$message.isSpam ? NotSpamIcon : SpamIcon}
-      iconSize="16px"
-      iconOnly
-      label={$message.isSpam ? $t`This email is *not* spam` : $t`Treat this email as spam: Move it to the Spam folder, and train the spam filter`}
-      onClick={toggleSpam}
-      disabled={!message}
-      plain
-      />
-  </hbox>
-  <hbox class="unread" class:read={$message.isRead}>
-    <Button
-      icon={CircleIcon}
-      iconSize={$appGlobal.isSmall ? "20px" : "16px" }
-      iconOnly
-      label={$message.isRead ? $t`Mark this message as unread` : $t`Mark this message as read`}
-      onClick={toggleRead}
-      plain
-      />
-  </hbox>
-  <hbox class="star" class:starred={$message.isStarred}>
-    <Button
-      icon={StarIcon}
-      iconSize={$appGlobal.isSmall ? "28px" : "18px" }
-      iconOnly
-      label={$t`Remember this message`}
-      onClick={toggleStar}
-      plain
-      />
-  </hbox>
-  {/key}
-  <hbox class="move button" bind:this={popupAnchorE}>
-    <Button
-      icon={FolderActionsIcon}
-      iconSize="16px"
-      iconOnly
-      label={$t`Move to folder, or add tag`}
-      onClick={onPopupToggle}
-      plain
-      />
-  </hbox>
-  <hbox class="menu button">
-    <ButtonMenu bind:isMenuOpen>
-      <MessageMenu {message} {printE} />
-    </ButtonMenu>
-  </hbox>
-</hbox>
+</slot>
 <Popup bind:popupOpen popupAnchor={popupAnchorE} placement="bottom" boundaryElSel=".message-list-pane">
   <MessageMovePopup messages={new ArrayColl([message])} on:close={onPopupClose} />
 </Popup>

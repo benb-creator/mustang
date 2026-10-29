@@ -97,4 +97,7 @@
     margin-inline-start: 2px;
     margin-inline-end: 2px;
   }
+  :global(.fresh) .menuitem.markasread :global(.icon) {
+    margin-inline: 0 8px;
+  }
 </style>

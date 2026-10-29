@@ -1,43 +1,45 @@
-<hbox class="account" title={errorMsg}
-  on:contextmenu={contextMenu.onContextMenu} {iconSize}>
-  {#if $account.isLoggedIn}
-    <hbox class="icon">
-      {#if account.icon && typeof(account.icon) == "string" }
-        <img src={account.icon}
-          width={iconLogoSize}
-          height={iconLogoSize}
-          alt=""
-          class="logo"
-          />
+<slot {errorMsg} {login} {openSettings} {contextMenu}>
+  <hbox class="account" title={errorMsg}
+    on:contextmenu={contextMenu.onContextMenu} {iconSize}>
+    {#if $account.isLoggedIn}
+      <hbox class="icon">
+        {#if account.icon && typeof(account.icon) == "string" }
+          <img src={account.icon}
+            width={iconLogoSize}
+            height={iconLogoSize}
+            alt=""
+            class="logo"
+            />
+        {:else}
+          <Icon data={MailIcon} size={iconSize} />
+        {/if}
+      </hbox>
+    {:else}
+      <hbox class="icon">
+        <Icon data={MailXIcon} size={iconSize} />
+      </hbox>
+    {/if}
+    <hbox class="label font-small">{$account.name}</hbox>
+    <hbox flex class="buttons">
+      {#if $account.isLoggedIn}
+        <GetMailButton folder={account.inbox} iconSize="14px" />
       {:else}
-        <Icon data={MailIcon} size={iconSize} />
+        <Button
+          label={$t`Login`}
+          icon={DisconnectedIcon}
+          onClick={login}
+          iconSize="16px" plain iconOnly />
+      {/if}
+      {#if account.protocol != "all"}
+        <Button
+          label={$t`Account settings`}
+          icon={SettingsIcon}
+          onClick={openSettings}
+          iconSize="16px" plain iconOnly />
       {/if}
     </hbox>
-  {:else}
-    <hbox class="icon">
-      <Icon data={MailXIcon} size={iconSize} />
-    </hbox>
-  {/if}
-  <hbox class="label font-small">{$account.name}</hbox>
-  <hbox flex class="buttons">
-    {#if $account.isLoggedIn}
-      <GetMailButton folder={account.inbox} iconSize="14px" />
-    {:else}
-      <Button
-        label={$t`Login`}
-        icon={DisconnectedIcon}
-        onClick={login}
-        iconSize="16px" plain iconOnly />
-    {/if}
-    {#if account.protocol != "all"}
-      <Button
-        label={$t`Account settings`}
-        icon={SettingsIcon}
-        onClick={openSettings}
-        iconSize="16px" plain iconOnly />
-    {/if}
   </hbox>
-</hbox>
+</slot>
 
 <ContextMenu bind:this={contextMenu}>
   <AccountMenu {account} />
@@ -124,5 +126,16 @@
   .buttons :global(.get-mail button) {
     padding: 2px;
     border: 1px solid transparent;
+  }
+  :global(.fresh) .account {
+    min-height: var(--nav-row-height);
+    padding-block: 0;
+  }
+  :global(.fresh) .icon :global(path),
+  :global(.fresh) .icon :global(.cls-2) {
+    stroke: var(--fg-2);
+  }
+  :global(.fresh) .label {
+    font-weight: 400;
   }
 </style>

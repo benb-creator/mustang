@@ -1,9 +1,11 @@
 <Splitter name="mail.3pane.folders" initialRightRatio={4}>
   <vbox flex class="folder-pane" slot="left">
-    <AccountList {accounts} bind:selectedAccount>
-      <hbox class="above-accounts" slot="top-right" />
-    </AccountList>
-    <FolderList bind:selectedFolder={folder}  folders={selectedAccount ? selectedAccount.rootFolders : new ArrayColl()} bind:selectedFolders />
+    <slot name="folder-pane" {folders}>
+      <AccountList {accounts} bind:selectedAccount>
+        <hbox class="above-accounts" slot="top-right" />
+      </AccountList>
+      <FolderList bind:selectedFolder={folder}  {folders} bind:selectedFolders />
+    </slot>
   </vbox>
   <vbox class="main" slot="right" flex>
     <hbox class="top">
@@ -63,6 +65,8 @@
   export let accounts: Collection<MailAccount>; /** in */
   export let selectedAccount: MailAccount; /** in/out */
 
+  $: folders = selectedAccount ? selectedAccount.rootFolders : new ArrayColl<Folder>();
+
   let selectedFolders: ArrayColl<Folder>;
   let isCreating = false;
 
@@ -91,5 +95,51 @@
   .buttons {
     align-items: start;
     justify-content: end;
+  }
+  :global(.fresh) .folder-pane {
+    padding-block-start: 8px;
+    background-color: var(--l1-bg);
+    color: var(--l1-fg);
+    box-shadow: inset -1px 0 0 var(--border);
+  }
+  :global(.fresh) .above-accounts {
+    height: 0;
+  }
+  :global(.fresh) .main {
+    margin: 0;
+    padding: 0;
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
+    border-block-start: 1px solid var(--border);
+  }
+  :global(.fresh) .top {
+    flex: none;
+    box-sizing: border-box;
+    min-height: var(--pane-header-height);
+    align-items: start;
+    gap: 8px;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .top h2 {
+    font-size: var(--text-2xl);
+    line-height: var(--line-2xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  :global(.fresh) .subtitle {
+    margin-block: 4px 0;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .top .buttons :global(.button.button.border) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .properties {
+    padding: 16px 24px;
+  }
+  :global(.fresh) .main > .buttons {
+    padding: 0 24px 16px;
   }
 </style>

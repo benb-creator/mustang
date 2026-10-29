@@ -1,30 +1,26 @@
-<hbox class="folder" flex
-  on:drop={(event) => catchErrors(() => onDropMail(event, folder))}
-  on:dragover={(event) => catchErrors(() => onDragOverMail(event, folder))}
-  on:contextmenu={contextMenu.onContextMenu}
-  on:click
-  title={tooltip}
-  >
-  <hbox class="icon">
-    <FolderIcon {folder} size={$appGlobal.isMobile ? "20px" : "14px"} />
-  </hbox>
-  <hbox class="label font-small">
-    {#if !folder.specialFolder || folder.specialFolder == SpecialFolder.Normal || folder.specialFolder == SpecialFolder.Search}
-      {$folder.name}
-    {:else}
-      {specialFolderNames[folder.specialFolder]}
-    {/if}
-  </hbox>
-  <hbox flex />
-  {#if $folder.countNewArrived && isNormalFolderOrInbox}
-    <hbox class="count">
-      {$folder.countNewArrived}
+<slot {folderName} {tooltip} {isNormalFolderOrInbox} {contextMenu}>
+  <hbox class="folder" flex
+    on:drop={(event) => catchErrors(() => onDropMail(event, folder))}
+    on:dragover={(event) => catchErrors(() => onDragOverMail(event, folder))}
+    on:contextmenu={contextMenu.onContextMenu}
+    on:click
+    title={tooltip}
+    >
+    <hbox class="icon">
+      <FolderIcon {folder} size={$appGlobal.isMobile ? "20px" : "14px"} />
     </hbox>
-  {/if}
-  <hbox class="buttons">
-    <slot name="buttons" {folder} />
+    <hbox class="label font-small">{folderName}</hbox>
+    <hbox flex />
+    {#if $folder.countNewArrived && isNormalFolderOrInbox}
+      <hbox class="count">
+        {$folder.countNewArrived}
+      </hbox>
+    {/if}
+    <hbox class="buttons">
+      <slot name="buttons" {folder} />
+    </hbox>
   </hbox>
-</hbox>
+</slot>
 
 <ContextMenu bind:this={contextMenu}>
   <FolderMenu {folder} />
@@ -42,6 +38,13 @@
 
   export let folder: Folder;
 
+  $: folderName = getName($folder);
+  function getName(folder: Folder): string {
+    if (folder.specialFolder && folder.specialFolder != SpecialFolder.Normal && folder.specialFolder != SpecialFolder.Search) {
+      return specialFolderNames[folder.specialFolder];
+    }
+    return folder.name;
+  }
   $: tooltip = gt`${folder.name}\n\n${$folder.countNewArrived} new, ${folder.countUnread} unread, ${folder.countTotal} total`;
   $: isNormalFolderOrInbox = !folder.specialFolder || folder.specialFolder == SpecialFolder.Normal || folder.specialFolder == SpecialFolder.Inbox;
 
@@ -103,5 +106,32 @@
   .buttons :global(.get-mail button) {
     padding: 3px;
     border: 1px solid transparent;
+  }
+  :global(.fresh) .folder {
+    gap: 6px;
+    min-height: var(--nav-row-height);
+    padding-block: 0;
+  }
+  :global(.fresh) .icon {
+    color: var(--fg-2);
+  }
+  :global(.fresh) .label {
+    height: auto;
+    padding-inline-start: 0;
+    font-weight: 400;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .count {
+    height: 18px;
+    min-width: 18px;
+    box-sizing: border-box;
+    padding: 0 6px;
+    border-radius: 9px;
+    background-color: var(--signal);
+    color: var(--fg-on-signal);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
 </style>

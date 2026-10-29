@@ -1,109 +1,111 @@
 <!-- If you change the columns here, also change the `FastList.columns` in TableMessageList.svelte -->
-<hbox class="direction" style="--account-color: {$message.folder.account.color}" class:read={$message.isRead}
-  on:contextmenu={contextMenu.onContextMenu}
-  >
-  {#if $message.isSending}
-    <SendingIcon size={16} class="sending" />
-  {:else if $message.outgoing}
-    <OutgoingIcon size={16} class="outgoing" />
-  {:else if $message.isReplied}
-    <ReplyIcon size={16} class="reply" />
-  {:else if $message.isForwarded}
-    <ForwardIcon size={16} class="forward" />
-  {:else if $message.isImportant}
-    <ImportantIcon size={16} class="important" />
-  {:else}
-    <hbox class="unread-dot button" class:unread={!$message.isRead}>
-      {#key message} <!-- Rebuild per mail, otherwise the spinner from the previous mail stays. -->
+<slot {contactName} {toggleRead} {toggleStar} {toggleSpam} {deleteMessage} {onPopupToggle} {contextMenu}>
+  <hbox class="direction" style="--account-color: {$message.folder.account.color}" class:read={$message.isRead}
+    on:contextmenu={contextMenu.onContextMenu}
+    >
+    {#if $message.isSending}
+      <SendingIcon size={16} class="sending" />
+    {:else if $message.outgoing}
+      <OutgoingIcon size={16} class="outgoing" />
+    {:else if $message.isReplied}
+      <ReplyIcon size={16} class="reply" />
+    {:else if $message.isForwarded}
+      <ForwardIcon size={16} class="forward" />
+    {:else if $message.isImportant}
+      <ImportantIcon size={16} class="important" />
+    {:else}
+      <hbox class="unread-dot button" class:unread={!$message.isRead}>
+        {#key message} <!-- Rebuild per mail, otherwise the spinner from the previous mail stays. -->
+        <Button
+          icon={CircleIcon}
+          iconSize="7px"
+          iconOnly
+          label={$message.isRead ? $t`Mark this message as unread` : $t`Mark this message as read`}
+          onClick={toggleRead}
+          plain
+          />
+        {/key}
+      </hbox>
+    {/if}
+  </hbox>
+  <hbox class="attachment" on:contextmenu={contextMenu.onContextMenu}>
+    {#if $message.hasVisibleAttachments}
+      <AttachmentIcon size="12px" />
+    {/if}
+  </hbox>
+  <hbox class="correspondent"
+    class:unread={!$message.isRead}
+    draggable="true"
+    on:dragstart={(event) => catchErrors(() => onDragStartMail(event, message))}
+    on:contextmenu={contextMenu.onContextMenu}
+    >{contactName}</hbox>
+  <hbox class="subject-tags" on:contextmenu={contextMenu.onContextMenu}>
+    <hbox class="subject"
+      class:unread={!$message.isRead}
+      draggable="true"
+      on:dragstart={(event) => catchErrors(() => onDragStartMail(event, message))}
+      >{$message.subject}</hbox>
+    <hbox flex />
+    <hbox class="tags" class:tagged={$tags.hasItems}>
+      {#if $tags.hasItems}
+        <TagSelector tags={$tags} object={message} canAdd={false} />
+      {/if}
+    </hbox>
+    <hbox class="star button" class:starred={$message.isStarred}>
+      {#key message}
       <Button
-        icon={CircleIcon}
-        iconSize="7px"
+        icon={StarIcon}
+        iconSize="16px"
         iconOnly
-        label={$message.isRead ? $t`Mark this message as unread` : $t`Mark this message as read`}
-        onClick={toggleRead}
+        label={$t`Remember this message`}
+        onClick={toggleStar}
         plain
         />
       {/key}
     </hbox>
-  {/if}
-</hbox>
-<hbox class="attachment" on:contextmenu={contextMenu.onContextMenu}>
-  {#if $message.hasVisibleAttachments}
-    <AttachmentIcon size="12px" />
-  {/if}
-</hbox>
-<hbox class="correspondent"
-  class:unread={!$message.isRead}
-  draggable="true"
-  on:dragstart={(event) => catchErrors(() => onDragStartMail(event, message))}
-  on:contextmenu={contextMenu.onContextMenu}
-  >{contactName}</hbox>
-<hbox class="subject-tags" on:contextmenu={contextMenu.onContextMenu}>
-  <hbox class="subject"
+  </hbox>
+  <hbox class="date"
     class:unread={!$message.isRead}
     draggable="true"
     on:dragstart={(event) => catchErrors(() => onDragStartMail(event, message))}
-    >{$message.subject}</hbox>
-  <hbox flex />
-  <hbox class="tags" class:tagged={$tags.hasItems}>
-    {#if $tags.hasItems}
-      <TagSelector tags={$tags} object={message} canAdd={false} />
-    {/if}
-  </hbox>
-  <hbox class="star button" class:starred={$message.isStarred}>
+    on:contextmenu={contextMenu.onContextMenu}
+    >{getDateTimeString($message.sent)}</hbox>
+  <hbox class="buttons hover" on:contextmenu={contextMenu.onContextMenu}>
+    <hbox class="move button" bind:this={popupAnchor}>
+      <Button
+        icon={FolderActionsIcon}
+        iconSize="16px"
+        iconOnly
+        label={$t`Move to folder, or add tag`}
+        onClick={onPopupToggle}
+        plain
+        />
+    </hbox>
     {#key message}
-    <Button
-      icon={StarIcon}
-      iconSize="16px"
-      iconOnly
-      label={$t`Remember this message`}
-      onClick={toggleStar}
-      plain
-      />
+    <hbox class="spam button">
+      <Button
+        icon={$message.isSpam ? NotSpamIcon : SpamIcon}
+        iconSize="16px"
+        iconOnly
+        label={$message.isSpam ? $t`Mark as not spam` : $t`Mark as spam`}
+        tooltip={$message.isSpam ? $t`This email is *not* spam` : $t`Treat this email as spam: Move it to the Spam folder, and train the spam filter`}
+        onClick={toggleSpam}
+        plain
+        />
+    </hbox>
+    <hbox class="delete button">
+      <Button
+        icon={DeleteIcon}
+        iconSize="16px"
+        iconOnly
+        label={$t`Delete this message`}
+        onClick={deleteMessage}
+        plain
+        />
+    </hbox>
     {/key}
   </hbox>
-</hbox>
-<hbox class="date"
-  class:unread={!$message.isRead}
-  draggable="true"
-  on:dragstart={(event) => catchErrors(() => onDragStartMail(event, message))}
-  on:contextmenu={contextMenu.onContextMenu}
-  >{getDateTimeString($message.sent)}</hbox>
-<hbox class="buttons hover" on:contextmenu={contextMenu.onContextMenu}>
-  <hbox class="move button" bind:this={popupAnchor}>
-    <Button
-      icon={FolderActionsIcon}
-      iconSize="16px"
-      iconOnly
-      label={$t`Move to folder, or add tag`}
-      onClick={onPopupToggle}
-      plain
-      />
-  </hbox>
-  {#key message}
-  <hbox class="spam button">
-    <Button
-      icon={$message.isSpam ? NotSpamIcon : SpamIcon}
-      iconSize="16px"
-      iconOnly
-      label={$message.isSpam ? $t`Mark as not spam` : $t`Mark as spam`}
-      tooltip={$message.isSpam ? $t`This email is *not* spam` : $t`Treat this email as spam: Move it to the Spam folder, and train the spam filter`}
-      onClick={toggleSpam}
-      plain
-      />
-  </hbox>
-  <hbox class="delete button">
-    <Button
-      icon={DeleteIcon}
-      iconSize="16px"
-      iconOnly
-      label={$t`Delete this message`}
-      onClick={deleteMessage}
-      plain
-      />
-  </hbox>
-  {/key}
-</hbox>
+</slot>
 
 <ContextMenu bind:this={contextMenu}>
   <MessageMenu {message} />
@@ -165,7 +167,7 @@
   let contextMenu: ContextMenu;
 
   // Popup
-  let popupAnchor: HTMLElement;
+  export let popupAnchor: HTMLElement = null; /** in, optional */
   let popupOpen = false;
   function onPopupToggle(event) {
     popupOpen = !popupOpen;

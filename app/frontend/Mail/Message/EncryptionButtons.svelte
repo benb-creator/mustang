@@ -82,4 +82,25 @@
   .signed.key-personal :global(.button svg) {
     stroke-width: 3px;
   }
+  :global(.fresh) .signed {
+    align-items: center;
+    margin: 0;
+  }
+  :global(.fresh) .signed :global(.button.button) {
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: var(--radius-s);
+  }
+  :global(.fresh) .signed.key-sender :global(.button.button) {
+    background-color: var(--warning-tint);
+    color: var(--warning-fg);
+  }
+  :global(.fresh) .signed.key-third-party :global(.button.button) {
+    background-color: var(--accent-tint);
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .signed.key-personal :global(.button.button) {
+    background-color: var(--success-tint);
+    color: var(--success-fg);
+  }
 </style>

@@ -1,91 +1,93 @@
-<vbox class="message-header"
-  class:outgoing={$message.outgoing}
-  on:swipeleft={onPreviousMessage}
-  on:swiperight={onNextMessage}
-  >
-  <hbox>
-    {#if $message.contact instanceof Person && $message.contact.picture}
-      <PersonPicture person={$message.contact} />
-    {/if}
-    <hbox class="from">
-      {#if $message.outgoing}
-        <value class="from" title={$message.from.emailAddress}>
-          {$t`me *=> myself as sender of the email`}
-        </value>
-      {:else}
-        <Recipient recipient={$message.from} />
+<slot {onTagRemove}>
+  <vbox class="message-header"
+    class:outgoing={$message.outgoing}
+    on:swipeleft={onPreviousMessage}
+    on:swiperight={onNextMessage}
+    >
+    <hbox>
+      {#if $message.contact instanceof Person && $message.contact.picture}
+        <PersonPicture person={$message.contact} />
       {/if}
-      <EncryptionButtons {message} bind:isExpanded={isEncryptionExpanded} />
-    </hbox>
-    <hbox flex />
-    <vbox class="top-right">
-      <MessageToolbar {message} />
-      <hbox>
-        {#if $tags.hasItems}
-          <hbox class="tags">
-            <TagSelector tags={$tags} object={message} canAdd={false}>
-              <RoundButton
-                slot="tag-button"
-                let:tag
-                label={$t`Remove`}
-                onClick={() => onTagRemove(tag)}
-                icon={RemoveIcon}
-                classes="small remove"
-                iconSize="12px"
-                padding="0px"
-                border={false}
-                />
-            </TagSelector>
-          </hbox>
+      <hbox class="from">
+        {#if $message.outgoing}
+          <value class="from" title={$message.from.emailAddress}>
+            {$t`me *=> myself as sender of the email`}
+          </value>
+        {:else}
+          <Recipient recipient={$message.from} />
         {/if}
+        <EncryptionButtons {message} bind:isExpanded={isEncryptionExpanded} />
       </hbox>
-    </vbox>
-  </hbox>
-  {#if isEncryptionExpanded}
-    <EncryptionDetails {message} bind:isExpanded={isEncryptionExpanded} />
-  {/if}
-  <vbox class="recipients">
-    {#if $message.to.hasItems}
-      <hbox class="to font-small">
-        <hbox class="label">{$t`to`}</hbox>
-        <RecipientsList recipients={$message.to} />
-      </hbox>
-    {/if}
-    {#if $message.cc.hasItems}
-      <hbox class="cc font-small">
-        <hbox class="label">{$t`cc`}</hbox>
-        <RecipientsList recipients={$message.cc} />
-      </hbox>
-    {/if}
-    {#if $message.bcc.hasItems}
-      <hbox class="bcc font-small">
-        <hbox class="label">{$t`bcc`}</hbox>
-        <RecipientsList recipients={$message.bcc} />
-      </hbox>
-    {/if}
-  </vbox>
-  <hbox class="subject-line">
-    <value class="subject">{$message.subject}</value>
-    <hbox flex />
-    <value class="date font-small" title={$message.sent?.toLocaleString(getDateTimeLocale())}>
-      {getDateTimeString($message.sent)}
-    </value>
-    {#if !$appGlobal.isSmall}
-      <vbox class="display-mode">
-        <DisplayModeSwitcher />
+      <hbox flex />
+      <vbox class="top-right">
+        <MessageToolbar {message} />
+        <hbox>
+          {#if $tags.hasItems}
+            <hbox class="tags">
+              <TagSelector tags={$tags} object={message} canAdd={false}>
+                <RoundButton
+                  slot="tag-button"
+                  let:tag
+                  label={$t`Remove`}
+                  onClick={() => onTagRemove(tag)}
+                  icon={RemoveIcon}
+                  classes="small remove"
+                  iconSize="12px"
+                  padding="0px"
+                  border={false}
+                  />
+              </TagSelector>
+            </hbox>
+          {/if}
+        </hbox>
       </vbox>
+    </hbox>
+    {#if isEncryptionExpanded}
+      <EncryptionDetails {message} bind:isExpanded={isEncryptionExpanded} />
     {/if}
-  </hbox>
-  {#if message.to.isEmpty || message.from.emailAddress == kDummyPerson.emailAddress}
-  {#await message.loadForDisplay()}
-    <!-- Subject etc. are loaded by search,
-      and body is loaded by MessageBody calling message.loadBody(),
-      but not to/from etc. -->
-  {:catch ex}
-    <ErrorMessageInline {ex} />
-  {/await}
-{/if}
-</vbox>
+    <vbox class="recipients">
+      {#if $message.to.hasItems}
+        <hbox class="to font-small">
+          <hbox class="label">{$t`to`}</hbox>
+          <RecipientsList recipients={$message.to} />
+        </hbox>
+      {/if}
+      {#if $message.cc.hasItems}
+        <hbox class="cc font-small">
+          <hbox class="label">{$t`cc`}</hbox>
+          <RecipientsList recipients={$message.cc} />
+        </hbox>
+      {/if}
+      {#if $message.bcc.hasItems}
+        <hbox class="bcc font-small">
+          <hbox class="label">{$t`bcc`}</hbox>
+          <RecipientsList recipients={$message.bcc} />
+        </hbox>
+      {/if}
+    </vbox>
+    <hbox class="subject-line">
+      <value class="subject">{$message.subject}</value>
+      <hbox flex />
+      <value class="date font-small" title={$message.sent?.toLocaleString(getDateTimeLocale())}>
+        {getDateTimeString($message.sent)}
+      </value>
+      {#if !$appGlobal.isSmall}
+        <vbox class="display-mode">
+          <DisplayModeSwitcher />
+        </vbox>
+      {/if}
+    </hbox>
+    {#if message.to.isEmpty || message.from.emailAddress == kDummyPerson.emailAddress}
+    {#await message.loadForDisplay()}
+      <!-- Subject etc. are loaded by search,
+        and body is loaded by MessageBody calling message.loadBody(),
+        but not to/from etc. -->
+    {:catch ex}
+      <ErrorMessageInline {ex} />
+    {/await}
+  {/if}
+  </vbox>
+</slot>
 
 <script lang="ts">
   import type { EMail } from "../../../logic/Mail/EMail";
@@ -140,7 +142,7 @@
     clearTimeout(readTimeout);
   });
 
-  let isEncryptionExpanded = false;
+  export let isEncryptionExpanded = false; /** in/out */
   $: $message, closeEncryption()
   function closeEncryption() {
     isEncryptionExpanded = false;

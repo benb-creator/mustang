@@ -38,4 +38,16 @@
     padding-inline-end: 8px;
     opacity: 70%;
   }
+  :global(.fresh) .msg-count {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0;
+    opacity: 1;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
 </style>

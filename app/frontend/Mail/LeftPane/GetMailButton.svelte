@@ -92,4 +92,20 @@
       transform: translateY(-3px);
     }
   }
+  :global(.fresh) .get-mail :global(.button.button.border),
+  :global(.fresh) .get-mail :global(.button.button.border:hover:not(.disabled)) {
+    border-color: transparent;
+    background-color: transparent;
+  }
+  :global(.fresh) .get-mail.new :global(svg) {
+    color: var(--signal-strong);
+    stroke-width: 2.5px;
+  }
+  :global(.fresh) .get-mail.done :global(svg) {
+    color: var(--success-fg);
+    stroke-width: 2.5px;
+  }
+  :global(.fresh) .get-mail.error :global(svg) {
+    color: var(--danger-fg);
+  }
 </style>
