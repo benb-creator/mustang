@@ -17,4 +17,17 @@
     color: #8583A8;
     font-weight: 300;
   }
+  :global(.fresh) .footer {
+    gap: 16px;
+    margin-block-start: 16px;
+  }
+  :global(.fresh) .footer a[href] {
+    margin: 0;
+    color: var(--fg-3);
+    font-size: var(--text-s);
+    font-weight: 400;
+  }
+  :global(.fresh) .footer a[href]:hover {
+    color: var(--accent-fg);
+  }
 </style>

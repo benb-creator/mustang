@@ -74,4 +74,33 @@
     margin-block-end: 4px;
     font-weight: 400;
   }
+  :global(.fresh) .name,
+  :global(.fresh) .realname {
+    align-items: center;
+    margin-block-start: 20px;
+  }
+  :global(.fresh) .name input,
+  :global(.fresh) .realname input {
+    height: var(--control-height-l);
+    margin: 0;
+    padding-inline-start: 10px;
+    font-size: var(--text-l) !important; /* The classic rule is !important */
+  }
+  :global(.fresh) .subtitle {
+    margin-block-start: 4px;
+    color: var(--fg-2);
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 400;
+  }
+  :global(.fresh) .subtitle .label {
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .workspace {
+    margin-block-start: 20px;
+  }
+  :global(.fresh) .workspace .expander {
+    font-weight: 600;
+  }
 </style>

@@ -57,4 +57,22 @@
   .buttons {
     min-width: 32px;
   }
+  :global(.fresh) .password {
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+  :global(.fresh) .password input {
+    height: var(--control-height);
+  }
+  :global(.fresh .mail-address) + .password {
+    margin-block-end: 12px;
+  }
+  :global(.fresh .mail-address) + .password input {
+    height: var(--control-height-l);
+    font-size: var(--text-l);
+  }
+  :global(.fresh .mail-address) + .password .buttons {
+    min-width: 56px;
+  }
 </style>

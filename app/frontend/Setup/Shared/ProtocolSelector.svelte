@@ -37,4 +37,37 @@
   .name {
     margin-inline-start: 8px;
   }
+  :global(.fresh) .protocol-selector {
+    align-items: stretch;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+  }
+  :global(.fresh) .protocol {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .protocol:hover {
+    border-color: var(--fg-3);
+  }
+  :global(.fresh) .protocol:has(input:checked) {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .protocol input {
+    margin: 0;
+  }
+  :global(.fresh) .name {
+    margin: 0;
+  }
 </style>

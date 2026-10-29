@@ -285,4 +285,34 @@
   .setup-mail-window :global(input::placeholder) {
     font-weight: 300;
   }
+  :global(.fresh) .setup-mail-window {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  :global(.fresh) .page-box {
+    flex: none;
+    box-sizing: border-box;
+    width: 560px;
+    max-width: 100%;
+    padding: 32px 40px 24px;
+    border-radius: var(--radius-l);
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
+    box-shadow: var(--shadow-pop);
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+  }
+  :global(.fresh) .page-box[step="3"],
+  :global(.fresh) .page-box[step="8"],
+  :global(.fresh) .page-box[step="10"] {
+    width: 720px;
+    max-width: 100%;
+  }
+  :global(.fresh) .setup-mail-window :global(input) {
+    font-size: var(--text-l);
+  }
+  :global(.fresh) .setup-mail-window :global(input::placeholder) {
+    font-weight: 400;
+  }
 </style>

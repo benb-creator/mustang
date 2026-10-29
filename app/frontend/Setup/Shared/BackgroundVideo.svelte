@@ -51,4 +51,8 @@
     bottom: 10px;
     z-index: 1;
   }
+  :global(.fresh) .background-video,
+  :global(.fresh) .button {
+    display: none;
+  }
 </style>

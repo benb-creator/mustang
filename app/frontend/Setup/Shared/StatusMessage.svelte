@@ -80,4 +80,63 @@
   .icon {
     margin-inline-end: 6px;
   }
+  :global(.fresh) .status {
+    margin-block: 12px;
+  }
+  :global(.fresh) .box {
+    align-items: center;
+    gap: 8px;
+    margin-inline: 0;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-m);
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+  }
+  :global(.fresh) .spinner {
+    margin: 0 8px 0 0;
+  }
+  :global(.fresh) .icon {
+    margin-inline-end: 0;
+  }
+  :global(.fresh) .icon :global(svg) {
+    width: 16px;
+    height: 16px;
+  }
+  :global(.fresh) .success .box {
+    border-color: color-mix(in srgb, var(--success-fg) 30%, transparent);
+    background-color: var(--success-tint);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .success .icon {
+    color: var(--success-fg);
+  }
+  :global(.fresh) .processing .box {
+    margin-inline: 0;
+    padding-inline: 0;
+    background-color: transparent;
+    color: var(--fg-2);
+    font-size: var(--text-l);
+  }
+  :global(.fresh) .warning .box {
+    max-width: none;
+    border-color: color-mix(in srgb, var(--warning-fg) 30%, transparent);
+    background-color: var(--warning-tint);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .warning .icon {
+    color: var(--warning-fg);
+  }
+  :global(.fresh) .error .box {
+    max-width: none;
+    border-color: color-mix(in srgb, var(--danger-fg) 30%, transparent);
+    background-color: var(--danger-tint);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .error .icon {
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .error .box :global(.button) {
+    color: var(--danger-fg);
+  }
 </style>

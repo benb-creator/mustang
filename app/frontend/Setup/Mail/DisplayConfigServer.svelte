@@ -80,4 +80,23 @@
   .tls-warning {
     color: red;
   }
+  :global(.fresh) .direction {
+    color: var(--fg-3);
+  }
+  :global(.fresh) .protocol,
+  :global(.fresh) .tls {
+    opacity: 1;
+    color: var(--fg-2);
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .hostname {
+    color: var(--fg-1);
+  }
+  :global(.fresh) .tls-icon {
+    color: var(--success-fg);
+  }
+  :global(.fresh) .tls-icon:not(.has-encryption),
+  :global(.fresh) .tls-warning {
+    color: var(--danger-fg);
+  }
 </style>

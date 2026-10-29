@@ -58,4 +58,41 @@
     margin-inline-start: 8px;
     color: black;
   }
+  :global(.fresh) .hint {
+    opacity: 1;
+    color: var(--fg-2);
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+  }
+  :global(.fresh) .workspaces-box {
+    margin: 12px 0 0;
+    padding: 0;
+  }
+  :global(.fresh) .workspaces {
+    gap: 8px;
+  }
+  :global(.fresh) .workspace {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    min-height: var(--control-height);
+    margin: 0;
+    padding: 0 12px 0 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background-image: linear-gradient(to right, transparent 0 4px, color-mix(in srgb, var(--l3-bg) 82%, transparent) 4px);
+    color: var(--fg-1);
+    cursor: pointer;
+  }
+  :global(.fresh[dir="rtl"]) .workspace {
+    background-image: linear-gradient(to left, transparent 0 4px, color-mix(in srgb, var(--l3-bg) 82%, transparent) 4px);
+  }
+  :global(.fresh) .workspace:has(input:checked) {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .workspace input {
+    margin: 0;
+  }
 </style>

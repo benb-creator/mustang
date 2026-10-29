@@ -71,4 +71,23 @@
   .icon.valid {
     color: var(--selected-bg);
   }
+  :global(.fresh) .mail-address {
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+  }
+  :global(.fresh) .mail-address input {
+    height: var(--control-height-l);
+    font-size: var(--text-l);
+  }
+  :global(.fresh) .mail-address input:invalid {
+    border-color: var(--danger-fg);
+  }
+  :global(.fresh) .icon {
+    gap: 2px;
+    min-width: 56px;
+  }
+  :global(.fresh) .icon.valid {
+    color: var(--success-fg);
+  }
 </style>

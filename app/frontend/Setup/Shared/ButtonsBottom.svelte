@@ -1,18 +1,18 @@
 <hbox class="buttons">
   <slot />
   {#if showReset}
-    <Button label={$t`Start over`} classes="secondary"
+    <Button label={$t`Start over`} classes="secondary reset"
       onClick={onReset}
       {errorCallback}
       />
   {/if}
   {#if canCancel}
-    <Button label={$t`Cancel`} classes="secondary"
+    <Button label={$t`Cancel`} classes="secondary cancel"
       onClick={onCancel}
       {errorCallback}
       />
   {/if}
-  <hbox flex />
+  <hbox flex class="spacer" />
   {#if showContinue}
     <Button label={labelContinue ?? $t`Next`} classes="filled large"
       disabled={!canContinue}
@@ -68,5 +68,32 @@
     .buttons :global(button.secondary) {
       border-color: #222222;
     }
+  }
+  :global(.fresh) .buttons {
+    align-items: center;
+    gap: 8px;
+    margin-block-start: 24px;
+  }
+  :global(.fresh) .buttons :global(> *) {
+    margin-inline-end: 0;
+  }
+  :global(.fresh) .buttons :global(button.secondary) {
+    padding: 0 12px;
+    border-color: var(--border-control);
+    background-color: var(--btn-sec-bg);
+    font-weight: 500;
+  }
+  :global(.fresh) .buttons :global(button.secondary:not(.disabled)) {
+    opacity: 1;
+  }
+  :global(.fresh) .buttons :global(button.secondary .label) {
+    margin: 0;
+  }
+  :global(.fresh) .buttons :global(.button.reset),
+  :global(.fresh) .buttons :global(.button.cancel) {
+    order: -2;
+  }
+  :global(.fresh) .spacer {
+    order: -1;
   }
 </style>

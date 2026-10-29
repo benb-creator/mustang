@@ -95,4 +95,48 @@
     font-weight: 300;
     color: #455468;
   }
+  :global(.fresh) .add-buttons {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  :global(.fresh) .add-buttons :global(.expander-button) {
+    margin: 0;
+  }
+  :global(.fresh) .add-buttons :global(.expander-button .content) {
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px 16px;
+    border-color: var(--border);
+    background-color: var(--l3-bg);
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+    font-weight: 600;
+    text-align: start;
+    white-space: normal;
+  }
+  :global(.fresh) .add-buttons :global(.expander-button .content .add) {
+    order: -1;
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .add-buttons :global(.expander-button .content svg) {
+    width: 20px;
+    height: 20px;
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .add-buttons :global(button:hover:not(.disabled) .content) {
+    border-color: var(--accent-border);
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .buttons-bottom {
+    align-items: center;
+    margin-block-start: 24px;
+  }
+  :global(.fresh) .buttons-bottom :global(> *) {
+    margin-inline-end: 0;
+  }
+  :global(.fresh) .buttons-bottom :global(button.secondary) {
+    background-color: var(--btn-sec-bg);
+    font-weight: 500;
+    color: var(--fg-1);
+  }
 </style>

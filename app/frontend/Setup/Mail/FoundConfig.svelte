@@ -82,4 +82,44 @@
   .protocol {
     margin-inline-start: 8px;
   }
+  :global(.fresh) .display.single {
+    justify-content: start;
+    margin-block: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .configs {
+    gap: 8px;
+    margin-block-start: 16px;
+  }
+  :global(.fresh) .alt {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .alt:has(.protocol input:checked) {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .protocol-header {
+    min-height: 44px;
+    align-items: center;
+  }
+  :global(.fresh) .protocol {
+    display: flex;
+    flex: 1 0 0;
+    align-items: center;
+    gap: 10px;
+    align-self: stretch;
+    margin: 0;
+    padding: 0 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  :global(.fresh) .protocol input {
+    margin: 0;
+  }
+  :global(.fresh) .alt .display {
+    margin: 0 14px 12px 40px;
+  }
 </style>
