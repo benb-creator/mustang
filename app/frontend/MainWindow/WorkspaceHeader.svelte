@@ -81,4 +81,29 @@
       background-color: var(--windowheader-bg);
     }
   }
+  :global(.fresh) .workspace {
+    height: var(--control-height);
+    box-sizing: border-box;
+    gap: var(--space-1-5);
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-m);
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    color: inherit;
+    cursor: pointer;
+  }
+  :global(.fresh) .workspace:hover {
+    background-color: var(--row-hover);
+    color: inherit;
+  }
+  :global(.fresh) .dot {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg-1) 20%, transparent);
+    min-width: 10px;
+    min-height: 10px;
+    margin-inline-end: 0;
+    border-radius: 2px;
+  }
+  :global(.fresh) .label {
+    white-space: nowrap;
+  }
 </style>

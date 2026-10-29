@@ -1,47 +1,78 @@
+<!-- <copied to="../../lookout/AppsBar/AppContentRoutes.svelte"> -->
 <vbox flex class="app-frame">
   <Route path="mail/*">
-    <MailAppRoutes />
+    <slot name="mail">
+      <MailAppRoutes />
+    </slot>
   </Route>
   <Route path="chat/*">
-    <ChatRoutes />
+    <slot name="chat">
+      <ChatRoutes />
+    </slot>
   </Route>
   <Route path="contacts/*">
-    <ContactsAppRoutes />
+    <slot name="contacts">
+      <ContactsAppRoutes />
+    </slot>
   </Route>
   <Route path="calendar/*">
-    <CalendarRoutes />
+    <slot name="calendar">
+      <CalendarRoutes />
+    </slot>
   </Route>
   <Route path="files/*">
-    <FilesAppRoutes />
+    <slot name="files">
+      <FilesAppRoutes />
+    </slot>
   </Route>
   <Route path="meet/*">
-    <MeetAppRoutes />
+    <vbox flex class="page">
+      <MeetAppRoutes />
+    </vbox>
   </Route>
   <Route path="topic/*">
-    <TopicRoutes />
+    <vbox flex class="page">
+      <slot name="topic">
+        <TopicRoutes />
+      </slot>
+    </vbox>
   </Route>
   <Route path="webapp/*">
-    <WebAppsRoutes />
+    <vbox flex class="page">
+      <WebAppsRoutes />
+    </vbox>
   </Route>
   <Route path="settings/*">
-    <SettingsRoutes />
+    <slot name="settings">
+      <SettingsRoutes />
+    </slot>
   </Route>
   // #if [!WEBMAIL]
   <Route path="setup/*">
-    <SetupRoutes />
+    <vbox flex class="setup-canvas">
+      <slot name="setup-background" />
+      <SetupRoutes />
+    </vbox>
   </Route>
   // #endif
   <Route path="login/">
-    <OAuth2EmbeddedBrowser dialog={params?.dialog ?? requiredParam()} />
+    <vbox flex class="page">
+      <OAuth2EmbeddedBrowser dialog={params?.dialog ?? requiredParam()} />
+    </vbox>
   </Route>
   <Route path="app-menu/">
-    <AppMenu />
+    <vbox flex class="page">
+      <AppMenu />
+    </vbox>
   </Route>
   <Route path="/">
     <!-- default, on app start-->
-    <MailAppRoutes />
+    <slot name="mail">
+      <MailAppRoutes />
+    </slot>
   </Route>
 </vbox>
+<!-- </copied> -->
 
 <script lang="ts">
   import AppMenu from "./AppMenuM/AppMenu.svelte";
@@ -62,6 +93,35 @@
   import { requiredParam } from "../Util/route";
   import { Route, useLocation } from "svelte-navigator";
 
+  /* <copied to="../../lookout/AppsBar/AppContentRoutes.svelte"> */
   $: location = useLocation();
   $: params = getParams($location?.state);
+  /* </copied> */
 </script>
+
+<style>
+  .page,
+  .setup-canvas {
+    display: contents;
+  }
+  :global(.fresh) .app-frame {
+    min-width: 0;
+    min-height: 0;
+  }
+  :global(.fresh) .page {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    border-block-start: 1px solid var(--border);
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
+  }
+  :global(.fresh) .setup-canvas {
+    display: flex;
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+    min-height: 0;
+    background-color: var(--l1-bg);
+  }
+</style>

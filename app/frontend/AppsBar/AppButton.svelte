@@ -64,4 +64,53 @@
   .selected .label {
     color: black;
   }
+  :global(.fresh) .app-button {
+    flex: 0 0 auto;
+    height: 56px;
+    box-sizing: border-box;
+    justify-content: center;
+    margin-inline-start: 6px;
+    border-start-start-radius: var(--radius-l);
+    border-end-start-radius: var(--radius-l);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .app-button.padding {
+    padding: 0;
+  }
+  :global(.fresh) .icon,
+  :global(.fresh) .label,
+  :global(.fresh) .label :global(.label) {
+    color: var(--spine-fg);
+  }
+  :global(.fresh) .icon :global(.cls-1) {
+    stroke: currentColor;
+  }
+  :global(.fresh) .label {
+    margin-block-start: var(--space-1);
+    font-size: var(--text-xs);
+    line-height: var(--line-xs);
+    font-weight: 600;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .app-button:hover {
+    background-color: var(--spine-hover-bg);
+  }
+  :global(.fresh) .app-button:hover .label,
+  :global(.fresh) .app-button:hover .icon {
+    color: var(--spine-fg-active);
+  }
+  :global(.fresh) .app-button.selected {
+    background-color: var(--l1-bg);
+  }
+  :global(.fresh) .app-button.selected .label,
+  :global(.fresh) .app-button.selected .label :global(> .label) {
+    color: var(--l1-fg);
+  }
+  :global(.fresh) .app-button.selected .icon {
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .app-button.selected .icon :global(.cls-1) {
+    stroke: currentColor;
+  }
 </style>

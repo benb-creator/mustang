@@ -166,4 +166,111 @@
   :global([dir="rtl"]) .mac .search-box {
     padding-inline-end: 0px;
   }
+  :global(.fresh) .window-header {
+    flex: 0 0 auto;
+    height: var(--topbar-height);
+    box-sizing: border-box;
+    align-items: center;
+    padding-inline-start: var(--space-4);
+    background-color: var(--l1-bg);
+    color: var(--l1-fg);
+    container: topbar / inline-size;
+  }
+  :global(.fresh:not([dir="rtl"])) .window-header.mac.os-rtl,
+  :global(.fresh[dir="rtl"]) .window-header.mac:not(.os-rtl) {
+    padding-inline-end: 80px;
+  }
+  :global(.fresh) .app-logo {
+    display: none;
+  }
+  :global(.fresh) .app-title {
+    order: 1;
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding-inline-end: var(--space-4);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+    color: inherit;
+  }
+  :global(.fresh) .search-box {
+    order: 2;
+    flex: 0 1 360px;
+    min-width: 160px;
+    padding: 0;
+    background-image: none;
+  }
+  @container topbar (min-width: 1280px) {
+    :global(.fresh) .search-box {
+      flex-basis: 480px;
+    }
+  }
+  :global(.fresh) .free {
+    order: 3;
+    align-self: stretch;
+  }
+  :global(.fresh) .workspace {
+    order: 4;
+  }
+  :global(.fresh) .right {
+    order: 5;
+    align-self: stretch;
+    padding: 0;
+    margin-inline-start: var(--space-2);
+    background-color: transparent;
+  }
+  :global(.fresh) .window-header :global(.search) {
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    height: 32px;
+    margin: 0;
+    padding-inline-start: 10px;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-m);
+    outline: none;
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .window-header :global(.search:has(input:focus)) {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .window-header :global(.search input),
+  :global(.fresh) .window-header :global(.search:not(.has-search) input) {
+    background-color: transparent;
+    color: var(--fg-1);
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .window-header :global(.search svg) {
+    color: var(--fg-3);
+  }
+  :global(.fresh) .window-header .right :global(.button.plain.icon-only) {
+    width: 44px;
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    background-image: none;
+    color: inherit;
+  }
+  :global(.fresh) .window-header .right :global(.button.plain.icon-only:hover:not(.disabled)) {
+    background-color: transparent;
+    background-image: linear-gradient(var(--row-hover), var(--row-hover));
+    color: inherit;
+  }
+  :global(.fresh) .window-header .right :global(.button.plain.icon-only.close:hover:not(.disabled)) {
+    background-color: var(--danger);
+    background-image: none;
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .window-header .right :global(.minimize svg) {
+    margin-block-start: 0;
+  }
 </style>

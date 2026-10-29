@@ -62,4 +62,14 @@
   .demo :global(.app-button.selected) {
     background: linear-gradient(to right, #FFF160 30%, #FFF160C0 80%) !important;
   }
+  :global(.fresh) .demo :global(.icon svg) {
+    color: var(--signal);
+  }
+  :global(.fresh) .demo :global(.app-button.selected) {
+    background: var(--signal) !important; /* the classic rule above has !important */
+  }
+  :global(.fresh) .demo :global(.app-button.selected .label),
+  :global(.fresh) .demo :global(.app-button.selected .icon svg) {
+    color: var(--fg-on-signal);
+  }
 </style>

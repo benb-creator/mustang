@@ -59,4 +59,12 @@
   .sub-app-bar[app="webapps"] {
     margin-block-start: 8px;
   }
+  :global(.fresh) .sub-app-bar {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    margin: 0;
+  }
+  :global(.fresh) .sub-app-bar[app="webapps"] {
+    margin-block-start: 0;
+  }
 </style>

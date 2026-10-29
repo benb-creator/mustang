@@ -67,4 +67,38 @@
     background-color: var(--hover-bg);
     color: var(--hover-fg);
   }
+  :global(.fresh) .workspace-selector {
+    min-width: 200px;
+    margin: 0;
+    padding: var(--space-1);
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .workspace {
+    height: var(--menu-item-height);
+    align-items: center;
+    padding: 0 var(--space-3) 0 var(--space-2);
+    border-radius: var(--radius-s);
+    font-size: var(--text-m);
+    cursor: pointer;
+  }
+  :global(.fresh) .workspace:hover {
+    background-color: var(--row-press);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .workspace.selected {
+    font-weight: 600;
+  }
+  :global(.fresh) .workspace label {
+    margin-inline-start: var(--space-2);
+    cursor: inherit;
+  }
+  :global(.fresh) .workspace .button {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg-1) 20%, transparent);
+    min-width: 10px;
+    min-height: 10px;
+    margin: 0;
+    border-radius: 2px;
+  }
 </style>

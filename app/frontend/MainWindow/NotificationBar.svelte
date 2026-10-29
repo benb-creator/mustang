@@ -1,13 +1,15 @@
 {#if notification}
   <hbox class="notification-bar"
     severity={$notification.severity}
+    class:custom-colors={notification.backgroundColor}
     style={notification.backgroundColor ? `background-color: ${notification.backgroundColor}; color: ${notification.textColor};` : ""}
     >
-    <hbox flex />
+    <slot name="icon" severity={$notification.severity} />
+    <hbox flex class="spacer" />
     <div class="message value">
       {$notification.message}
     </div>
-    <hbox flex />
+    <hbox flex class="spacer" />
     {#each $notification.buttons.each as button}
       <Button
         classes="action small"
@@ -106,5 +108,52 @@
     border-color: #6B6B6C77;
     color: #6B6B6CAA;
     background-color: transparent;
+  }
+  :global(.fresh) .notification-bar {
+    flex: 0 0 auto;
+    gap: var(--space-1);
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+    border-inline-start: 3px solid var(--accent);
+    border-block-end: 1px solid var(--border);
+    background-color: var(--info-tint);
+    color: var(--fg-1);
+    box-shadow: none;
+    z-index: auto;
+  }
+  :global(.fresh) .notification-bar[severity="meltdown"],
+  :global(.fresh) .notification-bar[severity="error"] {
+    border-inline-start-color: var(--danger);
+    background-color: var(--danger-tint);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .notification-bar[severity="warning"],
+  :global(.fresh) .notification-bar[severity="logged-out"] {
+    border-inline-start-color: var(--warning-strip);
+    background-color: var(--warning-tint);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .spacer,
+  :global(.fresh) .buttons-separator {
+    display: none;
+  }
+  :global(.fresh) .message {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0 var(--space-2);
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+  }
+  :global(.fresh) .notification-bar :global(button) {
+    margin: 0;
+  }
+  :global(.fresh) .notification-bar :global(.button.button.error-info),
+  :global(.fresh) .notification-bar :global(.button.button.close),
+  :global(.fresh) .notification-bar :global(.button.button.error-info:hover:not(.disabled)),
+  :global(.fresh) .notification-bar :global(.button.button.close:hover:not(.disabled)) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-2);
   }
 </style>

@@ -24,4 +24,12 @@
     text-transform: uppercase;
     width: 18px;
   }
+  :global(.fresh) .demo-bar {
+    background: linear-gradient(to top, var(--signal) 60%, transparent 95%) !important; /* the classic rule above has !important */
+    color: var(--fg-on-signal);
+  }
+  :global(.fresh) .text {
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
 </style>

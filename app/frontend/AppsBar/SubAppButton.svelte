@@ -47,4 +47,37 @@
   :global(.sub-app-bar[app="webapps"]) .icon {
     filter: grayscale(0.7);
   }
+  :global(.fresh) .sub-app-button {
+    flex: 0 0 auto;
+    height: 36px;
+    justify-content: center;
+    margin-inline-start: 6px;
+    border-radius: 0;
+    border-start-start-radius: var(--radius-l);
+    border-end-start-radius: var(--radius-l);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .icon {
+    padding: 0;
+    color: var(--spine-fg);
+  }
+  :global(.fresh) .icon :global(.cls-1) {
+    stroke: currentColor;
+  }
+  :global(.fresh) .sub-app-button:hover {
+    background-color: var(--spine-hover-bg);
+  }
+  :global(.fresh) .sub-app-button:hover .icon {
+    color: var(--spine-fg-active);
+  }
+  :global(.fresh) .sub-app-button.selected {
+    background-color: var(--l1-bg);
+  }
+  :global(.fresh) .sub-app-button.selected .icon {
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .sub-app-button.selected .icon :global(.cls-1) {
+    stroke: currentColor;
+  }
 </style>

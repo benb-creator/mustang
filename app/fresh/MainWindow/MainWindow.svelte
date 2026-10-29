@@ -28,10 +28,10 @@
   import { notifications } from "../../logic/util/Notification";
   import { selectedWorkspace } from "../../frontend/MainWindow/Selected";
   import WindowHeader from "../../frontend/MainWindow/WindowHeader.svelte";
-  import NotificationBar from "../../frontend/MainWindow/NotificationBar.svelte";
+  import NotificationBar from "./NotificationBar.svelte";
   import { contentStyle } from "../../frontend/Mail/Message/contentStyle";
-  import AppBar from "../../frontend/AppsBar/AppBar.svelte";
-  import AppContentRoutes from "../../frontend/AppsBar/AppContentRoutes.svelte";
+  import AppBar from "../AppsBar/AppBar.svelte";
+  import AppContentRoutes from "../AppsBar/AppContentRoutes.svelte";
   import Splitter from "../../frontend/Shared/Splitter.svelte";
   import { Router } from "svelte-navigator";
   import type { RouterProps } from "svelte-navigator/types/Router";
