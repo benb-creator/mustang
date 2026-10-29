@@ -22,4 +22,10 @@
   .title {
     font-weight: bold;
   }
+  :global(.fresh) .title {
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
 </style>

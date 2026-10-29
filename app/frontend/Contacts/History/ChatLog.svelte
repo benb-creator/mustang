@@ -39,4 +39,19 @@
     font-weight: 300;
     line-height: 1.2em;
   }
+  :global(.fresh) .subject {
+    max-height: var(--line-m);
+    margin: 0 0 2px;
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .body {
+    max-height: calc(2 * var(--line-s));
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 400;
+    color: var(--fg-2);
+  }
 </style>

@@ -2,20 +2,24 @@
   {#if showSearch}
     <SearchField bind:searchTerm placeholder={$t`Search for a person or group`} autofocus={doSearch} />
   {/if}
-  <FastList
-    items={sortedPersons}
-    bind:selectedItem={selected}
-    bind:selectedItems={selectedPersons}
-    on:init={ev => ev.detail.scrollToItem(selected)}
-    on:selected
-    columns="auto">
-    <vbox class="person" slot="row" let:item={person}>
-      <PersonLine {person} isSelected={person == selected} {pictureSize} on:click>
-        <slot name="top-right" slot="top-right" {person} />
-        <slot name="second-row" slot="second-row" {person} />
-      </PersonLine>
-    </vbox>
-  </FastList>
+  {#if $$slots["no-results"] && searchTerm && $sortedPersons.isEmpty}
+    <slot name="no-results" />
+  {:else}
+    <FastList
+      items={sortedPersons}
+      bind:selectedItem={selected}
+      bind:selectedItems={selectedPersons}
+      on:init={ev => ev.detail.scrollToItem(selected)}
+      on:selected
+      columns="auto">
+      <vbox class="person" slot="row" let:item={person}>
+        <PersonLine {person} isSelected={person == selected} {pictureSize} on:click>
+          <slot name="top-right" slot="top-right" {person} />
+          <slot name="second-row" slot="second-row" {person} />
+        </PersonLine>
+      </vbox>
+    </FastList>
+  {/if}
 </vbox>
 
 <script lang="ts">
@@ -93,5 +97,17 @@
   }
   :global(.lookout-window) .persons :global(.row.odd:not(.selected):not(:hover) hbox.person) {
     background-color: transparent;
+  }
+  :global(.fresh) .persons {
+    --person-picture-size: 32px;
+    min-height: 0;
+  }
+  :global(.fresh) .persons :global(.search) {
+    flex: none;
+    margin: 8px 16px;
+  }
+  :global(.fresh) .persons :global(.row.odd:not(.selected):not(:hover) hbox.person) {
+    background-color: transparent;
+    color: inherit;
   }
 </style>

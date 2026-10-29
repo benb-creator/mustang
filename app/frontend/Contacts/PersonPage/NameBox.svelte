@@ -1,6 +1,6 @@
 <GroupBox classes="person" headerName="">
   <hbox flex class="main-left" slot="content" language={getUILocale()}>
-    <hbox flex>
+    <hbox flex class="identity">
       {#if $person.picture}
         <vbox class="picture">
           <PersonPicture {person} size={96} placeholder="empty" />
@@ -81,7 +81,7 @@
       </vbox>
     </hbox>
     <hbox flex class="main-right">
-      <hbox class="call-buttons">
+      <hbox class="call-buttons" class:editing={isEditing}>
         {#if isEditing}
           <RoundButton
             label={$t`Save`}
@@ -101,7 +101,7 @@
         {/if}
         <CallButtons {person} />
       </hbox>
-      <hbox flex />
+      <hbox flex class="spacer" />
       <hbox class="main-right-top">
         <AddressbookChanger {person} />
         <PersonMenu {person} />
@@ -233,5 +233,146 @@
   }
   .call-buttons :global(.edit-save svg) {
     stroke-width: 1.5px;
+  }
+
+  :global(.fresh) .main-left {
+    align-items: center;
+    gap: 16px;
+    margin: 0;
+  }
+  :global(.fresh) .identity {
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+  :global(.fresh) .picture {
+    --person-picture-size: 72px;
+    align-self: center;
+    align-items: center;
+    margin: 0;
+  }
+  :global(.fresh) .picture-buttons {
+    margin-block-start: 6px;
+  }
+  :global(.fresh) .picture-buttons :global(button) {
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-m);
+    background-color: var(--btn-sec-bg);
+  }
+  :global(.fresh) .no-avatar {
+    width: 0;
+  }
+  :global(.fresh) .main-info {
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
+  }
+  :global(.fresh) .name,
+  :global(.fresh) .name :global(input) {
+    margin: 0;
+    font-size: var(--text-3xl);
+    line-height: var(--line-3xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .name :global(input) {
+    box-sizing: border-box;
+    width: 20em;
+    max-width: 100%;
+    height: var(--control-height-l);
+    font-size: var(--text-2xl);
+    line-height: var(--line-2xl);
+  }
+  :global(.fresh) .two-fields {
+    gap: 8px;
+  }
+  :global(.fresh) .two-fields :global(button.set-picture) {
+    margin: 0;
+  }
+  :global(.fresh) .job-company {
+    gap: 4px;
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .job-company:not(:has(input)) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0;
+  }
+  :global(.fresh) .job-company:not(:has(input)) .two-fields {
+    gap: 0;
+  }
+  :global(.fresh) .job-company:not(:has(input)) .two-fields > hbox {
+    width: auto;
+  }
+  :global(.fresh) .job-company:not(:has(input)) .two-fields > hbox + hbox::before,
+  :global(.fresh) .job-company:not(:has(input)) .two-fields:has(> hbox) + .company::before {
+    content: "·";
+    margin-inline: 6px;
+  }
+  :global(.fresh) .job-company :global(.value) {
+    margin: 0;
+  }
+  :global(.fresh) .main-right {
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+  }
+  :global(.fresh) .spacer {
+    display: none;
+  }
+  :global(.fresh) .main-right-top {
+    align-items: center;
+    gap: 4px;
+  }
+  :global(.fresh) .call-buttons {
+    gap: 4px;
+  }
+  :global(.fresh) .call-buttons :global(.button.button) {
+    min-width: var(--icon-button-size);
+    min-height: var(--icon-button-size);
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .call-buttons :global(.button.button.border:hover:not(.disabled)) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .call-buttons :global(.button svg) {
+    width: 16px;
+    height: 16px;
+  }
+  :global(.fresh) .call-buttons.editing :global(.button.button.edit-save) {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .call-buttons.editing :global(.button.button.edit-save:hover:not(.disabled)) {
+    border-color: var(--accent-hover);
+    background-color: var(--accent-hover);
+    background-image: none;
+    color: var(--fg-on-accent);
+  }
+  @container (max-width: 640px) {
+    :global(.fresh) .main-left {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    :global(.fresh) .identity {
+      flex: 1 1 100%;
+    }
+    :global(.fresh) .main-right {
+      flex: 1 1 100%;
+    }
   }
 </style>

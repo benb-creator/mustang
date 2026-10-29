@@ -109,4 +109,62 @@
     fill: green;
     color: white;
   }
+
+  :global(.fresh) .group {
+    margin: 0 0 12px;
+  }
+  :global(.fresh) .header {
+    gap: 8px;
+    box-sizing: border-box;
+    min-height: var(--section-header-height);
+    padding: 0 24px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .header::after {
+    content: "";
+    order: 1;
+    flex: 1 0 8px;
+    height: 1px;
+    background-color: var(--border-subtle);
+  }
+  :global(.fresh) .header :global(svg) {
+    flex: none;
+    width: 16px;
+    height: 16px;
+  }
+  :global(.fresh) .header :global(svg path) {
+    stroke: currentColor;
+  }
+  :global(.fresh) .header h3 {
+    margin: 0;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  :global(.fresh) .actions {
+    order: 2;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+  }
+  :global(.fresh) .actions:empty {
+    display: none;
+  }
+  :global(.fresh) .group.person > .header {
+    display: none;
+  }
+  :global(.fresh) .content {
+    padding: 4px 24px;
+    border-radius: 0;
+    background-color: transparent;
+    color: inherit;
+  }
+  :global(.fresh) .group.person > .content {
+    padding: 0;
+  }
+  :global(.fresh) .group :global(button.add.top) {
+    color: var(--fg-2);
+  }
 </style>

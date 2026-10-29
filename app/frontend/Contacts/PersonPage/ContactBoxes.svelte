@@ -342,4 +342,50 @@
   .expanders :global(.icon svg) {
     stroke-width: 1.4px;
   }
+
+  :global(.fresh) .boxes {
+    height: auto;
+    min-height: 100%;
+  }
+  :global(.fresh) grid.items {
+    grid-template-columns: minmax(64px, 100px) minmax(0, 1fr) auto;
+    column-gap: 12px;
+    align-items: center;
+  }
+  :global(.fresh) .expanders {
+    margin: 4px 24px 12px;
+  }
+  :global(.fresh) .expanders :global(.icon path) {
+    stroke: currentColor;
+  }
+  :global(.fresh) .notes {
+    margin: 8px 24px 16px;
+    border: none;
+  }
+  :global(.fresh) .notes textarea {
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-m);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+    font-family: inherit;
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+  }
+  :global(.fresh) .notes textarea:read-only {
+    border-color: var(--border-subtle);
+    background-color: transparent;
+  }
+  :global(.fresh) .notes textarea::placeholder {
+    color: var(--fg-3);
+  }
+  :global(.fresh) .notes textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .background-pattern {
+    display: none;
+  }
 </style>

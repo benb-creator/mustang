@@ -25,4 +25,13 @@
   .left {
     padding-inline-start: 12px;
   }
+  :global(.fresh) .content {
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 4px 24px 4px 8px;
+  }
+  :global(.fresh) .left {
+    padding-inline-start: 24px;
+  }
 </style>

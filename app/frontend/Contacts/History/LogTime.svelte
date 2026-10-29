@@ -45,4 +45,22 @@
     max-height: 18px;
     overflow: hidden;
   }
+  :global(.fresh) .time-box {
+    padding: 8px 8px 4px 0;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .date {
+    margin: 0 0 2px;
+    padding: 0;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+    font-weight: 600;
+  }
+  :global(.fresh) .time {
+    padding: 0;
+    color: var(--fg-3);
+  }
 </style>

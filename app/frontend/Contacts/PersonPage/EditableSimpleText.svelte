@@ -1,5 +1,5 @@
 {#if isEditing}
-  <input type="text" bind:value bind:this={inputEl}
+  <input type="text" class="text-input" bind:value bind:this={inputEl}
     {placeholder}
     on:keydown={event => onKeyEnter(event, onEnter)}>
 {:else}
@@ -68,5 +68,12 @@
   }
   input:focus {
     outline: none;
+  }
+  :global(.fresh) .value,
+  :global(.fresh) .text-input {
+    margin: 0;
+  }
+  :global(.fresh) .text-input {
+    border-bottom-width: 1px;
   }
 </style>

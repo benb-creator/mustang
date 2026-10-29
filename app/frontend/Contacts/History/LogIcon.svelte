@@ -92,4 +92,38 @@
     background-color: #f4c81d;
     background-color: #ff4747;
   }
+
+  :global(.fresh) .icon,
+  :global(.fresh) .repeat-dot,
+  :global(.fresh) .line {
+    --color: var(--fill-subtle);
+    --fg-color: var(--fg-2);
+  }
+  :global(.fresh) .line {
+    --color: var(--border);
+    border-right-width: 1px;
+  }
+  :global(.fresh) .repeat-dot {
+    --color: var(--border-control);
+    width: 8px;
+    height: 8px;
+    margin: 6px;
+  }
+  :global(.fresh) .icon-box {
+    padding-block-start: 6px;
+  }
+  :global(.fresh) .icon {
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+  }
+  :global(.fresh) .icon :global(svg) {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.5px;
+  }
+  :global(.fresh) .inout {
+    color: var(--fg-3);
+  }
 </style>

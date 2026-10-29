@@ -104,4 +104,79 @@
     border-left: 3px solid var(--lo-accent);
     border-radius: 0;
   }
+
+  :global(.fresh) .person {
+    align-items: center;
+    gap: 12px;
+    box-sizing: border-box;
+    min-height: var(--contact-row-height);
+    padding-block: 6px;
+    padding-inline: 16px 12px;
+  }
+  :global(.fresh) .person:not(.selected):hover {
+    background-color: transparent;
+    color: inherit;
+  }
+  :global(.fresh) .person.selected {
+    background-color: var(--sel-inactive-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh .fast-list:focus-within) .person.selected {
+    --fg-1: var(--sel-fg);
+    --fg-2: var(--sel-fg-2);
+    --fg-3: var(--sel-fg-2);
+    --accent-fg: var(--sel-fg);
+    background-color: var(--sel-bg);
+    color: var(--sel-fg);
+  }
+  :global(.fresh) .person :global(.avatar),
+  :global(.fresh) .person :global(svg) {
+    flex: none;
+    margin: 0;
+  }
+  :global(.fresh) .person::before {
+    display: none;
+    top: 25%;
+    left: auto;
+    inset-inline-start: 4px;
+    height: 50%;
+    border-left: none;
+    border-inline-start: 3px solid var(--account-color);
+    border-radius: 2px;
+  }
+  :global(.fresh .show-addressbook) .person::before {
+    display: block;
+  }
+  :global(.fresh) .main {
+    gap: 2px;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+  }
+  :global(.fresh) .first-row {
+    align-items: baseline;
+    gap: 8px;
+    height: auto;
+    min-width: 0;
+  }
+  :global(.fresh) .name {
+    display: block;
+    min-width: 0;
+    max-height: none;
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-weight: 600;
+    color: var(--fg-1);
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .second-row {
+    min-width: 0;
+    max-height: none;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .second-row:empty {
+    display: none;
+  }
 </style>

@@ -33,4 +33,12 @@
     margin-block-end: 3px;
     font-weight: bold;
   }
+  :global(.fresh) .name {
+    max-height: var(--line-m);
+    margin: 0;
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
 </style>

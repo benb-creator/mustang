@@ -73,4 +73,22 @@
     background-color: inherit;
     color: inherit;
   }
+  :global(.fresh) .history > :global(.group) {
+    margin: 0;
+  }
+  :global(.fresh) .history > :global(.group > .content) {
+    padding: 4px 0 0;
+  }
+  :global(.fresh) .show-more {
+    flex: none;
+    min-height: 40px;
+    margin: 0;
+    padding-inline: 24px;
+    justify-content: space-between;
+    border-block-start: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .count {
+    font-size: var(--text-s);
+    color: var(--fg-2);
+  }
 </style>

@@ -134,4 +134,28 @@
   .other-person:not(:hover) .buttons {
     visibility: hidden;
   }
+  :global(.fresh) .intro {
+    margin: 4px 0 8px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) grid.other-person {
+    column-gap: 12px;
+    row-gap: 2px;
+  }
+  :global(.fresh) .linked-object {
+    gap: 8px;
+    min-height: 32px;
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .linked-object:hover {
+    color: var(--link-hover-fg);
+  }
+  :global(.fresh) .email-address {
+    align-items: center;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .addressbook-icon,
+  :global(.fresh) .buttons {
+    align-items: center;
+  }
 </style>

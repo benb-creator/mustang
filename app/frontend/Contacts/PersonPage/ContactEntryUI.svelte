@@ -189,4 +189,53 @@
   .value.edit :global(input:focus) {
     outline: none;
   }
+
+  :global(.fresh) .purpose,
+  :global(.fresh) .protocol {
+    align-items: center;
+    min-height: 32px;
+    margin: 0;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-style: normal;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .purpose.edit,
+  :global(.fresh) .protocol.edit {
+    color: var(--fg-1);
+  }
+  :global(.fresh) .purpose.edit select,
+  :global(.fresh) .protocol.edit select {
+    width: 100%;
+    min-width: 0;
+  }
+  :global(.fresh) .value {
+    align-items: center;
+    min-width: 0;
+    min-height: 32px;
+    margin: 0;
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+    color: var(--fg-1);
+    user-select: text;
+  }
+  :global(.fresh) .value.edit {
+    padding-block: 2px;
+  }
+  :global(.fresh) .value.edit :global(input) {
+    border-bottom-width: 1px;
+  }
+  :global(.fresh) .value.edit :global(input:focus) {
+    outline: none;
+  }
+  :global(.fresh) .actions {
+    gap: 2px;
+    margin-inline: 8px -6px;
+  }
+  :global(.fresh) .copied {
+    margin-inline-end: 4px;
+    font-size: var(--text-s);
+    color: var(--success-fg);
+    white-space: nowrap;
+  }
 </style>

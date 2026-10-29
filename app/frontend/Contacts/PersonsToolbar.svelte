@@ -1,35 +1,34 @@
-<hbox class="persons-toolbar">
-  <vbox class="dropdown">
-    <AccountDropDown
-      bind:selectedAccount={selectedAddressbook}
-      accounts={appGlobal.addressbooks}
-      showAllOption={true}
-      filterByWorkspace={true}
-      icon={AddressbookIcon}
-      iconSize="20px"
-      />
-  </vbox>
-  <hbox flex />
-  <hbox class="buttons">
-    <RoundButton
-      label={$t`Sync from server`}
-      icon={SyncIcon}
-      iconSize="12px" padding="4px" classes="sync small" border={false}
-      onClick={sync}
-      disabled={!$selectedAddressbook?.canSync}
-      />
-    <RoundButton
-      label={$t`New contact`}
-      icon={NewContactIcon}
-      iconSize="22px" padding="9px" classes="large create"
-      onClick={addPerson}
-      />
+<slot name="toolbar" {sync}>
+  <hbox class="persons-toolbar">
+    <vbox class="dropdown">
+      <AccountDropDown
+        bind:selectedAccount={selectedAddressbook}
+        accounts={appGlobal.addressbooks}
+        showAllOption={true}
+        filterByWorkspace={true}
+        icon={AddressbookIcon}
+        iconSize="20px"
+        />
+    </vbox>
+    <hbox flex />
+    <hbox class="buttons">
+      <RoundButton
+        label={$t`Sync from server`}
+        icon={SyncIcon}
+        iconSize="12px" padding="4px" classes="sync small" border={false}
+        onClick={sync}
+        disabled={!$selectedAddressbook?.canSync}
+        />
+      <NewContactButton {selectedAddressbook} />
+    </hbox>
   </hbox>
-</hbox>
+</slot>
 {#if $newPerson}
   <hbox class="new-person" class:selected={$selectedPerson == $newPerson}>
     <PersonLine person={$newPerson} {pictureSize}>
-      <SparklesIcon size={pictureSize} slot="icon" />
+      <hbox class="new-icon" slot="icon">
+        <SparklesIcon size={pictureSize} />
+      </hbox>
     </PersonLine>
   </hbox>
 {/if}
@@ -40,9 +39,9 @@
   import type { Addressbook } from "../../logic/Contacts/Addressbook";
   import { appGlobal } from "../../logic/app";
   import PersonLine from "./Person/PersonLine.svelte";
+  import NewContactButton from "./NewContactButton.svelte";
   import AccountDropDown from "../Shared/AccountDropDown.svelte";
   import RoundButton from "../Shared/RoundButton.svelte";
-  import NewContactIcon from "lucide-svelte/icons/plus";
   import SyncIcon from "lucide-svelte/icons/refresh-cw";
   import AddressbookIcon from "lucide-svelte/icons/book-user";
   import SparklesIcon from "lucide-svelte/icons/sparkles";
@@ -56,18 +55,6 @@
   export let selectedAddressbook: Addressbook;
 
   let pictureSize = appGlobal.isMobile ? 32 : 20;
-
-  function addPerson() {
-    let addressbook = selectedAddressbook ?? appGlobal.addressbooks.first;
-    assert(addressbook, $t`Please add an addressbook first`);
-    //assert(persons instanceof ArrayColl, "Please exit the search before adding a person");
-    if (!$newPerson) {
-      $newPerson = addressbook.newPerson();
-      $newPerson.name = "";
-      $newPerson.addressbook = addressbook;
-    }
-    $selectedPerson = $newPerson;
-  }
 
   async function sync() {
     let ab = $selectedAddressbook;
@@ -105,5 +92,37 @@
   }
   .new-person.selected {
     background-color: var(--selected-bg);
+  }
+  .new-icon {
+    display: contents;
+  }
+  :global(.fresh) .new-person {
+    flex: none;
+    margin-block-end: 0;
+    border-block-end: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .new-person.selected {
+    background-color: var(--sel-inactive-bg);
+  }
+  :global(.fresh) .new-person > :global(.person) {
+    --person-picture-size: 32px;
+  }
+  :global(.fresh) .new-person :global(.avatar) {
+    display: none;
+  }
+  :global(.fresh) .new-icon {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--signal-tint);
+    color: var(--signal-strong);
+  }
+  :global(.fresh) .new-icon :global(svg) {
+    width: 16px;
+    height: 16px;
   }
 </style>

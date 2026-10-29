@@ -122,4 +122,20 @@
     margin-inline-end: -8px;
     margin-block-start: -4px;
   }
+  :global(.fresh) .key-import {
+    margin: 0 0 6px;
+    padding: 8px 8px 8px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    box-shadow: none;
+    background-color: var(--l2-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .label {
+    color: var(--fg-2);
+  }
+  :global(.fresh) .buttons :global(.close) {
+    align-self: center;
+    margin: 0;
+  }
 </style>

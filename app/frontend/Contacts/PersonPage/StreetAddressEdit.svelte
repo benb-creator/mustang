@@ -73,4 +73,11 @@
   :global(.mobile) input {
     margin-block: 8px;
   }
+  :global(.fresh) .instructions,
+  :global(.fresh) .street,
+  :global(.fresh) .city,
+  :global(.fresh) .postcode,
+  :global(.fresh) .state {
+    margin-block-end: 4px;
+  }
 </style>

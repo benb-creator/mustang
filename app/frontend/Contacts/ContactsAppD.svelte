@@ -1,16 +1,20 @@
-<Splitter name="persons-list" initialRightRatio={4}>
-  <vbox flex class="left-pane" slot="left">
-    <PersonsToolbar {persons} bind:selectedAddressbook />
-    <PersonsActionToolbar bind:selectedAddressbook {selectedPersons} />
-    <PersonsList {persons} bind:selected={$selectedPerson} searchTerm={$globalSearchTerm} bind:selectedPersons />
-  </vbox>
-  <vbox flex class="right-pane" slot="right">
-    {#if $selectedPerson && $selectedPerson instanceof Person}
-      <Scroll>
-        <PersonDetails person={$selectedPerson} />
-      </Scroll>
-    {/if}
-  </vbox>
+<Splitter name="persons-list" {initialRightRatio} {leftMinWidth} {rightMinWidth}>
+  <slot name="persons" slot="left" {persons}>
+    <vbox flex class="left-pane">
+      <PersonsToolbar {persons} bind:selectedAddressbook />
+      <PersonsActionToolbar bind:selectedAddressbook {selectedPersons} />
+      <PersonsList {persons} bind:selected={$selectedPerson} searchTerm={$globalSearchTerm} bind:selectedPersons />
+    </vbox>
+  </slot>
+  <slot name="person" slot="right">
+    <vbox flex class="right-pane">
+      {#if $selectedPerson && $selectedPerson instanceof Person}
+        <Scroll>
+          <PersonDetails person={$selectedPerson} />
+        </Scroll>
+      {/if}
+    </vbox>
+  </slot>
 </Splitter>
 
 <script lang="ts">
@@ -29,7 +33,14 @@
   import Splitter from "../Shared/Splitter.svelte";
   import type { ArrayColl, Collection } from "svelte-collections";
 
-  let selectedAddressbook: Addressbook | null = null; /** null = show all */
+  /** null = show all
+   * in/out */
+  export let selectedAddressbook: Addressbook | null = null;
+  export let initialRightRatio = 4;
+  /** in px */
+  export let leftMinWidth = 30;
+  /** in px */
+  export let rightMinWidth = 30;
 
   $: $globalSearchTerm && showAll()
   function showAll() {

@@ -106,4 +106,19 @@
     background-color: var(--hover-bg);
     color: var(--hover-fg);
   }
+  :global(.fresh) .subtitle {
+    opacity: 1;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .expired-header .label {
+    opacity: 1;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .expired-header .first-row {
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .expired-header .first-row:hover {
+    background-color: var(--row-hover);
+    color: var(--fg-1);
+  }
 </style>

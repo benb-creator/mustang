@@ -74,4 +74,16 @@
     /* because the icon is 1px smaller */
     margin: 1px;
   }
+  :global(.fresh) .call-buttons {
+    gap: 4px;
+  }
+  :global(.fresh) .call-buttons > a {
+    display: flex;
+  }
+  :global(.fresh) .phone-call :global(.icon) {
+    margin: 0;
+  }
+  :global(.fresh) .call-buttons :global(svg path) {
+    stroke: currentColor;
+  }
 </style>

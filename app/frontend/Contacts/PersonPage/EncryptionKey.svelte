@@ -405,4 +405,54 @@
     width: 100%;
     justify-content: end;
   }
+
+  :global(.fresh) .key {
+    margin: 0 0 6px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    box-shadow: none;
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+    overflow: hidden;
+  }
+  :global(.fresh) .main-row {
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 4px 0 8px;
+  }
+  :global(.fresh) .main-row:hover {
+    background-color: var(--row-hover);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .usage-icon {
+    border-radius: var(--radius-s);
+  }
+  :global(.fresh) .name {
+    margin-inline: 4px;
+    font-weight: 600;
+  }
+  :global(.fresh) .system {
+    opacity: 1;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .details {
+    margin: 8px 12px 0;
+  }
+  :global(.fresh) .details .label,
+  :global(.fresh) .details .label-2-column {
+    opacity: 1;
+    color: var(--fg-2);
+    font-size: var(--text-s);
+  }
+  :global(.fresh) .fingerprint .value,
+  :global(.fresh) .verification-code .value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .fingerprint:not(.obsolete) .value,
+  :global(.fresh) .verification-code:not(.obsolete) .value {
+    border-radius: var(--radius-m);
+    background-color: var(--l2-bg);
+    color: var(--fg-1);
+  }
 </style>

@@ -51,4 +51,12 @@
   .avatar .broken-image {
     visibility: hidden;
   }
+  :global(.fresh) .avatar {
+    flex: none;
+    background-color: var(--fill-subtle);
+  }
+  :global(.fresh) .placeholder {
+    box-sizing: border-box;
+    border-color: var(--border-control);
+  }
 </style>

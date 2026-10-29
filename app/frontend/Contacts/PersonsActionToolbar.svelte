@@ -111,4 +111,31 @@
   .target .label {
     margin-inline-end: 4px;
   }
+  :global(.fresh) .selection-toolbar {
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    box-sizing: border-box;
+    min-height: 40px;
+    margin: 0;
+    padding-inline: 12px;
+    border-block-end: 1px solid var(--border-subtle);
+    background-color: var(--accent-tint);
+  }
+  :global(.fresh) .buttons :global(.button) {
+    margin: 0;
+  }
+  :global(.fresh) .buttons :global(.button.disabled) {
+    opacity: 1;
+  }
+  :global(.fresh) .target {
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-inline: 4px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .target .label {
+    margin: 0;
+  }
 </style>
