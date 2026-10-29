@@ -116,4 +116,8 @@
   .bar {
     border-radius: 10px;
   }
+  :global(.fresh) .bar {
+    gap: 2px;
+    border-radius: 0;
+  }
 </style>

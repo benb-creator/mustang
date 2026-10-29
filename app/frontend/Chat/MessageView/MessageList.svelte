@@ -36,4 +36,12 @@
 .messages {
   padding-block-end: 14px;
 }
+:global(.fresh) .background {
+  min-height: 0;
+  box-shadow: none;
+  background-color: var(--l2-bg);
+}
+:global(.fresh) .messages {
+  padding-block: 8px 16px;
+}
 </style>

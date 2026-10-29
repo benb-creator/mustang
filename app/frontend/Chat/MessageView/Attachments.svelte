@@ -21,4 +21,8 @@
     margin-block-start: 6px;
     margin-block-end: 12px;
   }
+  :global(.fresh) .attachments {
+    gap: 4px;
+    margin-block: 4px;
+  }
 </style>

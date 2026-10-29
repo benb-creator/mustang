@@ -11,7 +11,7 @@
         onClick={() => startAudioCall(callTarget)} />
     {/if}
   </hbox>
-  <hbox flex />
+  <hbox flex class="spacer" />
 </hbox>
 
 <script lang="ts">
@@ -43,5 +43,56 @@
   }
   .actions :global(button) {
     margin-inline-end: 8px;
+  }
+  :global(.fresh) .person {
+    --person-picture-size: 32px;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+    box-sizing: border-box;
+    height: var(--pane-header-height);
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .name-box {
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .name {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .actions {
+    gap: 4px;
+  }
+  :global(.fresh) .actions :global(.button.button) {
+    min-width: var(--icon-button-size);
+    min-height: var(--icon-button-size);
+    margin: 0;
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .actions :global(.button.button.border:hover:not(.disabled)) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .actions :global(svg) {
+    width: 16px;
+    height: 16px;
+  }
+  :global(.fresh) .actions :global(svg path) {
+    stroke: currentColor;
+  }
+  :global(.fresh) .spacer {
+    display: none;
   }
 </style>

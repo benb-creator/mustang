@@ -77,6 +77,7 @@
   import { Person } from "../../../logic/Abstract/Person";
   import cssContent from "../../Mail/Message/content.css?inline";
   import cssBody from "../../Mail/Message/content-body.css?inline";
+  import { contentStyle } from "../../Mail/Message/contentStyle";
   import cssFont from "../../asset/font/Karla.css?inline";
   import { ChatPersonUID } from "../../../logic/Chat/ChatPersonUID";
   import ReactionBar from "./ReactionBar.svelte";
@@ -101,7 +102,7 @@
     $message.sent.getTime() - previousMessage.sent.getTime() < 5 * 60 * 1000; // < 5 mins apart
   $: reactions = $message.reactions;
 
-  $: headHTML = `<style>\n${cssBody}\n${cssContent}\n</style>`;
+  $: headHTML = `<style>\n${cssBody}\n${cssContent}\n${$contentStyle}</style>`;
 
   let showActions = false; // on hover (desktop) or long press (mobile)
   let hoverTimer: NodeJS.Timeout | null = null;
@@ -311,5 +312,118 @@
 
   .outgoing[deliveryStatus=sending] {
     opacity: 70%;
+  }
+
+  :global(.fresh) .message {
+    max-width: 72%;
+    margin: 12px 24px 0;
+  }
+  :global(.fresh) .message.followup {
+    margin-block-start: 2px;
+  }
+  :global(.fresh) .message .bubble {
+    padding: 6px 10px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    box-shadow: none;
+  }
+  :global(.fresh) .incoming .bubble {
+    border-start-start-radius: 2px;
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .outgoing .bubble {
+    border-color: var(--accent-border);
+    border-start-end-radius: 2px;
+    background-color: var(--accent-tint);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .incoming.followup .bubble,
+  :global(.fresh) .outgoing.followup .bubble {
+    border-radius: var(--radius-l);
+  }
+  :global(.fresh) .message:not(.followup) .bubble::before {
+    display: none;
+  }
+  :global(.fresh) .text {
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+  }
+  :global(.fresh) .text :global(blockquote) {
+    border-left: none;
+    border-inline-start: 3px solid var(--border-control);
+  }
+  :global(.fresh) .avatar {
+    margin-block-start: 2px;
+    margin-inline-end: 8px;
+  }
+  :global(.fresh) .meta {
+    gap: 8px;
+    margin-block-end: 2px;
+    font-size: var(--text-xs);
+    line-height: var(--line-xs);
+    color: var(--fg-3);
+  }
+  :global(.fresh) .meta.singlechat {
+    color: var(--fg-3);
+  }
+  :global(.fresh) .incoming .meta {
+    margin-inline-start: 2px;
+  }
+  :global(.fresh) .outgoing .meta {
+    margin-inline-end: 2px;
+  }
+  :global(.fresh) .from {
+    margin-inline-end: 0;
+  }
+  :global(.fresh) .from:not(.singlechat) {
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .time {
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .reactions {
+    gap: 4px;
+    margin: 4px 0 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+  }
+  :global(.fresh) .outgoing .reactions {
+    background-color: transparent;
+  }
+  :global(.fresh) .reaction {
+    align-items: center;
+    box-sizing: border-box;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: var(--radius-s);
+    background-color: var(--fill-subtle);
+    font-size: var(--text-s);
+  }
+  :global(.fresh) .hover-above-msg,
+  :global(.fresh) .hover-after-msg,
+  :global(.fresh) .message:hover .menu.openMenuOnMessageHover,
+  :global(.fresh) .menu:hover,
+  :global(.fresh) .message:has(.meta:hover) .menu {
+    padding: 2px;
+    border: 1px solid var(--border-float);
+    border-radius: var(--radius-l);
+    background-color: var(--float-bg);
+    color: var(--fg-1);
+    box-shadow: var(--shadow-pop);
+  }
+  :global(.fresh) .hover-above-msg {
+    bottom: 2px;
+    right: 0;
+  }
+  :global(.fresh) .hover-after-msg {
+    top: 2px;
+    right: 0;
   }
 </style>

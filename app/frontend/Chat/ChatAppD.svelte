@@ -1,6 +1,8 @@
 <Splitter name="persons-list" initialRightRatio={4}>
   <vbox class="left-pane" slot="left">
-    <Header bind:selectedAccount={$selectedAccount} {accounts} />
+    <slot name="header" {accounts}>
+      <Header bind:selectedAccount={$selectedAccount} {accounts} />
+    </slot>
     <RoomList {rooms} bind:selectedRoom={$selectedRoom} />
   </vbox>
   <vbox class="right-pane  background-pattern" slot="right">
@@ -102,5 +104,36 @@
     margin: var(--pane-margin);
     border-radius: var(--pane-radius);
     box-shadow: var(--pane-shadow, none);
+  }
+  :global(.fresh) .left-pane {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: inset -1px 0 0 var(--border);
+    background-color: var(--l1-bg);
+    color: var(--l1-fg);
+  }
+  :global(.fresh[dir="rtl"]) .left-pane {
+    box-shadow: inset 1px 0 0 var(--border);
+  }
+  :global(.fresh) .right-pane {
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    border-radius: 0;
+    border-block-start: 1px solid var(--border);
+    box-shadow: none;
+    background: var(--l3-bg);
+    color: var(--l3-fg);
+  }
+  :global(.fresh) .messages {
+    min-height: 0;
+    border-block-start: 1px solid var(--border-subtle);
+    background-color: var(--l2-bg);
+  }
+  :global(.fresh) .editor {
+    flex: none;
   }
 </style>

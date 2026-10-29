@@ -33,4 +33,13 @@
   .text :global(.person) {
     color: var(--link-fg);
   }
+  :global(.fresh) .chatroomevent {
+    align-self: center;
+    margin: 8px 24px 0;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .text {
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+  }
 </style>

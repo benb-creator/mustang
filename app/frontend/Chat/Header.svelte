@@ -11,16 +11,19 @@
         onClick={() => $selectedAccount.loginAndStartup(true)}
         />
     {/if}
-    <ButtonMenu bind:isMenuOpen={isButtonMenuOpen}>
-      <RoundButton
-        slot="control"
-        label={$t`New chat`}
-        icon={AddIcon}
-        iconSize="22px"
-        padding="9px"
-        onClick={() => isButtonMenuOpen = !isButtonMenuOpen}
-        classes="large create"
-        />
+    <ButtonMenu bind:isMenuOpen={isButtonMenuOpen} placement={menuPlacement}>
+      <svelte:fragment slot="control">
+        <slot name="new-chat" {toggleNewChatMenu}>
+          <RoundButton
+            label={$t`New chat`}
+            icon={AddIcon}
+            iconSize="22px"
+            padding="9px"
+            onClick={toggleNewChatMenu}
+            classes="large create"
+            />
+        </slot>
+      </svelte:fragment>
       <MenuItem
         label={$t`Chat with person`}
         onClick={() => dialogOpenPerson = true}
@@ -103,11 +106,16 @@
   import { t } from "../../l10n/l10n";
   import AccountDropDown from "../Shared/AccountDropDown.svelte";
   import { appGlobal } from "../../logic/app";
+  import type { Placement } from "@popperjs/core";
 
   export let accounts: Collection<ChatAccount>;
   export let selectedAccount: ChatAccount;
+  export let menuPlacement: Placement = "bottom-end";
 
   let isButtonMenuOpen = false;
+  function toggleNewChatMenu() {
+    isButtonMenuOpen = !isButtonMenuOpen;
+  }
   let dialogOpenPerson = false;
   let dialogOpenChatRoom = false;
   let dialogNewChatRoom = false;
@@ -153,5 +161,65 @@
   }
   .label.or {
     margin-block: 6px;
+  }
+  :global(.fresh) .persons-toolbar {
+    flex: none;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    box-sizing: border-box;
+    min-height: var(--pane-header-height);
+    margin: 0;
+    padding: 0 12px 8px;
+  }
+  :global(.fresh) .persons-toolbar > .buttons {
+    display: contents;
+  }
+  :global(.fresh) .persons-toolbar > .buttons > :global(.menu.button) {
+    order: -1;
+    flex: 1 0 100%;
+    box-sizing: border-box;
+    height: var(--pane-header-height);
+    align-items: center;
+  }
+  :global(.fresh) .buttons {
+    align-items: center;
+    gap: 4px;
+  }
+  :global(.fresh) .dialog {
+    flex: none;
+    gap: 8px;
+    margin: 0 12px 12px;
+    padding: 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-l);
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
+  }
+  :global(.fresh) .dialog .account {
+    gap: 8px;
+    margin: 0;
+    font-weight: 600;
+  }
+  :global(.fresh) .dialog > hbox {
+    align-items: center;
+    gap: 8px;
+  }
+  :global(.fresh) .dialog input[type="text"] {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  :global(.fresh) .label.or {
+    margin: 0;
+    font-size: var(--text-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .buttons :global(.button.button) {
+    min-width: var(--icon-button-size);
+    min-height: var(--icon-button-size);
+  }
+  :global(.fresh) .persons-toolbar .buttons :global(.button.button.border:not(.filled)) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-2);
   }
 </style>

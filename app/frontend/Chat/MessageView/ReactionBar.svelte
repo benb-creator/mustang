@@ -67,4 +67,15 @@
     min-width: 400px;
     padding: 6px 0px;
   }
+  :global(.fresh) .bar,
+  :global(.fresh) .popup {
+    gap: 2px;
+    border-radius: 0;
+  }
+  :global(.fresh) .bar .icon {
+    width: 20px;
+    justify-content: center;
+    font-size: var(--text-xl);
+    line-height: 20px;
+  }
 </style>

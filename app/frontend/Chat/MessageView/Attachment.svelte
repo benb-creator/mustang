@@ -162,4 +162,46 @@
   .bottom-row :global(.svelteui-Popper-root) {
     position: fixed;
   }
+  :global(.fresh) .image-menu {
+    border: 1px solid var(--border-float);
+    border-radius: var(--radius-m);
+    background-color: var(--float-bg);
+  }
+  :global(.fresh) .image {
+    margin: 0;
+    border-radius: var(--radius-l);
+  }
+  :global(.fresh) .loading {
+    padding: 16px;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .file {
+    height: 44px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-m);
+    overflow: hidden;
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .icon {
+    width: 44px;
+    border-radius: 0;
+    background-color: var(--fill-subtle);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .info {
+    justify-content: center;
+    width: 180px;
+    padding: 2px 6px 2px 10px;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .filename {
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+  }
+  :global(.fresh) .bottom-row {
+    font-size: var(--text-s);
+    color: var(--fg-2);
+  }
 </style>

@@ -183,4 +183,68 @@
   .send-buttons :global(.button) {
     background-color: unset;
   }
+
+  :global(.fresh) .msg-editor {
+    gap: 4px;
+    padding: 8px 24px 12px;
+    border-block-start: 1px solid var(--border);
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
+  }
+  :global(.fresh) .emojis {
+    max-width: 100%;
+    border: 1px solid var(--border-float);
+    border-radius: var(--radius-l);
+    background-color: var(--float-bg);
+    box-shadow: var(--shadow-pop);
+    overflow: hidden;
+  }
+  :global(.fresh) .editor-wrapper {
+    gap: 4px;
+  }
+  :global(.fresh) .editor-scroll-wrapper {
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-m);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .editor-scroll-wrapper:hover {
+    border-color: var(--fg-3);
+  }
+  :global(.fresh) .editor-scroll-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .editor {
+    padding: 6px 10px;
+    font-family: inherit;
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+  }
+  :global(.fresh) .send-buttons {
+    margin-inline-start: 8px;
+    margin-block-end: 0;
+  }
+  :global(.fresh) .send-buttons :global(.button.button) {
+    min-width: var(--control-height-l);
+    min-height: var(--control-height-l);
+  }
+  :global(.fresh) .send-buttons :global(.button.button:not(.disabled)) {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .send-buttons :global(.button.button:hover:not(.disabled)) {
+    border-color: var(--accent-hover);
+    background-color: var(--accent-hover);
+    background-image: none;
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .send-buttons :global(.button.button.disabled) {
+    background-color: var(--fill-subtle);
+  }
+  :global(.fresh) .send-buttons :global(svg) {
+    width: 18px;
+    height: 18px;
+  }
 </style>

@@ -46,4 +46,61 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  :global(.fresh) .chat-rooms {
+    min-height: 0;
+  }
+  :global(.fresh) .chat-rooms :global(.first-row) {
+    margin: 0;
+  }
+  :global(.fresh) .chat-rooms :global(.person .name) {
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .last-time {
+    flex: none;
+    margin: 0;
+    opacity: 1;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-3);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  :global(.fresh) .last-msg {
+    display: block;
+    min-width: 0;
+    max-height: var(--line-s);
+    margin: 0;
+    opacity: 1;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  :global(.fresh) .chat-rooms :global(.search) {
+    margin-inline: 12px;
+  }
+  :global(.fresh) .chat-rooms :global(hbox.person) {
+    padding-inline: 12px;
+  }
+  :global(.fresh) .chat-rooms :global(.fast-list .row.selected > *),
+  :global(.fresh) .chat-rooms :global(.fast-list .row.selected:hover > *) {
+    --fg-1: inherit;
+    --fg-2: inherit;
+    --fg-3: inherit;
+    --accent-fg: inherit;
+    background-color: transparent;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .chat-rooms :global(.fast-list .row:hover > *) {
+    background-color: var(--row-hover);
+  }
+  :global(.fresh) .chat-rooms :global(.fast-list .person.selected.selected) {
+    --fg-1: inherit;
+    --fg-2: inherit;
+    --fg-3: inherit;
+    --accent-fg: inherit;
+    box-shadow: inset 0 1px 0 var(--border), inset 0 -1px 0 var(--border);
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+  }
 </style>
