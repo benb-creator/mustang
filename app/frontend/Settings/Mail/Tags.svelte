@@ -53,4 +53,7 @@
   .tags :global(.remove) {
     padding: 2px;
   }
+  :global(.fresh) .tags :global(.tag) {
+    font-size: var(--text-m);
+  }
 </style>

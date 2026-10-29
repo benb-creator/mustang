@@ -1,7 +1,9 @@
 {#if $subCategories.hasItems}
   <vbox class="sub-categories" app={mainCategory.id}>
     {#each $subCategories.each as category}
-      <CategoryItem {category} />
+      <slot {category}>
+        <CategoryItem {category} />
+      </slot>
     {/each}
   </vbox>
 {/if}

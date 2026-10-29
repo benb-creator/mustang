@@ -4,6 +4,7 @@
   <ContactsRoutes slot="contacts" />
   <CalendarRoutes slot="calendar" />
   <FilesRoutes slot="files" />
+  <SettingsRoutes slot="settings" />
   <TopicRoutes slot="topic">
     <TopicApp initialRightRatio={4} />
   </TopicRoutes>
@@ -16,6 +17,7 @@
   import ContactsRoutes from "../Contacts/ContactsRoutes.svelte";
   import CalendarRoutes from "../Calendar/CalendarRoutes.svelte";
   import FilesRoutes from "../Files/FilesRoutes.svelte";
+  import SettingsRoutes from "../Settings/SettingsRoutes.svelte";
   import TopicRoutes from "../../frontend/Topic/TopicRoutes.svelte";
   import TopicApp from "../../frontend/Topic/TopicApp.svelte";
 </script>

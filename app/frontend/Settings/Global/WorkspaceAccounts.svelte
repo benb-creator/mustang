@@ -97,4 +97,28 @@
   .buttons {
     align-items: center;
   }
+  :global(.fresh) .account-type {
+    gap: 4px;
+    min-width: 120px;
+    margin: 4px 0;
+  }
+  :global(.fresh) .header {
+    align-items: center;
+    min-height: 26px;
+  }
+  :global(.fresh) .header .title {
+    opacity: 1;
+    font-style: normal;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .account {
+    align-items: center;
+    min-height: 26px;
+  }
+  :global(.fresh) .account .name {
+    color: var(--accent-fg);
+  }
 </style>

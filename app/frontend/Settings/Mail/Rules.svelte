@@ -1,5 +1,5 @@
 <vbox class="tags-rule-actions" flex>
-  <h2>{$t`Rules *=> Criteria after which emails should be sorted`}</h2>
+  <h2 class="page-title">{$t`Rules *=> Criteria after which emails should be sorted`}</h2>
   <hbox class="subtitle">{$t`Perform routine actions once messages arrive`}</hbox>
 
   <Splitter name="settings-mail-folders" initialRightRatio={4}>
@@ -159,5 +159,14 @@
   }
   .buttons.bottom :global(button) {
     margin-inline-start: 8px;
+  }
+  :global(.fresh) .page-title {
+    display: none;
+  }
+  :global(.fresh) .subtitle {
+    margin-block: 16px 8px;
+    color: var(--fg-2);
+    font-size: var(--text-l);
+    line-height: var(--line-l);
   }
 </style>

@@ -1,23 +1,27 @@
-<Splitter name="settings-categories" initialRightRatio={4}>
-  <SettingsCategoriesPane {categories} slot="left" />
+<Splitter name="settings-categories" initialRightRatio={4} {leftMinWidth} {rightMinWidth}>
+  <slot name="categories" slot="left" {categories}>
+    <SettingsCategoriesPane {categories} />
+  </slot>
   <vbox flex class="page-pane" slot="right">
-    <Scroll>
-      <hbox class="settings-title-bar">
-        <hbox flex class="spacer" />
-        <hbox class="buttons">
-          <RoundButton
-            label={$t`Close settings`}
-            icon={CloseIcon}
-            iconSize="16px"
-            padding="6px"
-            onClick={onClose}
-            />
+    <slot name="page" {onClose}>
+      <Scroll>
+        <hbox class="settings-title-bar">
+          <hbox flex class="spacer" />
+          <hbox class="buttons">
+            <RoundButton
+              label={$t`Close settings`}
+              icon={CloseIcon}
+              iconSize="16px"
+              padding="6px"
+              onClick={onClose}
+              />
+          </hbox>
         </hbox>
-      </hbox>
-      <vbox flex class="right-page">
-        <MainContent category={$selectedCategory} />
-      </vbox>
-    </Scroll>
+        <vbox flex class="right-page">
+          <MainContent category={$selectedCategory} />
+        </vbox>
+      </Scroll>
+    </slot>
   </vbox>
 </Splitter>
 
@@ -34,6 +38,11 @@
   import RoundButton from "../../Shared/RoundButton.svelte";
   import CloseIcon from "lucide-svelte/icons/x";
   import { t } from "../../../l10n/l10n";
+
+  /** in px */
+  export let leftMinWidth = 30;
+  /** in px */
+  export let rightMinWidth = 30;
 
   let categories = settingsCategories.filterObservable(cat => !cat.forApp || mustangApps.includes(cat.forApp));
 
@@ -73,5 +82,10 @@
   }
   .right-page :global(input) {
     font-size: 16px;
+  }
+  :global(.fresh) .page-pane {
+    min-width: 0;
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
   }
 </style>

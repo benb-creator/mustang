@@ -1,12 +1,16 @@
-<Clickable onClick={onSelect}>
-  <vbox class="account" class:selected={itemSelected}>
-    <hbox class="label font-small">
-      {$account.name}
-    </hbox>
-  </vbox>
-</Clickable>
+<slot name="row" {itemSelected} {onSelect}>
+  <Clickable onClick={onSelect}>
+    <vbox class="account" class:selected={itemSelected}>
+      <hbox class="label font-small">
+        {$account.name}
+      </hbox>
+    </vbox>
+  </Clickable>
+</slot>
 {#if accountSelected}
-  <SubCategoriesList {subCategories} mainCategory={category} />
+  <slot name="children" {subCategories}>
+    <SubCategoriesList {subCategories} mainCategory={category} />
+  </slot>
 {/if}
 
 <script lang="ts">

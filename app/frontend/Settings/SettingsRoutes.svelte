@@ -18,7 +18,9 @@
 {:else}
   <Route path="/">
     {params?.category ? $selectedCategory = params.category : null, "" }
-    <SettingsApp />
+    <slot>
+      <SettingsApp />
+    </slot>
   </Route>
 {/if}
 

@@ -64,4 +64,36 @@
     margin-block-start: 16px;
     gap: 8px;
   }
+  :global(.fresh) .header {
+    align-items: center;
+    margin-block: 16px 8px;
+    padding-inline-end: 0;
+  }
+  :global(.fresh) .title {
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+  }
+  :global(.fresh) .search input {
+    box-sizing: border-box;
+    height: var(--control-height);
+    padding: 0 10px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-m);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+    font: inherit;
+  }
+  :global(.fresh) .search input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+    outline: none;
+  }
+  :global(.fresh) .log-history {
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+  }
+  :global(.fresh) .time {
+    color: var(--fg-3);
+  }
 </style>

@@ -1,13 +1,17 @@
-<Clickable onClick={onSelect}>
-  <vbox class="settings-category" class:selected class:sub={!category.isMain}>
-    <hbox class="label font-small" class:main={category.isMain}>
-      {category.name}
-    </hbox>
-  </vbox>
-</Clickable>
+<slot name="row" {selected} {isSectionOpen} {onSelect}>
+  <Clickable onClick={onSelect}>
+    <vbox class="settings-category" class:selected class:sub={!category.isMain}>
+      <hbox class="label font-small" class:main={category.isMain}>
+        {category.name}
+      </hbox>
+    </vbox>
+  </Clickable>
+</slot>
 {#if isSectionOpen}
-  <SubCategoriesList subCategories={category.subCategories} mainCategory={category} />
-  <AccountsList {category} />
+  <slot name="children">
+    <SubCategoriesList subCategories={category.subCategories} mainCategory={category} />
+    <AccountsList {category} />
+  </slot>
 {/if}
 
 <script lang="ts">

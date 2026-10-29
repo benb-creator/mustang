@@ -1,21 +1,25 @@
 {#if $accounts.hasItems || category.newAccountURL}
   <vbox class="accounts" app={category.id}>
-    <hbox class="header font-smallest">
-      {$t`Accounts`}
-      <hbox flex />
-      {#if category.newAccountURL}
-        <RoundButton
-          icon={AddIcon}
-          iconSize="10px"
-          padding="3px"
-          classes="small"
-          label={$t`New account for ${category.name}`}
-          onClick={onNewAccount}
-          />
-      {/if}
-    </hbox>
+    <slot name="header" {onNewAccount}>
+      <hbox class="header font-smallest">
+        {$t`Accounts`}
+        <hbox flex />
+        {#if category.newAccountURL}
+          <RoundButton
+            icon={AddIcon}
+            iconSize="10px"
+            padding="3px"
+            classes="small"
+            label={$t`New account for ${category.name}`}
+            onClick={onNewAccount}
+            />
+        {/if}
+      </hbox>
+    </slot>
     {#each $accounts.each as account}
-      <AccountItem {account} {category} />
+      <slot name="account" {account}>
+        <AccountItem {account} {category} />
+      </slot>
     {/each}
   </vbox>
 {/if}

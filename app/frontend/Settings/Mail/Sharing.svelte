@@ -1,4 +1,4 @@
-<h2>{$t`Sharing *=> Teammates that can access your mailbox`}</h2>
+<h2 class="page-title">{$t`Sharing *=> Teammates that can access your mailbox`}</h2>
 <hbox class="subtitle font-small">{$t`Select the people who have access to your mails, calendar and contacts, or access theirs`}</hbox>
 
 {#if account.isDependentAccount}
@@ -26,5 +26,14 @@
   .subtitle {
     opacity: 70%;
     margin-block-end: 20px;
+  }
+  :global(.fresh) .page-title {
+    display: none;
+  }
+  :global(.fresh) .subtitle {
+    margin-block: 16px 8px;
+    color: var(--fg-2);
+    font-size: var(--text-l);
+    line-height: var(--line-l);
   }
 </style>

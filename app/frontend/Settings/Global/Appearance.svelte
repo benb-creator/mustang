@@ -153,4 +153,44 @@
   .appearance :global(.restart) {
     margin-inline-start: 24px;
   }
+  :global(.fresh) .frontend {
+    gap: 24px;
+    min-height: 32px;
+  }
+  :global(.fresh) .frontend label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+  }
+  :global(.fresh) .frontend input {
+    margin: 0;
+  }
+  :global(.fresh) .appearance :global(.restart) {
+    margin-inline-start: 0;
+  }
+  :global(.fresh) .wrap {
+    gap: 12px 32px;
+    margin-block-end: 0;
+  }
+  :global(.fresh) .setting {
+    gap: 6px;
+    margin: 0;
+  }
+  :global(.fresh) .subheader {
+    margin: 0;
+    font-weight: 400;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .dropdown,
+  :global(.fresh) .language .dropdown {
+    margin: 0;
+  }
+  :global(.fresh) .sample {
+    color: var(--fg-2);
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-variant-numeric: tabular-nums;
+  }
 </style>

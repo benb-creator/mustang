@@ -26,4 +26,24 @@
     justify-content: center;
     align-items: center;
   }
+  /* Hides the title text, which the pane header shows, but keeps the buttons */
+  :global(.fresh) .title {
+    order: -1;
+    justify-content: end;
+    min-height: 0;
+    font-size: 0;
+    line-height: 0;
+  }
+  :global(.fresh) .buttons {
+    gap: 4px;
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+  }
+  :global(.fresh) .subtitle {
+    order: -2;
+    margin-block: 16px 8px;
+    color: var(--fg-2);
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+  }
 </style>

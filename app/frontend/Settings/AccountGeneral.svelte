@@ -136,4 +136,15 @@
   input[name] {
     margin-block-end: 24px;
   }
+  :global(.fresh) .account-general grid {
+    grid-template-columns: 200px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px 16px;
+  }
+  :global(.fresh) .account-general input[name] {
+    margin-block-end: 0;
+  }
+  :global(.fresh) .account-general label {
+    color: var(--fg-1);
+  }
 </style>

@@ -16,4 +16,8 @@
     width: 32px;
     height: 32px;
   }
+  :global(.fresh) .view-switcher :global(svg) {
+    width: 16px;
+    height: 16px;
+  }
 </style>

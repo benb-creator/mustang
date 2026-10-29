@@ -1,5 +1,5 @@
 <vbox flex>
-  <h2>{$t`Folders`}</h2>
+  <h2 class="page-title">{$t`Folders`}</h2>
   <hbox class="subtitle">{$t`Rename folders, set special folders, share them with others`}</hbox>
 
   {#if $mailAccount?.isLoggedIn && $mailAccount.rootFolders.hasItems}
@@ -81,5 +81,14 @@
   .login .label {
     margin-block-start: 16px;
     margin-block-end: 8px;
+  }
+  :global(.fresh) .page-title {
+    display: none;
+  }
+  :global(.fresh) .subtitle {
+    margin-block: 16px 8px;
+    color: var(--fg-2);
+    font-size: var(--text-l);
+    line-height: var(--line-l);
   }
 </style>

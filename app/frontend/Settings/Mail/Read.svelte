@@ -68,4 +68,7 @@
     width: 2.5em;
     text-align: end;
   }
+  :global(.fresh) .radio input[type="number"] {
+    width: 4em;
+  }
 </style>

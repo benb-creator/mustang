@@ -28,4 +28,14 @@
   .payment-bar :global(button) {
     padding: 2px 12px !important;
   }
+  :global(.fresh) .payment-bar {
+    gap: 12px;
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 4px 8px 4px 16px;
+    border: 1px solid color-mix(in srgb, var(--warning-fg) 30%, transparent);
+    border-radius: var(--radius-m);
+    background-color: var(--warning-tint);
+    color: var(--fg-1);
+  }
 </style>

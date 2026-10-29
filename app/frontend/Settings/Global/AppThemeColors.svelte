@@ -92,4 +92,13 @@
     grid-template-columns: 10em auto auto 1fr;
     gap: 24px;
   }
+  :global(.fresh) .colors {
+    gap: 4px;
+  }
+  :global(.fresh) grid.color-setting {
+    grid-template-columns: 200px auto auto 1fr;
+    align-items: center;
+    gap: 16px;
+    min-height: 36px;
+  }
 </style>

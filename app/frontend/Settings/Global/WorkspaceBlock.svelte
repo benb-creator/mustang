@@ -76,4 +76,14 @@
     flex-wrap: wrap;
     max-width: 100%;
   }
+  :global(.fresh) grid.name {
+    grid-template-columns: 200px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px 16px;
+    max-width: none;
+    margin-block-end: 12px;
+  }
+  :global(.fresh) .accounts {
+    gap: 8px 32px;
+  }
 </style>

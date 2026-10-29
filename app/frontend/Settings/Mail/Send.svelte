@@ -177,4 +177,14 @@
   .illustration strong {
     font-weight: 800;
   }
+  :global(.fresh) .illustration blockquote[type=cite] {
+    border-inline-start-color: var(--accent-border);
+  }
+  :global(.fresh) .illustration pre {
+    font-size: var(--text-m);
+    color: var(--fg-2);
+  }
+  :global(.fresh) label.spellcheck {
+    text-decoration-color: var(--danger-fg);
+  }
 </style>

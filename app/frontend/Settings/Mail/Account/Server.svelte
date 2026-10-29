@@ -1,5 +1,5 @@
 <vbox>
-  <h2>{$t`Server`}</h2>
+  <h2 class="page-title">{$t`Server`}</h2>
   <hbox class="subtitle">{$t`Your email provider or company can tell you these details.`}</hbox>
 
   <ManualConfig config={mailAccount} stepFull={true} />
@@ -48,5 +48,14 @@
   h2 {
     margin-block-start: 0px;
     margin-block-end: 0px;
+  }
+  :global(.fresh) .page-title {
+    display: none;
+  }
+  :global(.fresh) .subtitle {
+    margin-block: 16px 8px;
+    color: var(--fg-2);
+    font-size: var(--text-l);
+    line-height: var(--line-l);
   }
 </style>
