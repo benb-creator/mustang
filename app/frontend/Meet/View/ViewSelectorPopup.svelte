@@ -191,4 +191,39 @@
     margin-block: 8px;
     margin-inline: -15px;
   }
+  :global(.fresh) .view-selector-popup {
+    align-items: stretch;
+    min-width: 220px;
+    padding: 4px 0;
+    background-color: transparent;
+    color: var(--fg-1);
+    box-shadow: none;
+  }
+  :global(.fresh) .view-selector-popup :global(.button.button) {
+    justify-content: start;
+    min-height: var(--menu-item-height);
+    padding-block: 0;
+    padding-inline: 8px 12px;
+    border-radius: 0;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .view-selector-popup :global(.button.button.selected:not(.disabled)) {
+    background-color: var(--accent-tint);
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .view-selector-popup :global(.button svg) {
+    width: 16px;
+    height: 16px;
+  }
+  :global(.fresh) .gallery-options {
+    margin: 0;
+    margin-inline-start: 24px;
+    align-items: stretch;
+  }
+  :global(.fresh) .line {
+    width: auto;
+    margin: 4px 0;
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+  }
 </style>

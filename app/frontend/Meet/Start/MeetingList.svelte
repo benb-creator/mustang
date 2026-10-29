@@ -1,6 +1,6 @@
 {#if $meetings.hasItems}
   <Scroll>
-    <grid>
+    <grid class="meeting-list">
       {#each $meetings.each as meeting}
         <Clickable onClick={ev => myOnClick(ev, meeting)} {errorCallback}>
           <hbox class="time">
@@ -64,5 +64,46 @@
   .time,
   .title {
     cursor: pointer;
+  }
+  :global(.fresh) .meeting-list {
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+  }
+  :global(.fresh) .time,
+  :global(.fresh) .location,
+  :global(.fresh) .title {
+    box-sizing: border-box;
+    min-height: var(--list-row-height);
+    align-items: center;
+  }
+  :global(.fresh) .time {
+    margin: 0;
+    padding-inline: 8px 12px;
+    font-size: var(--text-s);
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  :global(.fresh) .location {
+    padding-inline-end: 8px;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .location :global(svg) {
+    width: 16px;
+    height: 16px;
+    stroke-width: 1.5px;
+  }
+  :global(.fresh) .title {
+    display: block;
+    min-width: 0;
+    padding-inline-end: 8px;
+    line-height: var(--list-row-height);
+    color: var(--fg-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .time:hover,
+  :global(.fresh) .title:hover {
+    background-color: var(--row-hover);
   }
 </style>

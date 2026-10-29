@@ -114,4 +114,11 @@
   .buttons :global(> *) {
     margin-inline-start: 4px;
   }
+  :global(.fresh) .buttons {
+    align-items: center;
+    gap: 4px;
+  }
+  :global(.fresh) .buttons :global(> *) {
+    margin-inline-start: 0;
+  }
 </style>

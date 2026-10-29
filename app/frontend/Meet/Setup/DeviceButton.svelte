@@ -118,4 +118,20 @@
   .device-button :global(video) {
     border-radius: 100px;
   }
+  :global(.fresh) .device-button :global(button.button.select-device) {
+    min-width: 18px;
+    min-height: 18px;
+    margin-inline-start: -12px;
+    margin-block-start: 22px;
+    padding: 0;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-s);
+  }
+  :global(.fresh) .device-button :global(button.button.select-device:not(:hover)) {
+    background-color: var(--l3-bg);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .device-button :global(video) {
+    border-radius: var(--radius-m);
+  }
 </style>

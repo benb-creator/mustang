@@ -70,4 +70,33 @@
   .categories > :global(.categories > .category > .name) {
     font-weight: bold;
   }
+  :global(.fresh) .categories {
+    flex: none;
+    width: calc(20cqi - 56px); /* With the launch bar as wide as the other apps' navigation column */
+    min-width: 160px;
+    padding-block: 12px;
+    background-color: var(--l2-bg);
+    color: var(--fg-1);
+    box-shadow: inset -1px 0 0 var(--border);
+  }
+  :global(.fresh[dir="rtl"]) .categories {
+    box-shadow: inset 1px 0 0 var(--border);
+  }
+  :global(.fresh) .categories > :global(.categories > .category > .name) {
+    font-weight: 600;
+  }
+  :global(.fresh) .toolbar {
+    flex: none;
+    box-sizing: border-box;
+    height: var(--pane-header-height);
+    align-items: center;
+    margin: 0;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .toolbar :global(.button.button.border) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-2);
+  }
 </style>

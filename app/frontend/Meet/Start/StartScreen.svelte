@@ -266,4 +266,75 @@
     border-radius: 24px;
     border: 1px solid var(--border);
   }
+  :global(.fresh) .top {
+    flex: none;
+    box-sizing: border-box;
+    min-height: var(--pane-header-height);
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .buttons {
+    align-items: center;
+    column-gap: 4px;
+    margin: 0;
+  }
+  :global(.fresh) .top .buttons :global(svg) {
+    width: 20px;
+    height: 20px;
+  }
+  :global(.fresh) .payment-bar {
+    border: none;
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .actions-container {
+    background: none;
+  }
+  :global(.fresh) .actions {
+    gap: 12px;
+    min-width: 280px;
+  }
+  :global(.fresh) .actions :global(> *) {
+    margin-block-start: 0;
+  }
+  :global(.fresh) .actions > :global(.button) {
+    min-height: var(--control-height-l);
+  }
+  :global(.fresh) .actions > hbox {
+    gap: 8px;
+  }
+  :global(.fresh) .meeting-link {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+  }
+  :global(.fresh) .meetings {
+    gap: 24px;
+    padding: 24px;
+    border-inline-start: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .title {
+    box-sizing: border-box;
+    height: var(--section-header-height);
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .title::after {
+    content: "";
+    flex: 1 1 0;
+    height: 1px;
+    background-color: var(--border-subtle);
+  }
+  :global(.fresh) .emptyMsg {
+    padding-block: 4px;
+    font-size: var(--text-m);
+    color: var(--fg-3);
+  }
 </style>

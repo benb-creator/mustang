@@ -118,4 +118,22 @@
   .more-actions :global(.svelteui-ActionIcon-root:hover) {
     background-color: rgba(32, 174, 158, 50%); /* #20AE9E */
   }
+  :global(.fresh) .actions {
+    align-items: center;
+    gap: 2px;
+  }
+  :global(.fresh) .actions :global(button.plain) {
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .actions :global(.button.button:hover:not(.disabled)) {
+    background-color: var(--row-hover);
+  }
+  :global(.fresh) :global(.person) .actions :global(svg),
+  :global(.fresh) :global(.person.selected) .actions :global(svg) {
+    stroke: currentColor;
+    stroke-width: 1.5px;
+  }
+  :global(.fresh) .speaking :global(.toggle-mic svg path:first-of-type) {
+    fill: currentColor;
+  }
 </style>

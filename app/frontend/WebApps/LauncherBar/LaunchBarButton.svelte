@@ -93,4 +93,24 @@
   .app-button:not(.running) .dot :global(> *) {
     display: none;
   }
+  :global(.fresh) .app-button :global(.button.button) {
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+  }
+  :global(.fresh) .app-button :global(.button.button:not(.selected):hover) {
+    background-color: var(--row-hover);
+    background-image: none;
+  }
+  :global(.fresh) .app-button :global(.button.button.selected:not(.disabled)) {
+    background-color: var(--l3-bg);
+    box-shadow: inset 0 1px 0 var(--border), inset 0 -1px 0 var(--border);
+  }
+  :global(.fresh) .dot {
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .selected .dot {
+    color: var(--accent-fg);
+  }
 </style>

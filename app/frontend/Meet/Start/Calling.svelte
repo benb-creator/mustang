@@ -380,4 +380,96 @@
       margin-inline-start: 0px;
     }
   }
+  :global(.fresh) .calling {
+    background-color: var(--l1-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .box,
+  :global(.fresh) .device-setup {
+    box-sizing: border-box;
+    border: 1px solid var(--border-float);
+    border-radius: var(--radius-l);
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+    box-shadow: var(--shadow-pop);
+  }
+  :global(.fresh) .box {
+    padding: 32px;
+  }
+  :global(.fresh) .device-setup {
+    overflow: hidden;
+    padding: 0 0 16px;
+  }
+  :global(.fresh) .text {
+    gap: 4px;
+  }
+  :global(.fresh) .text .what,
+  :global(.fresh) .text .who-id,
+  :global(.fresh) .text .who-count {
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .text .who {
+    font-size: var(--text-3xl);
+    line-height: var(--line-3xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .actions :global(button.button.action) {
+    padding: 12px;
+  }
+  :global(.fresh) .actions :global(button.button.accept) {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .actions :global(button.button.accept:hover:not(.disabled)) {
+    border-color: var(--accent-hover);
+    background-color: var(--accent-hover);
+    background-image: none;
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .actions :global(button.button.hangup) {
+    border-color: var(--danger);
+    background-color: var(--danger) !important; /* the classic rule above has !important */
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .actions :global(button.button.hangup:hover:not(.disabled)) {
+    border-color: var(--danger-hover);
+    background-color: var(--danger-hover) !important; /* the classic rule above has !important */
+    background-image: none;
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .device-setup :global(button.button),
+  :global(.fresh) .device-setup :global(button.button:hover:not(.disabled)) {
+    border: 1px solid var(--border-control) !important; /* the classic rule above has !important */
+  }
+  :global(.fresh) .device-setup :global(button.button.accept),
+  :global(.fresh) .device-setup :global(button.button.accept:hover:not(.disabled)) {
+    border-color: var(--accent) !important; /* the classic rule above has !important */
+  }
+  :global(.fresh) .device-setup :global(.self-video) {
+    background-color: var(--spine-bg);
+  }
+  :global(.fresh) .upcoming-meeting {
+    gap: 4px;
+    padding: 12px 16px;
+    font-size: var(--text-m);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .upcoming-meeting .when {
+    gap: 6px;
+  }
+  :global(.fresh) .upcoming-meeting .title {
+    font-weight: 600;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .contact-history {
+    min-height: 0;
+    border-inline-start: 1px solid var(--border);
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+  }
 </style>

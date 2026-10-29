@@ -56,4 +56,31 @@
   .switcher {
     margin: 6px 8px;
   }
+  :global(.fresh) .topic-graph-pane {
+    min-width: 0;
+    background-color: var(--l1-bg);
+    color: var(--l1-fg);
+    box-shadow: inset -1px 0 0 var(--border);
+  }
+  :global(.fresh[dir="rtl"]) .topic-graph-pane {
+    box-shadow: inset 1px 0 0 var(--border);
+  }
+  :global(.fresh) .tree-branch {
+    padding: 12px;
+  }
+  :global(.fresh) .switcher {
+    flex: none;
+    margin: 0;
+    padding: 8px 12px;
+    border-block-start: 1px solid var(--border);
+  }
+  :global(.fresh) .switcher :global(.button .label) {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .switcher :global(.button:first-child) {
+    flex-shrink: 0;
+  }
 </style>

@@ -1,6 +1,6 @@
 <vbox>
   <Clickable onClick={onSelect}>
-    <hbox class="topic">
+    <hbox class="topic" class:selected={topic == selectedTopic}>
       <hbox class="name">{$topic.name}</hbox>
       <hbox flex />
       <hbox class="buttons">
@@ -96,5 +96,62 @@
   }
   .buttons {
     align-items: center;
+  }
+  :global(.fresh) .topic {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    min-height: var(--nav-row-height);
+    max-width: none;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding-inline: 0 2px;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .topic::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-block: 0;
+    inset-inline: -100vw -12px;
+  }
+  :global(.fresh) .topic:hover::before {
+    background-color: var(--row-hover);
+  }
+  :global(.fresh) .topic.selected::before {
+    border-block: 1px solid var(--border);
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .topic.selected .name {
+    font-weight: 600;
+  }
+  :global(.fresh) .topic .name {
+    display: block;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .topic .buttons :global(.button) {
+    opacity: 0;
+  }
+  :global(.fresh) .topic:hover .buttons :global(.button),
+  :global(.fresh) .topic:focus-within .buttons :global(.button) {
+    opacity: 1;
+  }
+  :global(.fresh) .children,
+  :global(.fresh) .new-child {
+    margin-inline-start: var(--nav-row-indent);
+  }
+  :global(.fresh) .new-child {
+    align-items: center;
+    gap: 4px;
+  }
+  :global(.fresh) .new-child input {
+    margin-inline-end: 0;
   }
 </style>

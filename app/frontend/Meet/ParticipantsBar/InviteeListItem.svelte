@@ -27,4 +27,7 @@
     stroke-dasharray: 2;
     stroke-width: 1.5px;
   }
+  :global(.fresh) .actions :global(.not-joined svg) {
+    stroke: currentColor;
+  }
 </style>

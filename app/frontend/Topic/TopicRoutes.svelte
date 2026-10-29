@@ -6,7 +6,9 @@
   <TopicPage bind:topic={$selectedTopic} />
 </Route>
 <Route path="/">
-  <TopicApp />
+  <slot>
+    <TopicApp />
+  </slot>
 </Route>
 
 <script lang="ts">

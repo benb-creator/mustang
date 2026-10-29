@@ -87,4 +87,22 @@
   .participant :global(button.disabled) {
     opacity: inherit;
   }
+  :global(.fresh) .participant {
+    align-items: center;
+    max-height: 24px;
+    font-size: var(--text-s);
+    font-weight: 600;
+  }
+  :global(.fresh) .video {
+    padding-inline: 8px 2px;
+    border-radius: 0 var(--radius-s) 0 0;
+    background-color: var(--scrim);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .list {
+    padding-inline: 8px 2px;
+    border-radius: var(--radius-s);
+    background-color: var(--spine-bg);
+    color: var(--spine-fg);
+  }
 </style>

@@ -57,4 +57,7 @@
     min-width: 250px;
     max-width: 350px;
   }
+  :global(.fresh) .sidebar {
+    border-inline-start: 1px solid var(--border);
+  }
 </style>

@@ -90,4 +90,16 @@
     background-color: #00e2c7;
     /* #2aebd5 #02eed3 */
   }
+  :global(.fresh) .audio-level-meter {
+    border-radius: var(--radius-m);
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .audio-level-meter:hover {
+    background-color: var(--accent-hover);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .level {
+    background-color: var(--success-fg);
+  }
 </style>

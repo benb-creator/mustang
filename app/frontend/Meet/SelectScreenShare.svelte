@@ -180,4 +180,31 @@
     align-items: end;
     justify-content: end;
   }
+  :global(.fresh) .dialog {
+    box-sizing: border-box;
+    padding: 16px;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+    box-shadow: none;
+  }
+  :global(.fresh) .screen {
+    margin: 4px;
+    padding: 8px;
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .screen:hover {
+    background-color: var(--row-hover);
+    color: inherit;
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .screen img {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-s);
+    box-shadow: none;
+  }
+  :global(.fresh) .screen .name {
+    font-size: var(--text-s);
+    color: var(--fg-1);
+  }
 </style>

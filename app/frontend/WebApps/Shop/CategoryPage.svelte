@@ -38,4 +38,23 @@
   span.app {
     display: inline-flex;
   }
+  :global(.fresh) .category-page {
+    padding: 0 24px 24px;
+  }
+  :global(.fresh) .header {
+    flex: none;
+    align-self: start;
+    box-sizing: border-box;
+    height: var(--pane-header-height);
+    align-items: center;
+    margin-block: calc(-1 * var(--pane-header-height)) 24px;
+  }
+  :global(.fresh) h1.name {
+    margin: 0;
+    font-size: var(--text-2xl);
+    line-height: var(--line-2xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--fg-1);
+  }
 </style>

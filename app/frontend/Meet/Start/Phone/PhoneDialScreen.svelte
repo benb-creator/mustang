@@ -282,4 +282,65 @@
       order: 2;
     }
   }
+  :global(.fresh) .top {
+    flex: none;
+    box-sizing: border-box;
+    min-height: var(--pane-header-height);
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 8px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .top .buttons {
+    align-items: center;
+    column-gap: 4px;
+    margin: 0;
+  }
+  :global(.fresh) .top .buttons :global(svg) {
+    width: 20px;
+    height: 20px;
+  }
+  :global(.fresh) .phone-number {
+    height: var(--control-height-l);
+    font-size: var(--text-2xl);
+    font-variant-numeric: tabular-nums;
+  }
+  :global(.fresh) .dial.buttons :global(button.button.call:not(.disabled)) {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .meetings {
+    gap: 24px;
+    padding: 24px;
+    border-inline-start: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .upcoming > .title,
+  :global(.fresh) .previous > .title {
+    box-sizing: border-box;
+    height: var(--section-header-height);
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .upcoming > .title::after,
+  :global(.fresh) .previous > .title::after {
+    content: "";
+    flex: 1 1 0;
+    height: 1px;
+    background-color: var(--border-subtle);
+  }
+  :global(.fresh) .person {
+    min-height: var(--list-row-height);
+    align-items: center;
+    padding-inline: 8px;
+  }
+  :global(.fresh) .person:hover {
+    background-color: var(--row-hover);
+  }
 </style>

@@ -107,4 +107,25 @@
       border-right: 1px dotted grey;
     }
   }
+  :global(.fresh) .launch-bar {
+    width: 56px;
+    border-right: none;
+    background-color: var(--l1-bg);
+    color: var(--l1-fg);
+    box-shadow: inset -1px 0 0 var(--border);
+  }
+  :global(.fresh[dir="rtl"]) .launch-bar {
+    box-shadow: inset 1px 0 0 var(--border);
+  }
+  :global(.fresh) .actions :global(.button.button.plain) {
+    color: var(--fg-2);
+    padding-block: 8px;
+  }
+  :global(.fresh) .actions :global(.button.button.close-app) {
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .actions :global(.button.add-app svg) {
+    width: 24px;
+    height: 24px;
+  }
 </style>

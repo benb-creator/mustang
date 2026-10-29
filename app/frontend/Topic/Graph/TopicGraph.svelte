@@ -513,4 +513,15 @@
   .graph-container :global(.gc-add .gc-label) {
     fill: var(--gc-c2);
   }
+  :global(.fresh) .graph-container {
+    --gc-bg: transparent;
+    --gc-fill: var(--l3-bg);
+    --gc-fill-dim: var(--l2-bg);
+    --gc-text: var(--fg-1);
+    --gc-line: var(--border-control);
+    --gc-c0: var(--accent);
+    --gc-c2: var(--accent-fg);
+    --gc-c3: var(--accent-border);
+    --gc-c4: var(--border-control);
+  }
 </style>

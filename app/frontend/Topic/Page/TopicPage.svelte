@@ -237,4 +237,55 @@
   .content {
     min-height: 10em;
   }
+  :global(.fresh) .topic-page-container {
+    margin-block-end: 0;
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .toolbar {
+    flex: none;
+    box-sizing: border-box;
+    min-height: var(--pane-header-height);
+    align-items: center;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .toolbar .buttons {
+    gap: 4px;
+    margin-inline: 12px 0;
+  }
+  :global(.fresh) .toolbar .buttons :global(.button.button) {
+    min-width: var(--icon-button-size);
+    min-height: var(--icon-button-size);
+  }
+  :global(.fresh) .toolbar .buttons :global(.button svg) {
+    width: 16px;
+    height: 16px;
+  }
+  :global(.fresh) .topic-page {
+    margin-inline: 24px;
+    margin-block-start: 24px;
+  }
+  :global(.fresh) .title input {
+    height: auto;
+    margin: 0 0 16px;
+    padding: 4px 0;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+    font-size: var(--text-3xl);
+    line-height: var(--line-3xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .title input:focus {
+    border-bottom: 2px solid var(--accent);
+    padding-block-end: 3px;
+    box-shadow: none;
+  }
 </style>

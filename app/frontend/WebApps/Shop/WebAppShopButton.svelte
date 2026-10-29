@@ -146,4 +146,39 @@
   .instance :global(.no-account svg) {
     stroke-width: 4px;
   }
+  :global(.fresh) .app {
+    box-sizing: border-box;
+    gap: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .app:hover {
+    border-color: var(--border-control);
+  }
+  :global(.fresh) .app.selected {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .app-name {
+    margin-block: 12px 4px;
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+    font-weight: 600;
+  }
+  :global(.fresh) .description {
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .homepage {
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .instances-separator {
+    border-top-color: var(--border-subtle);
+  }
+  :global(.fresh) .instance {
+    min-height: var(--list-row-height);
+    font-size: var(--text-m);
+  }
 </style>

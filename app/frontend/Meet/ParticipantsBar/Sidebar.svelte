@@ -47,4 +47,22 @@
     align-items: center;
     justify-content: center;
   }
+  :global(.fresh) .participants-sidebar {
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+    box-shadow: none;
+  }
+  :global(.fresh) .participants-header {
+    box-sizing: border-box;
+    min-height: var(--pane-header-height);
+    margin: 0;
+    padding-inline: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .number {
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
 </style>

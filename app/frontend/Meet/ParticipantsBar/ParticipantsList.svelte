@@ -51,4 +51,14 @@
   .participants-list :global(.person .avatar) {
     margin: 2px 4px 2px 24px;
   }
+  :global(.fresh) .participants-list {
+    min-height: 0;
+    margin: 0;
+  }
+  :global(.fresh) .participants-list :global(.person .main) {
+    padding: 0 8px 0 0;
+  }
+  :global(.fresh) .participants-list :global(.person .avatar) {
+    margin: 0 12px 0 16px;
+  }
 </style>

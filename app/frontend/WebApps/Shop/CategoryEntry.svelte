@@ -61,4 +61,36 @@
     background-color: var(--selected-hover-bg);
     color: var(--selected-hover-fg);
   }
+  :global(.fresh) .category {
+    box-sizing: border-box;
+    min-height: var(--nav-row-height);
+    align-items: center;
+    padding-block: 0;
+    padding-inline: 16px 8px;
+  }
+  :global(.fresh) .category > :global(div) {
+    min-width: 0;
+  }
+  :global(.fresh) .category .name {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .indention {
+    margin-inline-start: 16px;
+  }
+  :global(.fresh) .category.selected,
+  :global(.fresh) .category.selected:hover {
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+    box-shadow: inset 0 1px 0 var(--border), inset 0 -1px 0 var(--border);
+  }
+  :global(.fresh) .category.selected .name {
+    font-weight: 600;
+  }
+  :global(.fresh) .category:not(.selected):hover {
+    background-color: var(--row-hover);
+    color: inherit;
+  }
 </style>

@@ -130,4 +130,31 @@
     background-color: transparent;
     color: white;
   }
+  :global(.fresh) .persons-toolbar {
+    flex: none;
+    gap: 8px;
+    margin: 0;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-subtle);
+    color-scheme: normal;
+  }
+  :global(.fresh) .persons-toolbar :global(input) {
+    padding: 0 10px !important; /* the classic rule above has !important */
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-m);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .persons-toolbar :global(input::placeholder) {
+    color: var(--fg-3);
+  }
+  :global(.fresh) .persons-toolbar :global(.autocomplete-list) {
+    color-scheme: normal;
+  }
+  :global(.fresh) .buttons {
+    margin: 0;
+  }
+  :global(.fresh) .buttons :global(button.button.invite-participant) {
+    color: var(--fg-2);
+  }
 </style>

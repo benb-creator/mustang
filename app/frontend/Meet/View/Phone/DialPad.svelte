@@ -33,4 +33,14 @@
   .digit {
     opacity: 50%;
   }
+  :global(.fresh) .numbers :global(.button.button) {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .digit {
+    opacity: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-1);
+  }
 </style>

@@ -47,4 +47,13 @@
     align-self: flex-end;
     margin: 4px 16px -4px 0;
   }
+  :global(.fresh) .progressbar {
+    border-top: 2px solid var(--accent);
+  }
+  :global(.fresh) .time {
+    margin: 4px 16px 0 0;
+    font-size: var(--text-s);
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-2);
+  }
 </style>
