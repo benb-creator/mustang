@@ -167,4 +167,77 @@
   .hidden {
     display: none;
   }
+  :global(.fresh) .header {
+    flex: none;
+    box-sizing: border-box;
+    height: var(--pane-header-height);
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
+    padding-inline: 12px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .header .buttons {
+    flex: none;
+    gap: 4px;
+    margin: 0;
+  }
+  :global(.fresh) .header .buttons :global(.button.button.border:not(.create)) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .header .buttons :global(.button.button.border:not(.create):hover:not(.disabled)) {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .header .buttons :global(.button svg path) {
+    stroke-width: 1.5px;
+  }
+  :global(.fresh) .parent-dirs {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    margin-inline-start: 4px;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  :global(.fresh) .parent-dir {
+    padding: 4px 6px;
+    border-radius: var(--radius-s);
+  }
+  :global(.fresh) .parent-dir:hover {
+    background-color: var(--row-hover);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .dir-separator {
+    flex: none;
+    opacity: 1;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .name {
+    flex: 0 1 auto;
+    display: block;
+    min-width: 0;
+    margin-inline-start: 6px;
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+    color: var(--fg-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .count {
+    flex: none;
+    opacity: 1;
+    margin-inline: 8px 12px;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
 </style>

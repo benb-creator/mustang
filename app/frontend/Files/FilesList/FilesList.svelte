@@ -111,4 +111,34 @@
   .header:not(:hover) :global(.button.sort:not(.selected)) {
     visibility: hidden;
   }
+  :global(.fresh) .files-list {
+    grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
+  }
+  :global(.fresh) .header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    box-sizing: border-box;
+    height: var(--section-header-height);
+    opacity: 1;
+    padding-inline: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    border-right: none;
+    background-color: var(--l3-bg);
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  :global(.fresh) .name {
+    padding-inline-start: 16px;
+  }
+  :global(.fresh) .time {
+    padding-inline-end: 16px;
+  }
+  :global(.fresh) .header :global(.button.button.sort.selected) {
+    background-color: transparent;
+    color: var(--accent-fg);
+  }
 </style>

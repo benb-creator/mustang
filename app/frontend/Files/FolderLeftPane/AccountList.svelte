@@ -1,17 +1,19 @@
-<vbox class="account-list">
-  <FastList items={accounts} bind:selectedItem={selectedAccount} columns="1fr">
-    <svelte:fragment slot="header">
-      <hbox class="header">
-        <hbox class="header-label font-smallest">{$t`Accounts`}</hbox>
-        <hbox flex />
-        <slot name="top-right" />
-      </hbox>
-    </svelte:fragment>
-    <svelte:fragment slot="row" let:item={account}>
-      <AccountListItem {account} />
-    </svelte:fragment>
-  </FastList>
-</vbox>
+<slot>
+  <vbox class="account-list">
+    <FastList items={accounts} bind:selectedItem={selectedAccount} columns="1fr">
+      <svelte:fragment slot="header">
+        <hbox class="header">
+          <hbox class="header-label font-smallest">{$t`Accounts`}</hbox>
+          <hbox flex />
+          <slot name="top-right" />
+        </hbox>
+      </svelte:fragment>
+      <svelte:fragment slot="row" let:item={account}>
+        <AccountListItem {account} />
+      </svelte:fragment>
+    </FastList>
+  </vbox>
+</slot>
 
 <script lang="ts">
   import type { FileSharingAccount } from "../../../logic/Files/FileSharingAccount";

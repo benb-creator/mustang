@@ -1,6 +1,8 @@
 <Splitter name="files-list" initialRightRatio={4}>
   <vbox class="left-pane" slot="left">
-    <LeftPane bind:listFiles bind:listDirs bind:activeTab={$selectedLeftTab} />
+    <slot name="left-pane">
+      <LeftPane bind:listFiles bind:listDirs bind:activeTab={$selectedLeftTab} />
+    </slot>
   </vbox>
   <Splitter name="right-pane"
     initialRightRatio={0.25} rightMinWidth={200}
@@ -60,11 +62,13 @@
   import type { Collection } from "svelte-collections";
   import { catchErrors } from "../Util/error";
 
-  /** The list of files to show on the right pane */
-  let listFiles: Collection<File>;
+  /** The list of files to show on the right pane
+   * in/out */
+  export let listFiles: Collection<File> = null;
   /** The list of folders to show on the right pane.
-   * Must be in the same logical list (e.g. container) as `listFiles`. */
-  let listDirs: Collection<Directory>;
+   * Must be in the same logical list (e.g. container) as `listFiles`.
+   * in/out */
+  export let listDirs: Collection<Directory> = null;
 
   let viewSetting = getLocalStorage("files.view", "table");
   $: view = $viewSetting.value;
@@ -100,5 +104,27 @@
     margin: var(--pane-margin);
     border-radius: var(--pane-radius);
     box-shadow: var(--pane-shadow, none);
+  }
+  :global(.fresh) .left-pane {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+  }
+  :global(.fresh) .main-pane {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    border-block-start: 1px solid var(--border);
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
+  }
+  :global(.fresh) .right-side-pane {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    border-block-start: 1px solid var(--border);
+    border-inline-start: 1px solid var(--border);
+    background-color: var(--l3-bg);
+    color: var(--l3-fg);
   }
 </style>

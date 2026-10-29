@@ -1,37 +1,39 @@
-<hbox class="account" title={errorMsg}
-  on:contextmenu={contextMenu.onContextMenu}>
-  {#if $account.isLoggedIn}
-    <hbox class="icon">
-      {#if account.icon && typeof(account.icon) == "string" }
-        <img src={account.icon} width="18px" height="18px" alt="" class="logo" />
-      {:else}
-        <Icon data={MailIcon} size="16px" />
-      {/if}
-    </hbox>
-  {:else}
-    <hbox class="icon">
-      <Icon data={MailXIcon} size="16px" />
-    </hbox>
-  {/if}
-  <hbox class="label">{$account.name}</hbox>
-    <hbox flex class="buttons">
-      {#if $account.isLoggedIn}
-        <Button
-          onClick={login}
-          icon={SyncIcon}
-          label={$t`Sync`}
-          plain iconOnly iconSize="16px"
-          />
-      {:else}
-        <Button
-          onClick={login}
-          icon={DisconnectedIcon}
-          label={$t`Login`}
-          plain iconOnly iconSize="16px"
-          />
-      {/if}
-    </hbox>
-</hbox>
+<slot {errorMsg} {login} {contextMenu}>
+  <hbox class="account" title={errorMsg}
+    on:contextmenu={contextMenu.onContextMenu}>
+    {#if $account.isLoggedIn}
+      <hbox class="icon">
+        {#if account.icon && typeof(account.icon) == "string" }
+          <img src={account.icon} width="18px" height="18px" alt="" class="logo" />
+        {:else}
+          <Icon data={MailIcon} size="16px" />
+        {/if}
+      </hbox>
+    {:else}
+      <hbox class="icon">
+        <Icon data={MailXIcon} size="16px" />
+      </hbox>
+    {/if}
+    <hbox class="label">{$account.name}</hbox>
+      <hbox flex class="buttons">
+        {#if $account.isLoggedIn}
+          <Button
+            onClick={login}
+            icon={SyncIcon}
+            label={$t`Sync`}
+            plain iconOnly iconSize="16px"
+            />
+        {:else}
+          <Button
+            onClick={login}
+            icon={DisconnectedIcon}
+            label={$t`Login`}
+            plain iconOnly iconSize="16px"
+            />
+        {/if}
+      </hbox>
+  </hbox>
+</slot>
 
 <ContextMenu bind:this={contextMenu}>
   <AccountMenu {account} />

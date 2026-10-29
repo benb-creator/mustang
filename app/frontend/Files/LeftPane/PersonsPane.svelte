@@ -146,4 +146,8 @@
     align-self: center;
     justify-self: center;
   }
+  :global(.fresh) .persons-file-pane {
+    min-height: 0;
+    margin-block-start: 0;
+  }
 </style>

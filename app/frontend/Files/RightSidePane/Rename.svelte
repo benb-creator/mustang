@@ -1,6 +1,6 @@
 <hbox class="name-container">
   {#if isRenaming}
-    <input type="text" bind:value={name}
+    <input type="text" class="name-input" bind:value={name}
       autofocus
       on:keydown={event => catchErrors(() => onKeyEnter(event, onRenameSave))}
       />
@@ -69,5 +69,29 @@
   }
   .buttons {
     align-items: start;
+  }
+  :global(.fresh) .name-container {
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  :global(.fresh) .name {
+    display: block;
+    min-width: 0;
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+    color: var(--fg-1);
+    overflow-wrap: anywhere;
+  }
+  :global(.fresh) .name-input {
+    flex: 100 1 0;
+    min-width: 0;
+    height: var(--control-height);
+    font-size: var(--text-l);
+    font-weight: 600;
+  }
+  :global(.fresh) .buttons {
+    align-items: center;
   }
 </style>

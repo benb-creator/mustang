@@ -1,11 +1,13 @@
 {#if accounts?.hasItems}
-  {#if activeTab == FilesView.CloudStorage}
-    <AccountList {accounts} bind:selectedAccount />
-  {/if}
-  <FolderList folders={rootDirs} bind:selectedFolder bind:selectedFolders />
-  {#if selectedFolder}
-    <TagsList folder={selectedFolder} bind:searchFiles />
-  {/if}
+  <slot {accounts} {rootDirs}>
+    {#if activeTab == FilesView.CloudStorage}
+      <AccountList {accounts} bind:selectedAccount />
+    {/if}
+    <FolderList folders={rootDirs} bind:selectedFolder bind:selectedFolders />
+    {#if selectedFolder}
+      <TagsList folder={selectedFolder} bind:searchFiles />
+    {/if}
+  </slot>
 {:else}
   <NoAccounts />
 {/if}
@@ -32,11 +34,11 @@
   export let listDirs: Collection<Directory>;
   export let selectedFolder: Directory;
   export let activeTab: FilesView;
+  export let selectedAccount: FileSharingAccount = myHarddrive; /* in/out */
 
   $: accounts = activeTab == FilesView.CloudStorage
     ? appGlobal.fileSharingAccounts.filterObservable(acc => acc != myHarddrive)
     : new ArrayColl([myHarddrive]);
-  let selectedAccount: FileSharingAccount = myHarddrive;
   let selectedFolders: ArrayColl<Directory>;
   let searchFiles: ArrayColl<FileOrDirectory> | null;
 

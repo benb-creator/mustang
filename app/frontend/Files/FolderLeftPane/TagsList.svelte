@@ -56,4 +56,24 @@
     margin-block-start: 8px;
     margin-inline-start: 10px;
   }
+  :global(.fresh) .tags .header {
+    box-sizing: border-box;
+    height: var(--section-header-height);
+    align-items: center;
+    gap: 8px;
+    margin-inline: 2px 12px;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .tags .header::after {
+    content: "";
+    flex: 1 1 0;
+    height: 1px;
+    background-color: var(--border);
+  }
+  :global(.fresh) .list {
+    margin: 4px 12px 0;
+  }
 </style>

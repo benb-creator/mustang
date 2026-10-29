@@ -21,4 +21,9 @@
     flex-wrap: wrap;
     margin-inline-start: 12px;
   }
+  :global(.fresh) .gallery {
+    gap: 8px;
+    margin: 0;
+    padding: 16px;
+  }
 </style>

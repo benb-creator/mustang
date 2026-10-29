@@ -17,10 +17,14 @@
 {:else}
   <Route path="file">
     {$viewFile = params?.file ?? requiredParam()}
-    <FilesAppD />
+    <slot name="desktop">
+      <FilesAppD />
+    </slot>
   </Route>
   <Route path="/">
-    <FilesAppD />
+    <slot name="desktop">
+      <FilesAppD />
+    </slot>
   </Route>
 {/if}
 

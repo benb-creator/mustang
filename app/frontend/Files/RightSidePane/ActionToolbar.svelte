@@ -78,4 +78,26 @@
   .toast {
     color: green;
   }
+  :global(.fresh) .buttons {
+    justify-content: start;
+    gap: 4px;
+  }
+  :global(.fresh) .action.buttons :global(.button.button.border) {
+    border-color: transparent;
+    background-color: transparent;
+  }
+  :global(.fresh) .action.buttons :global(.button.button.border:hover:not(.disabled)) {
+    border-color: transparent;
+  }
+  :global(.fresh) .toast {
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--success-fg);
+  }
+  :global(.fresh) .toast :global(svg) {
+    width: 14px;
+    height: 14px;
+  }
 </style>

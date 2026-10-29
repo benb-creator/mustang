@@ -23,4 +23,7 @@
     height: 0;
     margin-top: 48px;
   }
+  :global(.fresh) .linebreak {
+    margin-top: 8px;
+  }
 </style>

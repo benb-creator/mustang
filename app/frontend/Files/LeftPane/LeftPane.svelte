@@ -1,10 +1,12 @@
 <vbox flex class="left-pane">
-  <hbox class="top">
-    <vbox class="island">
-      <PaneViewSwitcher bind:active={activeTab} />
-    </vbox>
-    <hbox flex />
-  </hbox>
+  <slot name="top">
+    <hbox class="top">
+      <vbox class="island">
+        <PaneViewSwitcher bind:active={activeTab} />
+      </vbox>
+      <hbox flex />
+    </hbox>
+  </slot>
 
   {#if activeTab == FilesView.Recent}
     <RecentList />
@@ -15,7 +17,9 @@
   {:else if activeTab == FilesView.Search}
     <SearchPane bind:listFiles bind:listDirs on:clear={endSearchMode} />
   {:else if activeTab == FilesView.CloudStorage || activeTab == FilesView.Harddrive}
-    <FolderPane bind:listFiles bind:listDirs {activeTab} bind:selectedFolder={$selectedFolder} />
+    <slot name="folder-pane">
+      <FolderPane bind:listFiles bind:listDirs {activeTab} bind:selectedFolder={$selectedFolder} />
+    </slot>
   {/if}
 </vbox>
 
@@ -73,5 +77,31 @@
   }
   .island {
     margin: 8px 12px;
+  }
+  :global(.fresh) .left-pane {
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding-block-end: 0;
+    background-color: var(--l1-bg);
+    color: var(--l1-fg);
+    box-shadow: inset -1px 0 0 var(--border);
+    container-type: inline-size;
+  }
+  :global(.fresh[dir="rtl"]) .left-pane {
+    box-shadow: inset 1px 0 0 var(--border);
+  }
+  :global(.fresh) .left-pane :global(.persons),
+  :global(.fresh) .left-pane :global(.account-list),
+  :global(.fresh) .left-pane > :global(.search) {
+    margin-block-start: 0;
+  }
+  :global(.fresh) .left-pane :global(.persons .search) {
+    margin-block-start: 8px;
+  }
+  @container (max-width: 120px) {
+    :global(.fresh) .left-pane :global(.pane-header) {
+      padding-inline: 4px;
+    }
   }
 </style>

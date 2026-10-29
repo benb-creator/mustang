@@ -45,4 +45,28 @@
   .header :global(button) {
     margin-inline-start: 4px;
   }
+  :global(.fresh) .recent-files-list {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+  :global(.fresh) .header {
+    box-sizing: border-box;
+    height: var(--section-header-height);
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding-inline: 12px;
+  }
+  :global(.fresh) .header-label {
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .header::after {
+    content: "";
+    flex: 1 1 0;
+    height: 1px;
+    background-color: var(--border);
+  }
 </style>

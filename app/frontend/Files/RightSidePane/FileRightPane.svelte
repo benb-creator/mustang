@@ -146,4 +146,67 @@
   .open.buttons :global(button.disabled svg path) {
     stroke-width: 1px;
   }
+  :global(.fresh) .right-side-bar {
+    box-shadow: none;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  :global(.fresh) .preview {
+    flex: none;
+    box-sizing: border-box;
+    width: auto;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin: 16px 16px 0;
+    border-radius: var(--radius-m);
+    background-color: var(--l2-bg);
+    color: var(--fg-3);
+  }
+  :global(.fresh) .preview:has(.thin-right-side-bar) {
+    align-items: stretch;
+    margin: 0;
+    border-radius: 0;
+    background-color: transparent;
+  }
+  :global(.fresh) .preview > :global(div > img) {
+    max-width: 100%;
+    max-height: 100%;
+  }
+  :global(.fresh) .preview > :global(div > svg) {
+    width: 96px;
+    height: 96px;
+    stroke-width: 1px;
+  }
+  :global(.fresh) .open-preview {
+    top: 8px;
+    right: 8px;
+    margin: 0;
+  }
+  :global(.fresh) .thin-right-side-bar {
+    flex-direction: row;
+    justify-content: end;
+    padding: 8px;
+    gap: 4px;
+  }
+  :global(.fresh) .content {
+    gap: 12px;
+    padding: 16px;
+  }
+  :global(.fresh) .buttons {
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+  :global(.fresh) .open.buttons {
+    margin-block-end: 0;
+  }
+  :global(.fresh) .file-properties {
+    gap: 12px;
+    opacity: 1;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-2);
+  }
 </style>

@@ -3,6 +3,7 @@
   <ChatRoutes slot="chat" />
   <ContactsRoutes slot="contacts" />
   <CalendarRoutes slot="calendar" />
+  <FilesRoutes slot="files" />
 </AppContentRoutes>
 
 <script lang="ts">
@@ -11,4 +12,5 @@
   import ChatRoutes from "../Chat/ChatRoutes.svelte";
   import ContactsRoutes from "../Contacts/ContactsRoutes.svelte";
   import CalendarRoutes from "../Calendar/CalendarRoutes.svelte";
+  import FilesRoutes from "../Files/FilesRoutes.svelte";
 </script>

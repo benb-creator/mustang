@@ -145,4 +145,48 @@
     margin: 12px 24px;
     justify-content: end;
   }
+  :global(.fresh) .search {
+    min-height: 0;
+    margin: 0;
+    padding: 0 12px 12px;
+  }
+  :global(.fresh) .header-bar {
+    align-items: center;
+    min-height: var(--control-height-l);
+    margin: 0;
+  }
+  :global(.fresh) .header.top {
+    margin: 0;
+  }
+  :global(.fresh) .header {
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .buttons.top-right {
+    align-items: center;
+  }
+  :global(.fresh) .term {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin: 8px 0;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .term :global(.search) {
+    flex: 1 1 140px;
+    margin: 0;
+  }
+  :global(.fresh) .term :global(input) {
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .search-criteria {
+    margin: 8px 0 12px;
+  }
+  :global(.fresh) .results-count {
+    margin: 8px 0 0;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+  }
 </style>

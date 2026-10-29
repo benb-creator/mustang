@@ -53,4 +53,9 @@
     padding: 8px 4px;
     gap: 8px;
   }
+  :global(.fresh) .thin-right-side-bar {
+    align-items: center;
+    padding: 8px 4px;
+    gap: 4px;
+  }
 </style>

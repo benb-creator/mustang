@@ -120,4 +120,70 @@
     font-size: 90%;
     font-weight: 300;
   }
+  :global(.fresh) .line > * {
+    box-sizing: border-box;
+    min-height: var(--file-row-height);
+    align-items: center;
+  }
+  :global(.fresh) .line:hover:not(.selected) > * {
+    background-color: var(--row-hover);
+    color: inherit;
+  }
+  :global(.fresh) .line.selected > * {
+    background-color: var(--sel-bg);
+    color: var(--sel-fg);
+  }
+  :global(.fresh) .firstColumn {
+    min-width: 0;
+  }
+  :global(.fresh) .icon {
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    margin-block-start: 0;
+    margin-inline-end: 4px;
+    padding: 0;
+    margin-inline-start: 16px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .name {
+    display: block;
+    min-width: 0;
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    color: var(--fg-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .type,
+  :global(.fresh) .size,
+  :global(.fresh) .time {
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  :global(.fresh) .line.selected .name {
+    color: var(--sel-fg);
+  }
+  :global(.fresh) .line.selected .icon,
+  :global(.fresh) .line.selected .type,
+  :global(.fresh) .line.selected .size,
+  :global(.fresh) .line.selected .time {
+    color: var(--sel-fg-2);
+  }
+  :global(.fresh) .directory .icon {
+    font-size: 14px;
+    line-height: 16px;
+    color: transparent;
+    text-shadow: 0 0 0 var(--accent-fg);
+  }
+  :global(.fresh) .directory.selected .icon {
+    color: transparent;
+    text-shadow: 0 0 0 var(--sel-fg);
+  }
 </style>

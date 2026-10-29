@@ -68,4 +68,33 @@
   .buttons :global(.get-mail button) {
     padding: 3px;
   }
+  :global(.fresh) .account {
+    box-sizing: border-box;
+    min-height: var(--nav-row-height);
+    gap: 8px;
+    padding-block: 0;
+    padding-inline: 12px 4px;
+  }
+  :global(.fresh) .icon {
+    width: 16px;
+    height: 16px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .icon :global(path),
+  :global(.fresh) .icon :global(.cls-2) {
+    stroke: currentColor;
+  }
+  :global(.fresh) .label {
+    display: block;
+    min-width: 0;
+    margin: 0;
+    font-weight: 400;
+    color: var(--fg-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .buttons {
+    margin: 0;
+  }
 </style>

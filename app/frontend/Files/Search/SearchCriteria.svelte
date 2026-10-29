@@ -202,4 +202,29 @@
     border-bottom: unset;
   }
   */
+  :global(.fresh) .search-criteria {
+    gap: 4px;
+  }
+  :global(.fresh) .term {
+    gap: 8px;
+    margin-block: 8px 16px;
+  }
+  :global(.fresh) .term :global(.search) {
+    margin: 0;
+  }
+  :global(.fresh) .term :global(input) {
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .search-criteria :global(.star.starred svg) {
+    fill: var(--star);
+  }
+  :global(.fresh) .listbox {
+    margin-block: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .tags {
+    margin: 4px 0 12px 8px;
+  }
 </style>

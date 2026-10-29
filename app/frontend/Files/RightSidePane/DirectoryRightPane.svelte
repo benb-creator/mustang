@@ -54,4 +54,9 @@
   .action.buttons {
     justify-content: end;
   }
+  :global(.fresh) .right-side-bar {
+    gap: 12px;
+    margin: 0;
+    padding: 16px;
+  }
 </style>

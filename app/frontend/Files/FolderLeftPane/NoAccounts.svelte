@@ -35,4 +35,16 @@
   .buttons {
     margin-block-start: 16px;
   }
+  :global(.fresh) .no-accounts {
+    gap: 12px;
+    padding: 16px 12px;
+  }
+  :global(.fresh) .warn {
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .buttons {
+    margin: 0;
+  }
 </style>
