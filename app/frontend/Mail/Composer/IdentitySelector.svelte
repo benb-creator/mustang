@@ -99,4 +99,50 @@
     font-style: italic;
     opacity: 75%;
   }
+
+  :global(.fresh) .identity-selector {
+    gap: 4px;
+    min-width: 0;
+  }
+  :global(.fresh) .identity-selector select {
+    min-width: 0;
+    max-width: 480px;
+    height: var(--control-height);
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-m);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .identity-selector select:hover {
+    border-color: var(--fg-3);
+  }
+  :global(.fresh) .identity-selector select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .identity-selector label {
+    margin-inline-end: 4px;
+    font-size: var(--text-s);
+    font-weight: 600;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .identity-selector input[type=email] {
+    min-width: 8em;
+    width: auto;
+  }
+  :global(.fresh) .before-custom,
+  :global(.fresh) .after-custom {
+    color: var(--fg-2);
+  }
+  :global(.fresh) select.catch-all {
+    width: 30px;
+    padding: 0 4px;
+  }
+  :global(.fresh) .account {
+    margin-inline-start: 8px;
+    font-style: normal;
+    color: var(--fg-2);
+    opacity: 1;
+  }
 </style>

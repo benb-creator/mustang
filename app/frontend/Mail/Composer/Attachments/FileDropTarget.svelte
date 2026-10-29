@@ -111,4 +111,28 @@
   .content.dragging {
     opacity: 30%;
   }
+
+  :global(.fresh) .overlay {
+    gap: 16px;
+    box-sizing: border-box;
+    padding: 16px;
+  }
+  :global(.fresh) .drop-target {
+    margin: 0;
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius-l);
+    background-color: color-mix(in srgb, var(--accent-tint) 85%, transparent);
+  }
+  :global(.fresh) .drop-target:global(.hover) {
+    background-color: var(--accent-tint);
+  }
+  :global(.fresh) .label {
+    padding: 6px 12px;
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-m);
+    background-color: var(--float-bg);
+    color: var(--accent-fg);
+    font-size: var(--text-l);
+    font-weight: 600;
+  }
 </style>

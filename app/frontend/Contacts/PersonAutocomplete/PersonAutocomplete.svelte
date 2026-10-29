@@ -349,4 +349,102 @@
     flex: 1 0 0;
   }
 }
+
+:global(.fresh) .person-autocomplete {
+  height: 24px;
+  margin-block-end: 0;
+}
+:global(.fresh) .person-autocomplete :global(input) {
+  min-height: 0;
+  height: 24px;
+  padding: 0 4px !important; /* the classic rule above has !important */
+  border: none;
+  border-radius: var(--radius-s);
+  background-color: transparent;
+  color: var(--fg-1);
+  box-shadow: none;
+  font-size: var(--text-m);
+}
+:global(.fresh) .person-autocomplete :global(input:focus) {
+  box-shadow: none;
+}
+:global(.fresh) .person-autocomplete :global(input::placeholder) {
+  color: var(--fg-3);
+}
+:global(.fresh) .person-autocomplete :global(.autocomplete .autocomplete-list) {
+  min-width: 320px;
+  margin-block-start: 4px;
+  padding: 4px 0;
+  border: 1px solid var(--border-float);
+  border-radius: var(--radius-l);
+  background-color: var(--float-bg);
+  color: var(--fg-1);
+  box-shadow: var(--shadow-pop);
+}
+:global(.fresh) .person-autocomplete :global(.autocomplete .autocomplete-list .autocomplete-list-item) {
+  padding: 6px 12px;
+  background-color: transparent;
+  color: var(--fg-1);
+  line-height: var(--line-m);
+}
+:global(.fresh) .person-autocomplete :global(.autocomplete .autocomplete-list .autocomplete-list-item:hover),
+:global(.fresh) .person-autocomplete :global(.autocomplete .autocomplete-list .autocomplete-list-item.selected) {
+  background-color: var(--row-press);
+  color: var(--fg-1);
+}
+:global(.fresh) .person-autocomplete :global(.autocomplete .autocomplete-list .autocomplete-list-item-create),
+:global(.fresh) .person-autocomplete :global(.autocomplete .autocomplete-list .autocomplete-list-item-no-results),
+:global(.fresh) .person-autocomplete :global(.autocomplete .autocomplete-list .autocomplete-list-item-loading) {
+  padding: 6px 12px;
+  background-color: transparent;
+  color: var(--fg-2);
+  font-size: var(--text-m);
+  line-height: var(--line-m);
+}
+:global(.fresh) .person-autocomplete.new-person {
+  height: 30px;
+  margin-block: -3px;
+  border-radius: var(--radius-m);
+  background-color: var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 1px var(--accent);
+}
+:global(.fresh) .new-person :global(input) {
+  height: 28px;
+  padding: 0 8px !important; /* the classic rule above has !important */
+  color: var(--fg-2);
+}
+:global(.fresh) .new-person :global(input:focus) {
+  color: var(--fg-1);
+}
+:global(.fresh) .name-line {
+  gap: 4px;
+  padding-inline-end: 2px;
+  border-inline-start: 1px solid var(--border-subtle);
+}
+:global(.fresh) .name-line input.name {
+  min-height: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+}
+:global(.fresh) .name-line :global(.account-selector) {
+  margin-inline-end: 0;
+}
+:global(.fresh) .name-line :global(button.button:not(:hover)) {
+  background-color: var(--accent);
+  color: var(--fg-on-accent);
+}
+@container persons-autocomplete (max-width: 500px) {
+  :global(.fresh) .person-autocomplete.new-person {
+    height: unset;
+    margin-block: 0;
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .name-line {
+    border-inline-start: none;
+    border-top: 1px solid var(--border-subtle);
+  }
+}
 </style>

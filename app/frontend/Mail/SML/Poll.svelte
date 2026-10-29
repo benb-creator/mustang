@@ -1,5 +1,5 @@
 <vbox class="poll">
-  <fieldset>
+  <fieldset class="options">
     <legend class="question font-normal">{poll.name}</legend>
     {#each ensureArray(poll.options) as option}
       <label class="option">
@@ -48,5 +48,31 @@
   }
   .title {
     font-weight: bold;
+  }
+
+  :global(.fresh) .poll {
+    align-items: start;
+  }
+  :global(.fresh) fieldset.options {
+    margin: 16px 24px 8px;
+    padding: 0;
+  }
+  :global(.fresh) legend.question {
+    margin-block-end: 8px;
+    font-size: var(--text-l);
+    font-weight: 600;
+  }
+  :global(.fresh) label.option {
+    gap: 8px;
+    padding-block: 4px;
+  }
+  :global(.fresh) .option input {
+    margin: 2px 0 0;
+  }
+  :global(.fresh) .title {
+    font-weight: 600;
+  }
+  :global(.fresh) .description {
+    color: var(--fg-2);
   }
 </style>

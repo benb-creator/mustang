@@ -209,4 +209,50 @@
     padding: 8px 16px;
     border-radius: 0px;
   }
+
+  :global(.fresh) .person-popup {
+    min-width: 280px;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+    box-shadow: none;
+  }
+  :global(.fresh) .picture {
+    margin: 0 12px;
+  }
+  :global(.fresh) .name-primary-mail {
+    gap: 4px;
+    margin: 12px 12px 12px 0;
+  }
+  :global(.fresh) .name-primary-mail .name {
+    margin-block-end: 0;
+    font-weight: 600;
+  }
+  :global(.fresh) .name-primary-mail .email {
+    font-size: var(--text-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .other-email-addresses {
+    gap: 2px;
+    margin: 0 12px 12px 56px;
+  }
+  :global(.fresh) .other-email-address {
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .other-email-address:hover {
+    text-decoration: underline;
+  }
+  :global(.fresh) .bottom.buttons {
+    border-top: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .bottom.buttons > :global(button.button) {
+    flex: 1 1 auto;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 0;
+  }
+  :global(.fresh) .bottom.buttons > :global(button.button:not(:first-child)) {
+    border-left: none;
+    border-inline-start: 1px solid var(--border-subtle);
+  }
 </style>

@@ -82,4 +82,30 @@
   .title {
     font-weight: bold;
   }
+
+  :global(.fresh) .poll-create {
+    gap: 4px;
+  }
+  :global(.fresh) .label {
+    font-size: var(--text-s);
+    font-weight: 600;
+    color: var(--fg-2);
+    opacity: 1;
+  }
+  :global(.fresh) .answers {
+    margin-block: 0 4px;
+  }
+  :global(.fresh) .option {
+    align-items: center;
+  }
+  :global(.fresh) .option input[type=radio] {
+    margin-block-start: 0;
+  }
+  :global(.fresh) .option input[type=text] {
+    min-width: 20em;
+    margin-block: 0;
+  }
+  :global(.fresh) .title {
+    font-weight: 600;
+  }
 </style>

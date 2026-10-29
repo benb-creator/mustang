@@ -1,5 +1,5 @@
 <vbox class="todo">
-  <fieldset>
+  <fieldset class="tasks">
     {#each tasks as task}
       <Checkbox label={task.name} checked={task.actionStatus == TSMLActionStatus.Completed} allowIndetermined allowFalse on:click={() => onCheck(task)} />
       {#if task.description}
@@ -34,5 +34,15 @@
   fieldset {
     border: none;
     margin: 24px 12px 12px 12px;
+  }
+
+  :global(.fresh) fieldset.tasks {
+    gap: 4px;
+    margin: 16px 24px 8px;
+    padding: 0;
+  }
+  :global(.fresh) .description {
+    margin-inline-start: 24px;
+    color: var(--fg-2);
   }
 </style>

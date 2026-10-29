@@ -91,4 +91,34 @@
   .context-menu:not(.open) {
     display: none;
   }
+
+  :global(.fresh) .person {
+    --person-picture-size: 18px;
+    gap: 6px;
+    height: 24px;
+    box-sizing: border-box;
+    padding-inline: 3px 8px;
+    border-radius: var(--radius-s);
+    background-color: var(--fill-subtle);
+    color: var(--fg-1);
+    box-shadow: none;
+    font-size: var(--text-m);
+    cursor: pointer;
+  }
+  :global(.fresh) .person:not(.selected):hover {
+    background-color: var(--fill-subtle);
+    background-image: linear-gradient(var(--row-hover), var(--row-hover));
+    color: var(--fg-1);
+  }
+  :global(.fresh) .person.selected {
+    background-color: var(--accent-tint);
+    color: var(--fg-1);
+    box-shadow: inset 0 0 0 1px var(--accent-border);
+  }
+  :global(.fresh) .person :global(.avatar) {
+    margin: 0;
+  }
+  :global(.fresh) .no-pic {
+    padding-inline-start: 8px;
+  }
 </style>

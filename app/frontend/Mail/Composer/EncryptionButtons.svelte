@@ -1,5 +1,5 @@
 {#if privateKey}
-  <hbox class="encryption buttons"
+  <hbox class="encryption buttons trust-{trustLevel}"
     class:encrypt={mail.shouldEncrypt}
     style="--trustColor: {trustColor[trustLevel]}; --trustColorFG: {trustColorFG[trustLevel]}">
     <ButtonMenu bind:isMenuOpen>
@@ -190,5 +190,29 @@
     background-color: var(--trustColor);
     color: var(--trustColorFG);
     border-radius: 1000px;
+  }
+
+  :global(.fresh) .buttons {
+    margin-inline-start: 0;
+  }
+  :global(.fresh) .buttons :global(.button:not(.selected)) {
+    color: var(--fg-2);
+  }
+  :global(.fresh) .buttons.encrypt :global(.button.button) {
+    border-radius: var(--radius-m);
+    background-color: var(--accent-tint);
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .buttons.encrypt.trust-personal :global(.button.button) {
+    background-color: var(--success-tint);
+    color: var(--success-fg);
+  }
+  :global(.fresh) .buttons.encrypt.trust-sender :global(.button.button) {
+    background-color: var(--warning-tint);
+    color: var(--warning-fg);
+  }
+  :global(.fresh) .buttons.encrypt.trust-distrust :global(.button.button) {
+    background-color: var(--danger-tint);
+    color: var(--danger-fg);
   }
 </style>

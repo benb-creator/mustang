@@ -71,4 +71,63 @@
   .buttons :global(svg) {
     color: lightgrey;
   }
+
+  :global(.fresh) .attachment {
+    align-items: center;
+    max-width: 320px;
+    height: 36px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 2px 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+    box-shadow: none;
+  }
+  :global(.fresh) .icon {
+    flex: none;
+    margin-inline-end: 8px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .icon :global(svg) {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.5px;
+  }
+  :global(.fresh) .right {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+  }
+  :global(.fresh) .name {
+    display: block;
+    min-width: 0;
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :global(.fresh) .second-line {
+    flex: none;
+    align-items: center;
+    gap: 2px;
+  }
+  :global(.fresh) .second-line > hbox[flex] {
+    display: none;
+  }
+  :global(.fresh) .size {
+    font-size: var(--text-s);
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  :global(.fresh) .buttons {
+    align-items: center;
+  }
+  :global(.fresh) .buttons :global(svg) {
+    color: inherit;
+  }
 </style>

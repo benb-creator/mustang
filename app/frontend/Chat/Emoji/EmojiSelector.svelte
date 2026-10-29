@@ -101,4 +101,34 @@
   .selector {
     width: 48px;
   }
+
+  :global(.fresh) .groups {
+    padding: 0 8px 8px;
+  }
+  :global(.fresh) .title {
+    margin-block: 8px 4px;
+    font-size: var(--text-s);
+    font-weight: 600;
+    color: var(--fg-2);
+    opacity: 1;
+  }
+  :global(.fresh) .emojis {
+    gap: 0;
+    margin-block-end: 0;
+  }
+  :global(.fresh) .selector {
+    flex: none;
+    width: 40px;
+    border-inline-end: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .group-selector {
+    align-items: center;
+    padding-block: 4px;
+  }
+  :global(.fresh) .group-selector .icon {
+    font-size: var(--text-xl);
+  }
+  :global(.fresh) .emojis .icon {
+    font-size: var(--text-2xl);
+  }
 </style>

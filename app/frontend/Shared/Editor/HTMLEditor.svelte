@@ -150,4 +150,30 @@
     margin-top: -1em;
     margin-bottom: -1em;
   }
+
+  :global(.fresh) .html-editor {
+    font-size: var(--text-l);
+    line-height: var(--line-l);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .html-editor :global(blockquote) {
+    border-left: none;
+    border-inline-start: 3px solid var(--accent-border);
+    padding-inline-start: 16px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .html-editor :global(code) {
+    padding: 0 4px;
+    border-radius: var(--radius-s);
+    background-color: var(--fill-subtle);
+  }
+  :global(.fresh) .html-editor :global(pre) {
+    padding: 8px 12px;
+    border-radius: var(--radius-m);
+    background-color: var(--l2-bg);
+  }
+  :global(.fresh) .html-editor :global(pre code) {
+    padding: 0;
+    background-color: transparent;
+  }
 </style>

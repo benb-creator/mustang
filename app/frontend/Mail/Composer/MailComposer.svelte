@@ -18,17 +18,19 @@
         {#if !appGlobal.isMobile}
           <CloseButton {mail} on:close={onClose} />
         {/if}
-        <RoundButton
-          classes="send"
-          label={sendDisabledTooltip ?? $t`Send`}
-          icon={SendIcon}
-          iconSize="20px"
-          padding="6px"
-          filled
-          disabled={!!sendDisabledTooltip}
-          onClick={onSend}
-          tabindex={2}
-          />
+        <slot name="send" {sendDisabledTooltip} {onSend}>
+          <RoundButton
+            classes="send"
+            label={sendDisabledTooltip ?? $t`Send`}
+            icon={SendIcon}
+            iconSize="20px"
+            padding="6px"
+            filled
+            disabled={!!sendDisabledTooltip}
+            onClick={onSend}
+            tabindex={2}
+            />
+        </slot>
         <!--
         <Button
           label={$t`Send`}
@@ -42,126 +44,130 @@
         -->
       </hbox>
     </hbox>
-    <grid class="recipients">
-      <hbox>
-        {#if showCC || showBCC}
-          <hbox class="label">
-            {$t`To`}
+    <vbox class="sheet">
+      <grid class="recipients">
+        <hbox class="to-label">
+          {#if showCC || showBCC}
+            <hbox class="label">
+              {$t`To`}
+            </hbox>
+          {/if}
+        </hbox>
+        <hbox flex class="to-line">
+          <hbox flex>
+            <MailAutocomplete addresses={mail.to} placeholder={$t`Add recipient`} tabindex={1} autofocus={mail.to.isEmpty}>
+              <svelte:fragment slot="person-popup-buttons" let:person>
+                <Button plain label={$t`CC`} onClick={() => onMoveToCC(person)} />
+                <Button plain label={$t`BCC`} onClick={() => onMoveToBCC(person)} />
+              </svelte:fragment>
+            </MailAutocomplete>
           </hbox>
-        {/if}
-      </hbox>
-      <hbox flex>
-        <hbox flex>
-          <MailAutocomplete addresses={mail.to} placeholder={$t`Add recipient`} tabindex={1} autofocus={mail.to.isEmpty}>
-            <svelte:fragment slot="person-popup-buttons" let:person>
-              <Button plain label={$t`CC`} onClick={() => onMoveToCC(person)} />
+          <hbox class="cc buttons">
+            <Button
+              label={$t`Cc`}
+              onClick={() => {showCCForce = !showCCForce}}
+              disabled={hasCC}
+              selected={showCC}
+              classes="small"
+              />
+            <Button
+              label={$t`Bcc`}
+              onClick={() => {showBCCForce = !showBCCForce}}
+              disabled={hasBCC}
+              selected={showBCC}
+              classes="small"
+              />
+          </hbox>
+        </hbox>
+        {#if showCC}
+          <hbox class="label">{$t`Cc`}</hbox>
+          <MailAutocomplete addresses={mail.cc} placeholder={$t`Add CC recipient`} tabindex={1}>
+            <svelte:fragment slot="person-popup-buttons" let:person={person}>
+              <Button plain label={$t`To`} onClick={() => onMoveToTo(person)} />
               <Button plain label={$t`BCC`} onClick={() => onMoveToBCC(person)} />
             </svelte:fragment>
           </MailAutocomplete>
-        </hbox>
-        <hbox class="cc buttons">
-          <Button
-            label={$t`Cc`}
-            onClick={() => {showCCForce = !showCCForce}}
-            disabled={hasCC}
-            selected={showCC}
-            />
-          <Button
-            label={$t`Bcc`}
-            onClick={() => {showBCCForce = !showBCCForce}}
-            disabled={hasBCC}
-            selected={showBCC}
-            />
-        </hbox>
-      </hbox>
-      {#if showCC}
-        <hbox class="label">{$t`Cc`}</hbox>
-        <MailAutocomplete addresses={mail.cc} placeholder={$t`Add CC recipient`} tabindex={1}>
-          <svelte:fragment slot="person-popup-buttons" let:person={person}>
-            <Button plain label={$t`To`} onClick={() => onMoveToTo(person)} />
-            <Button plain label={$t`BCC`} onClick={() => onMoveToBCC(person)} />
-          </svelte:fragment>
-        </MailAutocomplete>
+        {/if}
+        {#if showBCC}
+          <hbox class="label">{$t`Bcc`}</hbox>
+          <MailAutocomplete addresses={mail.bcc} placeholder={$t`Add BCC recipient`} tabindex={1}>
+            <svelte:fragment slot="person-popup-buttons" let:person>
+              <Button plain label={$t`To`} onClick={() => onMoveToTo(person)} />
+              <Button plain label={$t`CC`} onClick={() => onMoveToCC(person)} />
+            </svelte:fragment>
+          </MailAutocomplete>
+        {/if}
+      </grid>
+      {#if $mail.shouldEncrypt}
+        <EncryptionDetails {mail} identity={fromIdentity} bind:encryptionError />
       {/if}
-      {#if showBCC}
-        <hbox class="label">{$t`Bcc`}</hbox>
-        <MailAutocomplete addresses={mail.bcc} placeholder={$t`Add BCC recipient`} tabindex={1}>
-          <svelte:fragment slot="person-popup-buttons" let:person>
-            <Button plain label={$t`To`} onClick={() => onMoveToTo(person)} />
-            <Button plain label={$t`CC`} onClick={() => onMoveToCC(person)} />
-          </svelte:fragment>
-        </MailAutocomplete>
-      {/if}
-    </grid>
-    {#if $mail.shouldEncrypt}
-      <EncryptionDetails {mail} identity={fromIdentity} bind:encryptionError />
-    {/if}
-    <HTMLEditorToolbar {editor}>
-      <Button classes="emoji-toggle"
-        onClick={() => showEmojis = !showEmojis}
-        icon={EmojiIcon}
-        iconSize="16px"
-        selected={showEmojis}
-        slot="start"
-        />
-      <Button
-        label={$t`Spell check`}
-        icon={SpellCheckIcon}
-        iconOnly
-        onClick={() => spellcheckEnabled.value = !spellcheckEnabled.value}
-        selected={$spellcheckEnabled.value}
-        slot="before-undo"
-        />
-      <hbox slot="end" bind:this={smlAddAnchor}>
-        <Button
-          label={$t`Actions`}
-          icon={SMLIcon}
-          iconOnly
-          onClick={() => showSMLAdd = true}
-          disabled={$mail.sml ? $t`You have already added an action` : false}
+      <HTMLEditorToolbar {editor}>
+        <Button classes="emoji-toggle"
+          onClick={() => showEmojis = !showEmojis}
+          icon={EmojiIcon}
+          iconSize="16px"
+          selected={showEmojis}
+          slot="start"
           />
         <Button
-          label={$t`Attachments`}
-          icon={AttachmentIcon}
+          label={$t`Spell check`}
+          icon={SpellCheckIcon}
           iconOnly
-          onClick={onAddAttachment}
+          onClick={() => spellcheckEnabled.value = !spellcheckEnabled.value}
+          selected={$spellcheckEnabled.value}
+          slot="before-undo"
           />
-      </hbox>
-    </HTMLEditorToolbar>
-    {#if loading}
-      <Spinner size="64px" />
-    {/if}
-    <hbox flex class="editor-and-attachments">
-      {#if showEmojis}
-        <vbox class="emojis">
-          <GraphicSelector
-            on:select={onEmoji}
-            on:backspace={() => catchErrors(onEmojiBackspace)}
-            bind:isOpen={showEmojis}
+        <hbox slot="end" bind:this={smlAddAnchor}>
+          <Button
+            label={$t`Actions`}
+            icon={SMLIcon}
+            iconOnly
+            onClick={() => showSMLAdd = true}
+            disabled={$mail.sml ? $t`You have already added an action` : false}
             />
-        </vbox>
+          <Button
+            label={$t`Attachments`}
+            icon={AttachmentIcon}
+            iconOnly
+            onClick={onAddAttachment}
+            />
+        </hbox>
+      </HTMLEditorToolbar>
+      {#if loading}
+        <Spinner size="64px" />
       {/if}
-      <vbox flex class="editor-wrapper">
-        <Paper>
-          <Scroll>
-            <hbox class="subject">
-              <input type="text" bind:value={mail.subject} tabindex={1} placeholder={$t`Subject`} class="font-normal" />
-            </hbox>
-            <SMLComposer {mail} />
-            <vbox flex class="editor" spellcheck={$spellcheckEnabled.value}>
-              <!-- The html in the mail passed in MUST already be sanitized HTML.
-              Using `rawHTMLDangerous` avoids that we're sanitizing on every keypress. -->
-              <HTMLEditor bind:html={mail.rawHTMLDangerous} bind:editor tabindex={1} />
-            </vbox>
-          </Scroll>
-        </Paper>
-      </vbox>
-      {#if showAttachments}
-        <vbox class="attachments">
-          <AttachmentsPane message={mail} />
+      <hbox flex class="editor-and-attachments">
+        {#if showEmojis}
+          <vbox class="emojis">
+            <GraphicSelector
+              on:select={onEmoji}
+              on:backspace={() => catchErrors(onEmojiBackspace)}
+              bind:isOpen={showEmojis}
+              />
+          </vbox>
+        {/if}
+        <vbox flex class="editor-wrapper">
+          <Paper>
+            <Scroll>
+              <hbox class="subject">
+                <input type="text" bind:value={mail.subject} tabindex={1} placeholder={$t`Subject`} class="font-normal" />
+              </hbox>
+              <SMLComposer {mail} />
+              <vbox flex class="editor" spellcheck={$spellcheckEnabled.value}>
+                <!-- The html in the mail passed in MUST already be sanitized HTML.
+                Using `rawHTMLDangerous` avoids that we're sanitizing on every keypress. -->
+                <HTMLEditor bind:html={mail.rawHTMLDangerous} bind:editor tabindex={1} />
+              </vbox>
+            </Scroll>
+          </Paper>
         </vbox>
-      {/if}
-    </hbox>
+        {#if showAttachments}
+          <vbox class="attachments">
+            <AttachmentsPane message={mail} />
+          </vbox>
+        {/if}
+      </hbox>
+    </vbox>
   </vbox>
 </FileDropTarget>
 <Popup
@@ -482,5 +488,159 @@
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
     z-index: 1000;
+  }
+  .sheet {
+    display: contents;
+  }
+
+  :global(.fresh) .mail-composer-window {
+    container: composer / inline-size;
+    padding: 0;
+    background-color: var(--l2-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .window-title-bar {
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    height: var(--pane-header-height);
+    padding-inline: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .close.buttons {
+    align-items: center;
+  }
+  :global(.fresh) .sheet {
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 0;
+    min-height: 0;
+    width: calc(100% - 48px);
+    max-width: 920px;
+    box-sizing: border-box;
+    margin: 16px auto 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-l);
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) grid.recipients {
+    margin: 0;
+    padding-inline: 20px;
+  }
+  :global(.fresh) .recipients > .to-label,
+  :global(.fresh) .recipients > .label {
+    align-items: start;
+    padding-block-start: 11px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .recipients .label {
+    min-width: 40px;
+    margin: 0;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .to-line {
+    align-items: start;
+    min-width: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .to-line :global(.persons-autocomplete.persons-autocomplete) {
+    border-bottom: none;
+  }
+  :global(.fresh) .to-line:focus-within,
+  :global(.fresh) .recipients > :global(.persons-autocomplete:focus-within) {
+    border-bottom-color: var(--accent);
+    box-shadow: inset 0 -1px 0 var(--accent);
+  }
+  :global(.fresh) .cc.buttons {
+    flex: none;
+    align-items: center;
+    gap: 2px;
+    margin-block-start: 6px;
+    border-bottom: none;
+  }
+  :global(.fresh) .cc.buttons > :global(button.button) {
+    margin-inline-start: 0;
+  }
+  :global(.fresh) .cc.buttons > :global(button.button:hover:not(.disabled):not(.selected)),
+  :global(.fresh) .cc.buttons > :global(button.button.disabled) {
+    background-color: transparent;
+  }
+  :global(.fresh) .cc.buttons > :global(button.button.selected) {
+    border-color: transparent;
+  }
+  :global(.fresh) .sheet > :global(.toolbar) {
+    flex: none;
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 4px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .editor-and-attachments {
+    min-height: 0;
+  }
+  :global(.fresh) .emojis {
+    flex: none;
+    width: 360px;
+    border-inline-end: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .editor-wrapper {
+    min-width: 0;
+    margin-block-start: 0;
+  }
+  :global(.fresh) .subject {
+    margin: 0 20px;
+    font-weight: 600;
+  }
+  :global(.fresh) .subject input {
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--fg-1);
+    font-size: var(--text-xl);
+    line-height: var(--line-xl);
+    font-weight: 600;
+  }
+  :global(.fresh) .subject input::placeholder {
+    font-weight: 400;
+  }
+  :global(.fresh) .subject input:hover {
+    border-color: var(--border-subtle);
+  }
+  :global(.fresh) .subject input:focus {
+    border-color: var(--accent);
+    box-shadow: inset 0 -1px 0 var(--accent);
+  }
+  :global(.fresh) .editor {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 12px 20px 16px;
+  }
+  :global(.fresh) .attachments {
+    flex: none;
+    width: 280px;
+    margin: 0;
+    border-inline-start: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .sml-add-dialog {
+    padding: 16px;
+    background-color: transparent;
+    color: inherit;
+  }
+  @container composer (max-width: 760px) {
+    :global(.fresh) .sheet {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      border: none;
+      border-radius: 0;
+    }
   }
 </style>

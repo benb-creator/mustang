@@ -102,4 +102,18 @@
   .actions :global(button.button) {
     padding: 12px 16px;
   }
+
+  :global(.fresh) .title {
+    justify-content: start;
+    margin-block-end: 12px;
+    font-size: var(--text-l);
+    font-weight: 600;
+  }
+  :global(.fresh) .actions {
+    gap: 8px;
+  }
+  :global(.fresh) .actions :global(button.button) {
+    min-height: var(--control-height-l);
+    padding: 0 16px;
+  }
 </style>

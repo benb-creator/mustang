@@ -85,4 +85,21 @@
   .persons-autocomplete :global(input.autocomplete-input) {
     border: none;
   }
+
+  :global(.fresh) .persons-autocomplete {
+    gap: 4px;
+    min-height: var(--control-height);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .persons-autocomplete:focus-within {
+    border-bottom-color: var(--accent);
+  }
+  :global(.fresh) .persons-autocomplete > :global(*) {
+    margin: 0;
+  }
+  :global(.fresh) .input {
+    min-width: 12em;
+    margin-inline-start: 0;
+  }
 </style>

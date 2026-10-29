@@ -283,4 +283,33 @@ block
   .link-dialog label {
     margin-inline-end: 8px;
   }
+
+  :global(.fresh) .bold-icon {
+    font-size: var(--text-l);
+    font-weight: 700;
+  }
+  :global(.fresh) .strike-through-icon {
+    font-size: var(--text-l);
+  }
+  :global(.fresh) .header-icon {
+    font-size: var(--text-s);
+    font-weight: 700;
+  }
+  :global(.fresh) .link-dialog {
+    align-items: center;
+    gap: 8px;
+    padding-block: 4px;
+  }
+  :global(.fresh) .link-dialog label {
+    margin-inline-end: 0;
+    font-size: var(--text-s);
+    font-weight: 600;
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  :global(.fresh) .link-dialog input {
+    flex: 1 1 auto;
+    max-width: 30em;
+    margin-inline-end: 0;
+  }
 </style>

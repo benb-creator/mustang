@@ -43,4 +43,29 @@
     white-space: nowrap;
     align-items: center;
   }
+
+  :global(.fresh) .person {
+    --person-picture-size: 32px;
+    gap: 8px;
+    min-width: 0;
+  }
+  :global(.fresh) .person :global(.avatar) {
+    margin: 0;
+  }
+  :global(.fresh) .top-row,
+  :global(.fresh) .bottom-row {
+    height: auto;
+  }
+  :global(.fresh) .name {
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-weight: 600;
+    color: var(--fg-1);
+  }
+  :global(.fresh) .email-address {
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+    opacity: 1;
+  }
 </style>

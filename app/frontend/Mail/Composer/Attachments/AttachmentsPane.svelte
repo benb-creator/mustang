@@ -43,4 +43,11 @@
     justify-content: center;
     margin-block-start: 12px;
   }
+
+  :global(.fresh) .attachments-pane :global(.attachment) {
+    margin: 4px 8px;
+  }
+  :global(.fresh) .buttons {
+    margin-block: 8px;
+  }
 </style>

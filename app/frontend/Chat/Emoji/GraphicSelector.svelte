@@ -83,4 +83,25 @@
   .search {
     margin: 4px 8px 8px 56px;
   }
+
+  :global(.fresh) .graphic-selector {
+    min-height: 0;
+    background-color: var(--l3-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .type-selector {
+    flex: none;
+    gap: 2px;
+    padding: 4px;
+    border-inline-end: 1px solid var(--border-subtle);
+  }
+  :global(.fresh) .search {
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 8px;
+  }
+  :global(.fresh) .search > :global(.search) {
+    flex: 1 1 auto;
+  }
 </style>

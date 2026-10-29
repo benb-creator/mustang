@@ -199,4 +199,43 @@
   .no-keys :global(.button svg) {
     stroke-width: 1.2px;
   }
+
+  :global(.fresh) .box {
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--warning-fg) 30%, transparent);
+    border-radius: var(--radius-m);
+    background-color: var(--warning-tint);
+    color: var(--fg-1);
+    box-shadow: none;
+  }
+  :global(.fresh) .no-keys {
+    gap: 8px;
+    padding: 8px 20px 0;
+  }
+  :global(.fresh) .all {
+    column-gap: 12px;
+  }
+  :global(.fresh) .recipients {
+    gap: 8px;
+    margin-block-end: 8px;
+    overflow-y: auto;
+  }
+  :global(.fresh) .recipient {
+    padding-block: 6px;
+    padding-inline: 12px 6px;
+    border-color: var(--border);
+    background-color: var(--l3-bg);
+  }
+  :global(.fresh) .recipient .email-address {
+    color: var(--fg-2);
+    opacity: 1;
+  }
+  :global(.fresh) .buttons {
+    align-items: center;
+    gap: 8px;
+  }
+  :global(.fresh) .no-keys :global(.button svg) {
+    stroke-width: 1.5px;
+  }
 </style>

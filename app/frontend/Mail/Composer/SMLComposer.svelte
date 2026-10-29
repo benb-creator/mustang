@@ -50,4 +50,16 @@
   .preview {
     height: 50vh;
   }
+
+  :global(.fresh) .sml {
+    margin: 16px 20px 0;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background-color: var(--l2-bg);
+  }
+  :global(.fresh) .sml .buttons {
+    margin: 12px 0 0;
+    gap: 8px;
+  }
 </style>
