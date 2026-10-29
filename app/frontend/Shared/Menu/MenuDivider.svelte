@@ -9,4 +9,8 @@
     height: 0px;
     border-top: 1px solid var(--border);
   }
+  :global(.fresh) .divider {
+    margin: 4px 0;
+    border-top-color: var(--border-subtle);
+  }
 </style>

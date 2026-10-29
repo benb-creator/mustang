@@ -63,4 +63,17 @@
       rgba(0, 0, 0, 0.05) 0px 20px 25px -5px,
       rgba(0, 0, 0, 0.04) 0px 10px 10px -5px;
   }
+  :global(.fresh) .menu {
+    min-width: 200px;
+    max-width: 360px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 4px;
+    border-radius: var(--radius-l);
+    background-color: var(--float-bg);
+    color: var(--fg-1);
+    box-shadow: none;
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+  }
 </style>

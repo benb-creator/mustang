@@ -1,6 +1,7 @@
 <button on:click on:dblclick on:click={myOnClick} bind:this={buttonEl}
   title={tooltipCalc} class="button {classes}" class:plain
   disabled={isDisabled} class:disabled={isDisabled} class:selected
+  class:icon-only={!hasLabel} class:busy={running}
   {tabindex}
   >
   <hbox class="icon">
@@ -176,5 +177,132 @@
   }
   .plain .icon {
     margin-inline-end: 0;
+  }
+  :global(.fresh) .button {
+    box-sizing: border-box;
+    min-height: var(--control-height);
+    padding: 0 12px;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-m);
+    background-color: var(--btn-sec-bg);
+    background-image: none;
+    color: var(--fg-1);
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .button .gap {
+    width: 6px;
+  }
+  :global(.fresh) .button.icon-only {
+    min-width: var(--icon-button-size);
+    padding: 0;
+  }
+  :global(.fresh) .button.small {
+    min-height: var(--control-height-s);
+    padding: 0 8px;
+  }
+  :global(.fresh) .button.small.icon-only {
+    min-width: var(--icon-button-size-s);
+    min-height: var(--icon-button-size-s);
+    padding: 0;
+  }
+  :global(.fresh) .button.large {
+    min-height: var(--control-height-l);
+    padding: 0 16px;
+    font-size: var(--text-l);
+    font-weight: 600;
+  }
+  :global(.fresh) .button.plain {
+    border-color: transparent;
+    background-color: transparent;
+  }
+  :global(.fresh) .button.plain.icon-only {
+    color: var(--fg-2);
+  }
+  :global(.fresh) .button.primary,
+  :global(.fresh) .button.filled {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .button.danger {
+    border-color: var(--danger);
+    background-color: var(--danger);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .button.danger.plain {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .button:hover:not(.disabled) {
+    border-color: var(--fg-3);
+    background-color: var(--btn-sec-bg);
+    background-image: linear-gradient(var(--row-hover), var(--row-hover));
+    color: var(--fg-1);
+  }
+  :global(.fresh) .button:active:not(.disabled) {
+    background-image: linear-gradient(var(--row-press), var(--row-press));
+  }
+  :global(.fresh) .button.plain:hover:not(.disabled) {
+    border-color: transparent;
+    background-color: transparent;
+  }
+  :global(.fresh) .button.primary:hover:not(.disabled),
+  :global(.fresh) .button.filled:hover:not(.disabled) {
+    border-color: var(--accent-hover);
+    background-color: var(--accent-hover);
+    background-image: none;
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .button.primary:active:not(.disabled),
+  :global(.fresh) .button.filled:active:not(.disabled) {
+    border-color: var(--accent-active);
+    background-color: var(--accent-active);
+  }
+  :global(.fresh) .button.danger:hover:not(.disabled) {
+    border-color: var(--danger-hover);
+    background-color: var(--danger-hover);
+    background-image: none;
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .button.danger.plain:hover:not(.disabled) {
+    border-color: transparent;
+    background-color: var(--danger-tint);
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .button.selected:not(.disabled) {
+    border: 1px solid var(--accent-border);
+    background-color: var(--accent-tint);
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .button.plain.selected:not(.disabled) {
+    border-color: transparent;
+  }
+  :global(.fresh) .button.selected:hover:not(.disabled) {
+    background-color: var(--accent-tint);
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .button.disabled:not(.busy) {
+    opacity: 1;
+    border-color: var(--fill-subtle);
+    background-color: var(--fill-subtle);
+    color: var(--fg-disabled);
+    cursor: default;
+  }
+  :global(.fresh) .button.plain.disabled:not(.busy) {
+    border-color: transparent;
+    background-color: transparent;
+  }
+  :global(.fresh) .button.busy {
+    opacity: 1;
+    cursor: progress;
+  }
+  :global(.fresh) .button.disabled img {
+    opacity: 0.5;
   }
 </style>

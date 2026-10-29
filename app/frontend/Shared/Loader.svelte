@@ -30,4 +30,9 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+  :global(.fresh) .loader {
+    border-color: var(--border-subtle);
+    border-top-color: var(--accent);
+    animation-duration: 0.8s;
+  }
 </style>

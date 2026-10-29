@@ -52,4 +52,61 @@
       justify-content: stretch;
     }
   }
+  :global(.fresh) .island {
+    flex: none;
+    align-items: stretch;
+    box-sizing: border-box;
+    height: 28px;
+    max-width: 100%;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-m);
+    overflow: hidden;
+  }
+  :global(.fresh) .island:not(.border) {
+    border-color: transparent;
+  }
+  :global(.fresh) .island.specific :global(.button.button) {
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0 10px;
+    border: none;
+    border-inline-start: 1px solid var(--border-control);
+    border-radius: 0;
+    background-color: transparent;
+    background-image: none;
+    color: var(--fg-2);
+    font-weight: 500;
+  }
+  :global(.fresh) .island.specific :global(.button.button:first-child) {
+    border-inline-start: none;
+  }
+  :global(.fresh) .island.specific :global(.button.button.icon-only) {
+    width: 30px;
+    padding: 0;
+  }
+  :global(.fresh) .island.specific :global(.button.button:hover:not(.disabled):not(.selected)) {
+    background-color: var(--row-hover);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .island.specific :global(.button.button.selected) {
+    background-color: var(--ink);
+    color: var(--ink-fg);
+  }
+  :global(.fresh) .island.specific :global(.button.button.selected + .button) {
+    border-inline-start-color: var(--ink);
+  }
+  :global(.fresh) .island.specific :global(.button.button.disabled:not(.selected)) {
+    background-color: transparent;
+    color: var(--fg-disabled);
+  }
+  :global(.fresh) .island.specific :global(.button.button:focus-visible) {
+    outline-offset: -2px;
+  }
+  :global(.fresh) .island :global(.button .label) {
+    margin-inline-end: 0;
+  }
+  :global(.fresh) .island :global(svg) {
+    stroke-width: 1.75px;
+  }
   </style>

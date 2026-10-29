@@ -14,4 +14,9 @@
     outline: 1px solid var(--border);
   }
 }
+:global(.fresh) .paper {
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+}
 </style>

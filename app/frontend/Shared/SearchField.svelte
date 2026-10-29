@@ -103,4 +103,56 @@
   .search :global(.button) {
     background-color: transparent;
   }
+  :global(.fresh) .search {
+    box-sizing: border-box;
+    height: var(--control-height);
+    gap: 8px;
+    padding-inline: 8px 3px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-m);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+    transition: border-color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .search:hover {
+    border-color: var(--fg-3);
+  }
+  :global(.fresh) .search:has(input:focus) {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .search.has-search {
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .search :global(svg) {
+    flex: none;
+    color: var(--fg-3);
+  }
+  :global(.fresh) .search input[type="search"] {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    outline: none;
+    background-color: transparent;
+    color: inherit;
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .search input::placeholder {
+    color: var(--fg-3);
+  }
+  :global(.fresh) .search :global(.button.button) {
+    flex: none;
+    min-width: 22px;
+    min-height: 22px;
+    border-radius: var(--radius-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .search :global(.button svg) {
+    color: inherit;
+  }
 </style>

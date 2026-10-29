@@ -45,4 +45,14 @@
     padding: 4px 8px;
     margin-block-end: 4px;
   }
+  :global(.fresh) .header.box {
+    min-height: 32px;
+    box-sizing: border-box;
+    margin-block-end: 4px;
+    padding: 0 4px 0 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-m);
+    background-color: var(--l2-bg);
+    color: var(--fg-1);
+  }
 </style>

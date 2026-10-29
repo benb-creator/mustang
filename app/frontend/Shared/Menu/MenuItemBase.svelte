@@ -52,4 +52,15 @@
   .disabled {
     opacity: 50%;
   }
+  :global(.fresh) .menuitem {
+    border-radius: var(--radius-s);
+  }
+  :global(.fresh) .menuitem:hover:not(.disabled) {
+    background-color: var(--row-press);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .menuitem.disabled {
+    opacity: 1;
+    color: var(--fg-disabled);
+  }
 </style>

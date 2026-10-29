@@ -7,7 +7,7 @@
       </ErrorBoundary>
     </hbox>
     <hbox
-      class="splitter-bar"
+      class="splitter-bar" class:dragging={isMouseDown}
       on:pointerdown={onMouseDown}
       style="height: {barHeight}px;"
       />
@@ -127,5 +127,13 @@
   .top,
   .bottom {
     overflow-y: clip;
+  }
+  :global(.fresh) .splitter-bar {
+    background-color: transparent;
+    transition: background-color var(--motion-fast) var(--motion-ease) 150ms;
+  }
+  :global(.fresh) .splitter-bar:hover,
+  :global(.fresh) .splitter-bar.dragging {
+    background-color: var(--accent);
   }
 </style>

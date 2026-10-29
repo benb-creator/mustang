@@ -221,4 +221,121 @@
     left: 18px;
     top: 11px;
   }
+  :global(.fresh) .checkbox {
+    position: relative;
+    cursor: pointer;
+  }
+  :global(.fresh) .checkbox input {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    border: 1.5px solid var(--border-input);
+    border-radius: var(--radius-s);
+    background-color: var(--input-bg);
+    transition: border-color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .checkbox:hover:not(.disabled) input {
+    border-color: var(--fg-3);
+  }
+  :global(.fresh) .checkbox input:checked {
+    border: 1.5px solid var(--accent);
+    background-color: var(--accent);
+  }
+  :global(.fresh) .checkbox:hover:not(.disabled) input:checked {
+    border-color: var(--accent-hover);
+    background-color: var(--accent-hover);
+  }
+  :global(.fresh) .checkbox input.indetermined {
+    border: 1.5px solid var(--danger);
+    background-color: var(--danger);
+  }
+  :global(.fresh) .checkbox input:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  :global(.fresh) .checkbox .state-icon-wrapper {
+    width: 16px;
+    height: 16px;
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .checkbox label {
+    margin-inline-start: 8px;
+    color: inherit;
+    cursor: inherit;
+  }
+  :global(.fresh) .checkbox.disabled {
+    opacity: 1;
+    cursor: default;
+  }
+  :global(.fresh) .checkbox.disabled input {
+    border-color: var(--border);
+    background-color: var(--fill-subtle);
+  }
+  :global(.fresh) .checkbox.disabled input:checked {
+    border-color: var(--fg-disabled);
+    background-color: var(--fg-disabled);
+  }
+  :global(.fresh) .checkbox.disabled label {
+    color: var(--fg-disabled);
+  }
+  :global(.fresh) .toggle .knob-wrapper {
+    width: 30px;
+    min-width: 30px;
+    height: 16px;
+    border-radius: 8px;
+    background-color: var(--switch-off);
+    transition: background-color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .toggle.on .knob-wrapper {
+    background-color: var(--accent);
+  }
+  :global(.fresh) .toggle.indetermined .knob-wrapper {
+    background-color: var(--fill-subtle);
+    box-shadow: inset 0 0 0 1px var(--border-input);
+  }
+  :global(.fresh) .toggle.off.allowIndetermined .knob-wrapper {
+    background-color: var(--danger);
+  }
+  :global(.fresh) .toggle:hover:not(.disabled) .knob-wrapper {
+    background-image: linear-gradient(var(--row-press), var(--row-press));
+  }
+  :global(.fresh) .toggle .knob {
+    top: 2px;
+    left: auto;
+    right: auto;
+    inset-inline-start: 2px;
+    width: 12px;
+    height: 12px;
+    background-color: var(--fg-on-accent);
+    box-shadow: none;
+    transition: inset-inline-start var(--motion-base) var(--motion-ease);
+  }
+  :global(.fresh) .toggle.on .knob {
+    left: auto;
+    right: auto;
+    inset-inline-start: 16px;
+    background-color: var(--fg-on-accent);
+    box-shadow: none;
+  }
+  :global(.fresh) .toggle.indetermined .knob {
+    left: auto;
+    right: auto;
+    inset-inline-start: 9px;
+    background-color: var(--fg-3);
+    box-shadow: none;
+  }
+  :global(.fresh) .toggle.off.allowIndetermined .knob {
+    background-color: var(--fg-on-accent);
+    box-shadow: none;
+  }
+  :global(.fresh) .toggle .state-icon-wrapper {
+    display: none;
+  }
+  :global(.fresh) .toggle.disabled .knob-wrapper {
+    opacity: 0.4;
+  }
+  :global(.fresh) .toggle.disabled label {
+    color: inherit;
+    opacity: 0.4;
+  }
 </style>

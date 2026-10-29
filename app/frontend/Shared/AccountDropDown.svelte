@@ -114,4 +114,31 @@
     text-overflow: ellipsis;
     max-width: 10em;
   }
+  :global(.fresh) .account-selector select.withLabel {
+    box-sizing: border-box;
+    height: var(--control-height);
+    max-width: 16em;
+    padding: 0 6px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-m);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .account-selector select.withLabel:hover:not(:disabled) {
+    border-color: var(--fg-3);
+  }
+  :global(.fresh) .account-selector select.withLabel:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  :global(.fresh) .account-selector select.withLabel:disabled {
+    border-color: var(--border);
+    background-color: var(--fill-subtle);
+    color: var(--fg-disabled);
+  }
+  :global(.fresh) .account-selector .icon {
+    margin-inline-end: 6px;
+  }
 </style>

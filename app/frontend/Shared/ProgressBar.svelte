@@ -62,4 +62,27 @@
     height: 24px;
     accent-color: var(--selected-bg);
   }
+  :global(.fresh) .labels {
+    margin-block-end: 4px;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .progress-bar progress {
+    appearance: none;
+    height: 4px;
+    border: none;
+    border-radius: 2px;
+    background-color: var(--border-subtle);
+    overflow: hidden;
+  }
+  :global(.fresh) .progress-bar progress::-webkit-progress-bar {
+    border-radius: 2px;
+    background-color: var(--border-subtle);
+  }
+  :global(.fresh) .progress-bar progress::-webkit-progress-value {
+    border-radius: 2px;
+    background-color: var(--accent);
+    transition: inline-size var(--motion-base) var(--motion-ease);
+  }
 </style>

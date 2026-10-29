@@ -7,7 +7,7 @@
         <slot name="left" />
       </ErrorBoundary>
     </hbox>
-    <hbox class="splitter-bar"
+    <hbox class="splitter-bar" class:dragging={isMouseDown}
       on:pointerdown={onMouseDown}
       style="width: {barWidth}px;"
       />
@@ -154,4 +154,12 @@
   .right {
     overflow: auto; TODO breaks popups
   }*/
+  :global(.fresh) .splitter-bar {
+    background-color: transparent;
+    transition: background-color var(--motion-fast) var(--motion-ease) 150ms;
+  }
+  :global(.fresh) .splitter-bar:hover,
+  :global(.fresh) .splitter-bar.dragging {
+    background-color: var(--accent);
+  }
 </style>

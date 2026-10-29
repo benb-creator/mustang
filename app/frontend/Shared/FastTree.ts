@@ -17,6 +17,16 @@ export function getIndentionLevelFor<T extends TreeItem<T>>(item: T): number {
   return indentionLevel;
 }
 
+/** @returns `item` is `selected` or one of its parents, so FastTree shows it expanded */
+export function isOnPathTo<T extends TreeItem<T>>(item: T, selected: T): boolean {
+  for (let cur = selected; cur; cur = cur.parent) {
+    if (cur == item) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Adds a property decorator to a property outside the class.
  * Useful, if you're dynamically adding properties to the JS object and
  * want the decorator for those properties.

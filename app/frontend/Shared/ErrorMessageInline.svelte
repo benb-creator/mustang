@@ -36,4 +36,25 @@
   .icon {
     margin-inline-end: 12px;
   }
+  :global(.fresh) .error {
+    align-items: center;
+    gap: 8px;
+    margin: 8px;
+    padding: 8px 12px;
+    border: 1px solid color-mix(in srgb, var(--danger-fg) 30%, transparent);
+    border-radius: var(--radius-m);
+    background-color: var(--danger-tint);
+    color: var(--fg-1);
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+  }
+  :global(.fresh) .error .icon {
+    flex: none;
+    margin-inline-end: 0;
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .error .icon :global(svg) {
+    width: 16px;
+    height: 16px;
+  }
 </style>

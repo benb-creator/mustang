@@ -110,4 +110,29 @@
     margin: 5px;
     box-shadow: 2.281px 1.14px 9.123px 0px rgba(var(--shadow-color), 10%);
   }
+  :global(.fresh) .popup {
+    margin: 0;
+    border: 1px solid var(--border-float);
+    border-radius: var(--radius-l);
+    background-color: var(--float-bg);
+    color: var(--fg-1);
+    box-shadow: var(--shadow-pop);
+    animation: popup-fade-in var(--motion-base) var(--motion-ease);
+  }
+  :global(.fresh.main-window:not(.mobile) .fast-list .row) > .popup {
+    --fg-1: inherit;
+    --fg-2: inherit;
+    --fg-3: inherit;
+    --accent-fg: inherit;
+    background-color: var(--float-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .popup > :global(*) {
+    border-radius: calc(var(--radius-l) - 1px);
+  }
+  @keyframes popup-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
 </style>

@@ -65,4 +65,34 @@
   .tag :global(.button) {
     margin-inline-start: 4px;
   }
+  :global(.fresh) .tag {
+    align-items: center;
+    gap: 4px;
+  }
+  :global(.fresh) .tag input[type="text"] {
+    box-sizing: border-box;
+    height: 22px;
+    min-height: 0;
+    padding: 0 6px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-s);
+    background-color: var(--input-bg);
+    color: var(--fg-1);
+    box-shadow: inset 3px 0 0 var(--color);
+    font-size: var(--text-s);
+  }
+  :global(.fresh) .tag input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+  :global(.fresh) .tag input[type="color"] {
+    width: 24px;
+    height: 22px;
+    margin-inline-start: 0;
+    padding: 1px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-s);
+  }
+  :global(.fresh) .tag :global(.button) {
+    margin-inline-start: 0;
+  }
 </style>

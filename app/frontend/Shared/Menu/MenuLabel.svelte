@@ -26,4 +26,14 @@
     white-space: nowrap;
     opacity: 50%;
   }
+  :global(.fresh) .menuitem {
+    padding: 6px 12px 2px;
+  }
+  :global(.fresh) .menuitem .label {
+    opacity: 1;
+    font-size: var(--text-s);
+    line-height: var(--line-s);
+    font-weight: 600;
+    color: var(--fg-3);
+  }
 </style>

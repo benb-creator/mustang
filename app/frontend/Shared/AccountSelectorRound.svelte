@@ -98,4 +98,31 @@
     max-height: 18px;
     max-width: 100%;
   }
+  :global(.fresh) .accounts {
+    gap: 4px;
+  }
+  :global(.fresh) .account {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    width: auto;
+    max-width: 160px;
+    margin: 0;
+    padding: 0;
+    padding-inline-end: 6px;
+    border-radius: var(--radius-m);
+  }
+  :global(.fresh) .account:hover {
+    background-color: var(--row-hover);
+  }
+  :global(.fresh) .name {
+    max-height: none;
+    font-size: var(--text-m);
+    line-height: var(--line-m);
+    font-weight: 600;
+    color: var(--fg-1);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-align: start;
+  }
 </style>

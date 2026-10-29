@@ -93,4 +93,20 @@
     margin-inline-start: 6px;
     justify-content: center;
   }
+  :global(.fresh) .tag-list {
+    align-items: center;
+  }
+  :global(.fresh) .buttons {
+    margin-inline-start: 2px;
+  }
+  :global(.fresh) .buttons :global(.button.button) {
+    min-width: 20px;
+    min-height: 20px;
+    border: 1px dashed var(--border-control);
+    border-radius: var(--radius-s);
+    color: var(--fg-2);
+  }
+  :global(.fresh) .buttons :global(.button.button.plain:hover:not(.disabled)) {
+    border: 1px dashed var(--fg-3);
+  }
 </style>

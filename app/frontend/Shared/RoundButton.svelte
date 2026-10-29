@@ -3,7 +3,7 @@
   class="button {classes}"
   class:filled class:border
   class:selected
-  disabled={isDisabled} class:disabled={isDisabled}
+  disabled={isDisabled} class:disabled={isDisabled} class:busy={running}
   {tabindex}
   style="--padding: {padding}"
   >
@@ -139,5 +139,96 @@
   }
   button.plain {
     background-color: transparent;
+  }
+  :global(.fresh) .button {
+    box-sizing: border-box;
+    min-width: var(--icon-button-size);
+    min-height: var(--icon-button-size);
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-m);
+    background-color: transparent;
+    background-image: none;
+    color: var(--fg-2);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .button.border {
+    border-color: var(--border-control);
+    background-color: var(--btn-sec-bg);
+    color: var(--fg-1);
+  }
+  :global(.fresh) .button.plain {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .button.small {
+    min-width: var(--icon-button-size-s);
+    min-height: var(--icon-button-size-s);
+  }
+  :global(.fresh) .button.smallest {
+    min-width: 20px;
+    min-height: 20px;
+  }
+  :global(.fresh) .button.large {
+    min-width: var(--control-height-l);
+    min-height: var(--control-height-l);
+  }
+  :global(.fresh) .button.filled:not(.disabled) {
+    padding: 0;
+    border: 1px solid var(--accent);
+    background-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .button.danger {
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .button.button:hover:not(.disabled) {
+    background-image: linear-gradient(var(--row-hover), var(--row-hover));
+    color: var(--fg-1);
+  }
+  :global(.fresh) .button.button.border:hover:not(.disabled) {
+    border: 1px solid var(--fg-3);
+    background-color: var(--btn-sec-bg);
+  }
+  :global(.fresh) .button.button.plain:hover:not(.disabled) {
+    border: 1px solid transparent;
+    background-color: transparent;
+  }
+  :global(.fresh) .button.button:active:not(.disabled) {
+    background-image: linear-gradient(var(--row-press), var(--row-press));
+  }
+  :global(.fresh) .button.button.filled:hover:not(.disabled) {
+    border-color: var(--accent-hover);
+    background-color: var(--accent-hover);
+    background-image: none;
+    color: var(--fg-on-accent);
+  }
+  :global(.fresh) .button.button.danger:hover:not(.disabled) {
+    border-color: transparent;
+    background-color: var(--danger-tint);
+    background-image: none;
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .button.selected:not(.disabled),
+  :global(.fresh) .button.button.selected:hover:not(.disabled) {
+    border-color: transparent;
+    background-color: var(--accent-tint);
+    background-image: none;
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .button.disabled:not(.busy) {
+    opacity: 1;
+    color: var(--fg-disabled);
+    cursor: default;
+  }
+  :global(.fresh) .button.border.disabled:not(.busy) {
+    border-color: var(--fill-subtle);
+    background-color: var(--fill-subtle);
+  }
+  :global(.fresh) .button.busy {
+    opacity: 1;
+    cursor: progress;
   }
 </style>

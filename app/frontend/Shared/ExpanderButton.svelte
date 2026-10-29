@@ -82,4 +82,39 @@
   .add {
     margin-inline-start: 6px;
   }
+  :global(.fresh) .expander-button :global(.button.button) {
+    min-height: 0;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    background-image: none;
+  }
+  :global(.fresh) .content {
+    gap: 6px;
+    box-sizing: border-box;
+    min-height: var(--control-height-s);
+    padding: 0 8px 0 6px;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-m);
+    background-color: var(--btn-sec-bg);
+    color: var(--fg-1);
+    font-size: var(--text-m);
+    font-weight: 500;
+    transition: border-color var(--motion-fast) var(--motion-ease);
+  }
+  :global(.fresh) .content :global(svg) {
+    margin-inline-start: 0;
+    stroke-width: 1.75px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .icon,
+  :global(.fresh) .add {
+    margin-inline: 0;
+  }
+  :global(.fresh button:hover:not(.disabled)) .content {
+    border-color: var(--fg-3);
+    background-color: var(--btn-sec-bg);
+    background-image: linear-gradient(var(--row-hover), var(--row-hover));
+    color: var(--fg-1);
+  }
 </style>

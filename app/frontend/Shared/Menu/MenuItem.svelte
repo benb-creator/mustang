@@ -117,4 +117,58 @@
   .menuitem.danger {
     color: red;
   }
+  :global(.fresh) .menuitem {
+    box-sizing: border-box;
+    min-height: var(--menu-item-height);
+    padding: 0 12px 0 8px;
+    border-radius: var(--radius-s);
+    color: var(--fg-1);
+    font: inherit;
+    text-align: start;
+    cursor: default;
+  }
+  :global(.fresh) .menuitem .icon {
+    flex: none;
+    width: 24px;
+    margin-inline-end: 8px;
+    color: var(--fg-2);
+  }
+  :global(.fresh) .menuitem .gap {
+    display: none;
+  }
+  :global(.fresh) .menuitem .label {
+    font-size: var(--text-m);
+  }
+  :global(.fresh) .menuitem:hover:not(.disabled),
+  :global(.fresh) .menuitem:focus-visible {
+    background-color: var(--row-press) !important; /* the classic rule above has !important */
+    color: var(--fg-1);
+  }
+  :global(.fresh) .menuitem:focus-visible {
+    outline: none;
+  }
+  :global(.fresh) .menuitem.selected,
+  :global(.fresh) .menuitem.selected:hover:not(.disabled) {
+    background-color: var(--accent-tint) !important; /* the classic rule above has !important */
+    color: var(--accent-fg);
+    font-weight: 600;
+  }
+  :global(.fresh) .menuitem.selected .icon {
+    color: var(--accent-fg);
+  }
+  :global(.fresh) .menuitem.disabled {
+    opacity: 1;
+    color: var(--fg-disabled);
+  }
+  :global(.fresh) .menuitem.disabled .icon {
+    color: var(--fg-disabled);
+  }
+  :global(.fresh) .menuitem.danger,
+  :global(.fresh) .menuitem.danger .icon {
+    color: var(--danger-fg);
+  }
+  :global(.fresh) .menuitem.danger:hover:not(.disabled) {
+    background-color: var(--danger-tint) !important; /* the classic rule above has !important */
+    color: var(--danger-fg);
+  }
 </style>
