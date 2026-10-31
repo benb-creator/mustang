@@ -17,4 +17,10 @@
     color: #8583A8;
     font-weight: 300;
   }
+  :global(.mobile) .footer {
+    margin-block-start: 4px;
+  }
+  :global(.mobile) .footer a[href] {
+    padding-block: 12px;
+  }
 </style>

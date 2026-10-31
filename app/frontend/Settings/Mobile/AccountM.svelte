@@ -3,12 +3,14 @@
     <hbox class="header">
       <hbox class="account-icon">
         {#if account.icon}
-          <Icon data={account.icon} />
+          <Icon data={account.icon} size="24px" />
         {:else}
-          <InboxIcon />
+          <InboxIcon size="24px" />
         {/if}
       </hbox>
-      {account.name}
+      <hbox class="name">
+        {account.name}
+      </hbox>
     </hbox>
 
     {#if $subCategories.hasItems && isMain}
@@ -22,9 +24,9 @@
     {/if}
 
     {#if category?.windowContent}
-      <vbox class="settings-panel" flex>
+      <SettingsPanelM>
         <svelte:component this={category.windowContent} {account} />
-      </vbox>
+      </SettingsPanelM>
     {/if}
   </Scroll>
 </vbox>
@@ -42,6 +44,7 @@
   import { URLPart } from "../../../logic/util/blob";
   import AccountBarM from "./AccountBarM.svelte";
   import RowButton from "./RowButton.svelte";
+  import SettingsPanelM from "./SettingsPanelM.svelte";
   import Scroll from "../../Shared/Scroll.svelte";
   import Icon from "../../Shared/Icon.svelte";
   import InboxIcon from "lucide-svelte/icons/inbox";
@@ -62,18 +65,24 @@
   .category {
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
-    padding: 32px 24px;
   }
   .header {
-    font-size: 24px;
+    align-items: center;
+    padding: 24px 16px 16px 16px;
+    font-size: 28px;
     font-weight: bold;
-    margin-block-end: 12px;
+    line-height: 1.2;
   }
   .account-icon {
+    flex: none;
     align-items: center;
-    margin-inline-end: 16px;
+    margin-inline-end: 12px;
+  }
+  .name {
+    min-width: 0;
   }
   .sub-categories {
-    margin-block-end: 32px;
+    margin-block-end: 24px;
+    border-block: 1px solid var(--border);
   }
 </style>

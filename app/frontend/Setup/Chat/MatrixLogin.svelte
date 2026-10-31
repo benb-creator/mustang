@@ -3,7 +3,7 @@
   subtitle={$t`Import your existing Matrix account`}
 />
 <vbox flex class="account">
-  <grid>
+  <grid class="fields">
     <label for="username">{$t`Your Matrix ID`}</label>
     <input type="text" bind:value={userID} name="username"
       placeholder="@fred:matrix.org" autofocus />

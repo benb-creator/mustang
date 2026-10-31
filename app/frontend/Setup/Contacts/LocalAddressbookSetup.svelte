@@ -3,7 +3,7 @@
   subtitle=""
 />
 <vbox flex class="account">
-  <grid>
+  <grid class="fields">
     <label for="name">{$t`Name of the addressbook`}</label>
     <input type="text" bind:value={config.name} name="name"
       placeholder={$t`Private`} autofocus />

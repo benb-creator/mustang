@@ -7,7 +7,7 @@
     on:continue={() => errorMessage = null} />
 {/if}
 <vbox flex class="account">
-  <grid>
+  <grid class="fields">
     <label for="username">{$t`Your JID`}</label>
     <input type="text" bind:value={jid} name="username"
       placeholder="fred@example.com" autofocus />

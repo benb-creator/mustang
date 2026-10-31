@@ -306,4 +306,15 @@
   .port input[type=number] {
     width: 6em;
   }
+  :global(.mobile) .hostname input {
+    min-width: 0px;
+  }
+  :global(.mobile) .port input[type=number] {
+    width: 100%;
+  }
+  :global(.mobile) .tls select,
+  :global(.mobile) .authMethod select {
+    min-width: 0px;
+    width: 100%;
+  }
 </style>

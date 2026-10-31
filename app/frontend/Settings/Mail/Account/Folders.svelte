@@ -1,4 +1,4 @@
-<vbox flex>
+<vbox flex class="folders">
   <h2>{$t`Folders`}</h2>
   <hbox class="subtitle">{$t`Rename folders, set special folders, share them with others`}</hbox>
 
@@ -81,5 +81,21 @@
   .login .label {
     margin-block-start: 16px;
     margin-block-end: 8px;
+  }
+  :global(.mobile) .folders :global(.splitter) {
+    flex-direction: column;
+  }
+  :global(.mobile) .folders :global(.splitter > .left) {
+    flex: none;
+    height: 40vh;
+    margin-inline: -16px;
+    border-block: 1px solid var(--border);
+    background-color: var(--main-bg);
+  }
+  :global(.mobile) .folders :global(.splitter-bar) {
+    display: none;
+  }
+  :global(.mobile) .right {
+    margin: 0px;
   }
 </style>

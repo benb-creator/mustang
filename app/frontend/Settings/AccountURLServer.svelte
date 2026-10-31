@@ -1,4 +1,4 @@
-<grid>
+<grid class="fields">
   <label for="url">{$t`Server URL`}</label>
   <hbox class="value">{account.url}</hbox>
   <label for="username">{$t`Username`}</label>

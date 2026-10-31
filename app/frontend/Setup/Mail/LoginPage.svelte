@@ -65,4 +65,11 @@
   .spacer2 {
     min-height: 5vh;
   }
+  :global(.mobile) .password-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  :global(.mobile) .password-row :global(input) {
+    min-width: 0px;
+  }
 </style>

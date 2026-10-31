@@ -51,4 +51,16 @@
     bottom: 10px;
     z-index: 1;
   }
+  :global(.mobile) .button {
+    top: 12px;
+    right: 12px;
+    bottom: auto;
+    border-radius: 100px;
+    background-color: rgba(0, 0, 0, 25%);
+    color: white;
+  }
+  :global(.mobile) .button :global(button) {
+    min-width: 44px;
+    min-height: 44px;
+  }
 </style>

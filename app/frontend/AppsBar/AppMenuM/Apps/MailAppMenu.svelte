@@ -1,26 +1,22 @@
-{#if $selectedPerson}
-  <CombinedButton
-    icon1={mailMustangApp.icon}
-    icon2={$selectedPerson.picture ?? PersonIcon}
-    onClick={() => searchPersonMails($selectedPerson)} />
-{:else}
-  <hbox class="empty" />
-{/if}
-<BasicButton
-  icon={FolderIcon}
-  label={$t`Folders`}
-  onClick={() => goTo("/mail", {})} />
-<AppButton
+<AppMenuRow
   app={mailMustangApp}
   page={URLPart`/mail/folder/${allAccountsAccount.id}/${allAccountsAccount.inbox.id ?? "noid"}/message-list`}
   params={{
     messages: allAccountsAccount.inbox.messages,
     folder: allAccountsAccount.inbox,
     account: allAccountsAccount,
-  }}
-  />
-<BasicButton icon={SearchIcon} page="/mail/search" />
-<BasicButton icon={PencilIcon} page="/mail/compose" />
+  }}>
+  <BasicButton
+    icon={FolderIcon}
+    label={$t`Folders`}
+    onClick={() => goTo("/mail", {})} />
+  <BasicButton icon={SearchIcon} page="/mail/search" />
+  <BasicButton icon={PencilIcon} page="/mail/compose" />
+  <CombinedButton slot="person"
+    icon1={mailMustangApp.icon}
+    icon2={$selectedPerson?.picture ?? PersonIcon}
+    onClick={() => searchPersonMails($selectedPerson)} />
+</AppMenuRow>
 
 <script lang="ts">
   import { EMail } from "../../../../logic/Mail/EMail";
@@ -33,7 +29,7 @@
   import { selectedPerson } from "../../../Contacts/Person/Selected";
   import { allAccountsAccount } from "../../../../logic/Mail/AccountsList/ShowAccounts";
   import { goTo } from "../../selectedApp";
-  import AppButton from "../AppButton.svelte";
+  import AppMenuRow from "../AppMenuRow.svelte";
   import CombinedButton from "../CombinedButton.svelte";
   import BasicButton from "../BasicButton.svelte";
   import SearchIcon from "lucide-svelte/icons/search";

@@ -97,4 +97,15 @@
   .buttons {
     align-items: center;
   }
+  :global(.mobile) .account-type {
+    margin: 0px;
+  }
+  :global(.mobile) .account-type .header,
+  :global(.mobile) .account-type .account {
+    align-items: center;
+    min-height: 48px;
+  }
+  :global(.mobile) .account .name {
+    min-width: 0;
+  }
 </style>

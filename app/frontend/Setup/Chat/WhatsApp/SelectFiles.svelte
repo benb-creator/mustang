@@ -4,7 +4,7 @@
 />
 
 <vbox flex class="files">
-  <grid>
+  <grid class="fields">
     <hbox class="label">{$t`Messages`}</hbox>
     <Button label={msgstoreFile ? msgstoreFile.name : $t`Select msgstore.db.crypt15 …`}
       classes="secondary"

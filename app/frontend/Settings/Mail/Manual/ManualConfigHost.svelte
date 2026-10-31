@@ -65,4 +65,19 @@
     padding-inline-start: 16px;
     padding-inline-end: 16px;
   }
+  :global(.mobile) grid.manual-config {
+    grid-auto-columns: minmax(0, max-content) minmax(0, 1fr) minmax(0, 1fr);
+    margin-inline: -16px;
+    padding-inline: 8px;
+    border: none;
+    border-block: 1px solid var(--border);
+    border-radius: 0px;
+    background-color: var(--main-bg);
+  }
+  :global(.mobile) grid.manual-config :global(> *) {
+    padding-inline: 8px;
+  }
+  :global(.mobile) grid.manual-config :global(> .header) {
+    background-color: transparent;
+  }
 </style>

@@ -10,7 +10,7 @@
     {/if}
   </svelte:fragment>
   <vbox class="content">
-    <grid>
+    <grid class="fields">
       <label for="realname">{$t`Your name`}</label>
       <input type="text" bind:value={identity.realname} name="realname" />
 
@@ -183,5 +183,11 @@
   }
   .content :global(.expander-buttons) {
     margin-block-start: 38px;
+  }
+  :global(.mobile) .reply-to {
+    margin-block-start: 0px;
+  }
+  :global(.mobile) .signature {
+    margin-block-start: 24px;
   }
 </style>

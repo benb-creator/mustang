@@ -26,4 +26,21 @@
   .update {
     margin-block-start: 24px;
   }
+  :global(.mobile) .app-logo {
+    align-items: center;
+    padding-block-start: 24px;
+    color: var(--selected-bg);
+  }
+  :global(.mobile) .app-logo :global(svg) {
+    width: 72px;
+    height: 72px;
+  }
+  :global(.mobile) .app-logo :global(svg :is(.horse, .circle-bars)) {
+    fill: currentColor;
+    stroke: currentColor;
+  }
+  :global(.mobile) .app-logo + h1 {
+    text-align: center;
+    font-size: 26px;
+  }
 </style>

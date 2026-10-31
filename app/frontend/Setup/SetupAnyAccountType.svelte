@@ -95,4 +95,28 @@
     font-weight: 300;
     color: #455468;
   }
+  :global(.mobile) .add-buttons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :global(.mobile) .add-buttons :global(.expander-button) {
+    margin-inline-end: 0px;
+  }
+  :global(.mobile) .add-buttons :global(.expander-button .button .content) {
+    min-height: 44px;
+  }
+  :global(.mobile) .buttons-bottom {
+    margin-block-start: auto;
+    padding-block-start: 24px;
+  }
+  :global(.mobile) .buttons-bottom :global(> *) {
+    margin-inline-end: 0px;
+  }
+  :global(.mobile) .buttons-bottom :global(button) {
+    flex: 1 0 100%;
+    min-height: 48px;
+  }
+  :global(.mobile) .buttons-bottom :global(button.secondary) {
+    border-color: var(--button-border);
+    color: var(--main-fg);
+  }
 </style>

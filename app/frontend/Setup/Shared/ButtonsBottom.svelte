@@ -12,7 +12,7 @@
       {errorCallback}
       />
   {/if}
-  <hbox flex />
+  <hbox class="spacer" flex />
   {#if showContinue}
     <Button label={labelContinue ?? $t`Next`} classes="filled large"
       disabled={!canContinue}
@@ -68,5 +68,31 @@
     .buttons :global(button.secondary) {
       border-color: #222222;
     }
+  }
+  :global(.mobile) .buttons {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    margin-block-start: auto;
+    padding-block-start: 24px;
+  }
+  :global(.mobile) .buttons :global(> *) {
+    margin-inline-end: 0px;
+  }
+  :global(.mobile) .spacer {
+    display: none;
+  }
+  :global(.mobile) .buttons :global(button) {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+  :global(.mobile) .buttons :global(button.secondary) {
+    border-color: var(--button-border);
+  }
+  :global(.mobile) .buttons :global(button.filled) {
+    order: 1;
+    flex: 1 0 100%;
+    min-height: 52px;
+    font-size: 18px;
   }
 </style>

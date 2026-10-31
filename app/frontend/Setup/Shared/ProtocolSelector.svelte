@@ -37,4 +37,16 @@
   .name {
     margin-inline-start: 8px;
   }
+  :global(.mobile) .protocol-selector {
+    align-items: stretch;
+    margin-inline-end: 0px;
+  }
+  :global(.mobile) .protocol {
+    padding: 2px 0px;
+    margin: 0px;
+  }
+  :global(.mobile) .name {
+    margin-inline-start: 12px;
+    font-size: 17px;
+  }
 </style>

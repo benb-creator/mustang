@@ -136,4 +136,19 @@
   input[name] {
     margin-block-end: 24px;
   }
+  :global(.mobile) .account-general grid {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0px 12px;
+  }
+  :global(.mobile) .account-general label {
+    grid-column: 1 / -1;
+  }
+  :global(.mobile) .account-general input[name],
+  :global(.mobile) .account-general select {
+    margin-block-end: 16px;
+  }
+  :global(.mobile) .account-general input[type="color"] {
+    width: 44px;
+    height: 44px;
+  }
 </style>

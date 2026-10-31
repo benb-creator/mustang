@@ -107,4 +107,27 @@
     color: #6B6B6CAA;
     background-color: transparent;
   }
+  :global(.mobile) .notification-bar {
+    min-height: 48px;
+    padding-inline: 12px 4px;
+  }
+  :global(.mobile) .message {
+    margin: 6px 4px;
+    font-size: 15px;
+  }
+  :global(.mobile) .buttons-separator {
+    margin-inline-end: 0px;
+  }
+  :global(.mobile) .notification-bar :global(button.action) {
+    min-height: 40px;
+    padding: 4px 14px;
+  }
+  :global(.mobile) .notification-bar :global(button.small) {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  :global(.mobile) .notification-bar :global(button.small svg) {
+    width: 20px;
+    height: 20px;
+  }
 </style>

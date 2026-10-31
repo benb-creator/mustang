@@ -26,4 +26,14 @@
     justify-content: center;
     align-items: center;
   }
+  :global(.mobile) .title {
+    align-items: center;
+    font-size: 22px;
+    font-weight: bold;
+  }
+  :global(.mobile) .subtitle {
+    padding-block-start: 4px;
+    font-size: 16px;
+    opacity: 75%;
+  }
 </style>

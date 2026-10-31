@@ -57,4 +57,8 @@
   .buttons {
     min-width: 32px;
   }
+  :global(.mobile) .buttons :global(button) {
+    min-width: 44px;
+    min-height: 44px;
+  }
 </style>

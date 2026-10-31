@@ -92,4 +92,18 @@
     grid-template-columns: 10em auto auto 1fr;
     gap: 24px;
   }
+  :global(.mobile) grid.color-setting {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    align-items: center;
+    min-height: 52px;
+  }
+  :global(.mobile) .color-setting input[type="color"] {
+    width: 48px;
+    height: 36px;
+  }
+  :global(.mobile) .color-setting :global(button) {
+    min-height: 44px;
+    padding-inline: 8px;
+  }
 </style>

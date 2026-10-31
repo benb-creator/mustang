@@ -23,7 +23,7 @@
 // #if [!WEBMAIL && !MOBILE]
 <webview bind:this={webviewE} src={url} {title} {partition} />
 // #else
-<iframe bind:this={webviewE} src={url} {title} sandbox="allow-scripts allow-forms" />
+<iframe bind:this={webviewE} src={url} {title} sandbox="allow-scripts allow-forms" class="web-page" />
 // #endif
 
 <script lang="ts">
@@ -115,5 +115,18 @@
   }
   .loading {
     width: 24px;
+  }
+  :global(.mobile) iframe.web-page {
+    flex: 1 0 0;
+    width: 100%;
+    border: none;
+  }
+  :global(.mobile) .toolbar {
+    min-height: 48px;
+    padding: 2px 4px 2px 16px;
+  }
+  :global(.mobile) .buttons :global(button) {
+    min-width: 44px;
+    min-height: 44px;
   }
 </style>

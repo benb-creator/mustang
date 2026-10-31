@@ -76,4 +76,19 @@
     flex-wrap: wrap;
     max-width: 100%;
   }
+  :global(.mobile) grid.name {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0px 12px;
+    margin-block-end: 8px;
+  }
+  :global(.mobile) grid.name label {
+    grid-column: 1 / -1;
+  }
+  :global(.mobile) grid.name input[type="color"] {
+    width: 44px;
+    height: 44px;
+  }
+  :global(.mobile) .accounts {
+    flex-direction: column;
+  }
 </style>

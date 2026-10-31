@@ -23,4 +23,14 @@
     font-weight: 300;
     line-height: 1.4;
   }
+  :global(.mobile) .header {
+    margin-block-end: 24px;
+  }
+  :global(.mobile) .header h1 {
+    font-size: 26px;
+    line-height: 1.2;
+  }
+  :global(.mobile) .subtitle {
+    margin-block-start: 6px;
+  }
 </style>

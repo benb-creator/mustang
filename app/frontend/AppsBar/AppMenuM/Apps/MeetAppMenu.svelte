@@ -1,21 +1,18 @@
-{#if $selectedPerson}
-  <CombinedButton
-    icon1={meetMustangApp.icon}
-    icon2={$selectedPerson.picture ?? PersonIcon}
-    onClick={() => onCallPerson($selectedPerson)} />
-{:else}
+<AppMenuRow app={meetMustangApp} page="/meet/">
   <hbox class="empty" />
-{/if}
-<hbox class="empty" />
-<AppButton app={meetMustangApp} page="/meet/" />
-<BasicButton icon={HistoryIcon} page="/meet/history" />
-<BasicButton icon={PlusIcon} onClick={onCreateMeeting} />
+  <BasicButton icon={HistoryIcon} page="/meet/history" />
+  <BasicButton icon={PlusIcon} onClick={onCreateMeeting} />
+  <CombinedButton slot="person"
+    icon1={meetMustangApp.icon}
+    icon2={$selectedPerson?.picture ?? PersonIcon}
+    onClick={() => onCallPerson($selectedPerson)} />
+</AppMenuRow>
 
 <script lang="ts">
   import { meetMustangApp } from "../../../Meet/MeetMustangApp";
   import { startAdHocMeeting, callSelected } from "../../../Meet/Start/start";
   import { goTo, openApp } from "../../selectedApp";
-  import AppButton from "../AppButton.svelte";
+  import AppMenuRow from "../AppMenuRow.svelte";
   import CombinedButton from "../CombinedButton.svelte";
   import BasicButton from "../BasicButton.svelte";
   import HistoryIcon from "lucide-svelte/icons/history";

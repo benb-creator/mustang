@@ -2,7 +2,7 @@
   <HeaderGroupBox>
     <hbox slot="header">{$t`Connected accounts`}</hbox>
     <vbox class="content">
-      <grid>
+      <grid class="fields">
         <label for="name">{$t`Add invitations to calendar`}</label>
         <AccountDropDown accounts={calendars}
           bind:selectedAccount={account.calendar}

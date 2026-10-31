@@ -3,7 +3,7 @@
   subtitle={$t`You can get the configuration from your ${"SIP"} phone operator.`}
 />
 <vbox flex class="account">
-  <grid>
+  <grid class="fields">
     <label for="domain">{$t`${"SIP"} domain`}</label>
     <input type="text" bind:value={config.domain} name="domain"
       placeholder="tele.com" autofocus />

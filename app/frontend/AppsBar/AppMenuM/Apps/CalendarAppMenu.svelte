@@ -1,16 +1,13 @@
-{#if $selectedPerson}
-  <CombinedButton
+<AppMenuRow app={calendarMustangApp} page="/calendar/">
+  <BasicButton label={$t`TODO`} icon={TODOsIcon} onClick={goToTODOs} />
+  <BasicButton icon={SearchIcon} page="/calendar/search" />
+  <BasicButton icon={PlusIcon} onClick={onCreateEvent} />
+  <CombinedButton slot="person"
     icon1={calendarMustangApp.icon}
-    icon2={$selectedPerson.picture ?? PersonIcon}
+    icon2={$selectedPerson?.picture ?? PersonIcon}
     page="/calendar/person"
     params={{ person: $selectedPerson}} />
-{:else}
-  <hbox class="empty" />
-{/if}
-<BasicButton label={$t`TODO`} icon={TODOsIcon} onClick={goToTODOs} />
-<AppButton app={calendarMustangApp} page="/calendar/" />
-<BasicButton icon={SearchIcon} page="/calendar/search" />
-<BasicButton icon={PlusIcon} onClick={onCreateEvent} />
+</AppMenuRow>
 
 <script lang="ts">
   import { setNewEventTime } from "../../../Calendar/event";
@@ -20,7 +17,7 @@
   import { selectedPerson } from "../../../Contacts/Person/Selected";
   import { appGlobal } from "../../../../logic/app";
   import { goTo } from "../../selectedApp";
-  import AppButton from "../AppButton.svelte";
+  import AppMenuRow from "../AppMenuRow.svelte";
   import CombinedButton from "../CombinedButton.svelte";
   import BasicButton from "../BasicButton.svelte";
   import SearchIcon from "lucide-svelte/icons/search";

@@ -54,7 +54,6 @@
   export let isMain: boolean;
 
   $: parentCategory = category && settingsCategories.find(cat => cat.accounts.contains(account));
-  $: console.log("account", account, "category", category, "parent", parentCategory, "main", isMain);
 
   function goToCategory(category: SettingsCategory) {
     goTo(URLPart`/settings/category/${category.id}`, { category });

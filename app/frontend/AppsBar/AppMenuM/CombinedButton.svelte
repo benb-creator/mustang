@@ -2,10 +2,18 @@
   <hbox class="stack" slot="icon">
     <Stack>
       <hbox class="icon1" flex>
-        <AppIcon icon={icon1} size="24px" />
+        {#if isPictureURL(icon1)}
+          <img src={icon1} width="24" height="24" alt="" />
+        {:else}
+          <AppIcon icon={icon1} size="24px" />
+        {/if}
       </hbox>
       <hbox class="icon2" flex>
-        <AppIcon icon={icon2} size="18px" />
+        {#if isPictureURL(icon2)}
+          <img src={icon2} width="18" height="18" alt="" />
+        {:else}
+          <AppIcon icon={icon2} size="18px" />
+        {/if}
       </hbox>
     </Stack>
   </hbox>
@@ -25,6 +33,11 @@
 
   function onClickPage() {
     goTo(page, params);
+  }
+
+  /** A person's picture is a URL, an app icon is SVG markup */
+  function isPictureURL(icon: ConstructorOfATypedSvelteComponent | string): icon is string {
+    return typeof(icon) == "string" && !icon.includes("<svg");
   }
 </script>
 
@@ -53,5 +66,9 @@
   }
   .icon2 :global(svg) {
     fill: var(--bg);
+  }
+  .stack img {
+    border-radius: 50%;
+    object-fit: cover;
   }
 </style>

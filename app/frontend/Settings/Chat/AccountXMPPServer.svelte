@@ -1,4 +1,4 @@
-<grid>
+<grid class="fields">
   <label for="hostname">{$t`Server`}</label>
   <hbox class="value">{account.hostname}:{account.port}</hbox>
   <label for="username">{$t`Username JID`}</label>

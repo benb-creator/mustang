@@ -58,6 +58,15 @@
   .groups :global(.group .content) {
     padding-inline-end: 48px;
   }
+  :global(.mobile) .groups {
+    flex-direction: column;
+  }
+  :global(.mobile) .groups :global(> *) {
+    margin-inline-end: -16px;
+  }
+  :global(.mobile) .groups :global(.group .content) {
+    padding-inline-end: 16px;
+  }
   .radio {
     align-items: center;
   }

@@ -66,4 +66,14 @@
     align-items: center;
     gap: 12px;
   }
+  :global(.mobile) .settings {
+    align-items: stretch;
+  }
+  :global(.mobile) .settings > :global(.group) {
+    width: auto;
+  }
+  :global(.mobile) .buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
 </style>

@@ -5,7 +5,7 @@
     </hbox>
 
     {#if $subCategories.hasItems}
-      <vbox class="sub-categories">
+      <vbox class="rows">
         {#each $subCategories.each as subCategory}
           <RowButton label={subCategory.name}
             icon={subCategory.icon}
@@ -15,23 +15,23 @@
     {/if}
 
     {#if category?.accounts?.hasItems}
-      <hbox class="accounts-header">
+      <hbox class="rows-header font-small">
         {$t`Accounts`}
       </hbox>
-      <vbox class="accounts">
+      <vbox class="rows accounts">
         {#each category.accounts.each as account}
           <RowButton label={account.name}
             icon={account.icon ?? InboxIcon}
             onClick={() => goToAccount(account)} />
         {/each}
+        <RowButton label={$t`New account`} icon={PlusIcon} accent onClick={onNewAccount} />
       </vbox>
-      <RowButton label={$t`New account`} onClick={onNewAccount} />
     {/if}
 
     {#if category?.windowContent}
-      <vbox class="settings-panel" flex>
+      <SettingsPanelM>
         <svelte:component this={category.windowContent} account={$selectedAccount} />
-      </vbox>
+      </SettingsPanelM>
     {/if}
   </Scroll>
 </vbox>
@@ -51,8 +51,10 @@
   import { URLPart } from "../../../logic/util/blob";
   import CategoryBarM from "./CategoryBarM.svelte";
   import RowButton from "./RowButton.svelte";
+  import SettingsPanelM from "./SettingsPanelM.svelte";
   import Scroll from "../../Shared/Scroll.svelte";
   import InboxIcon from "lucide-svelte/icons/inbox";
+  import PlusIcon from "lucide-svelte/icons/plus";
   import { assert } from "../../../logic/util/util";
   import { t } from "../../../l10n/l10n";
 
@@ -87,23 +89,20 @@
   .category {
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
-    padding: 32px 24px;
   }
   .header {
-    font-size: 24px;
+    padding: 24px 16px 16px 16px;
+    font-size: 28px;
     font-weight: bold;
-    margin-block-end: 12px;
+    line-height: 1.2;
   }
-  .sub-categories {
-    margin-block-end: 32px;
+  .rows {
+    margin-block-end: 24px;
+    border-block: 1px solid var(--border);
   }
-  .accounts-header {
-    font-weight: bold;
-    margin-inline-start: 12px;
-    margin-block-end: 4px;
-    opacity: 50%;
-  }
-  .accounts {
-    margin-block-end: 32px;
+  .rows-header {
+    padding: 0 16px 8px 16px;
+    font-weight: 500;
+    opacity: 60%;
   }
 </style>

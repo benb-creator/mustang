@@ -1,7 +1,7 @@
 <HeaderGroupBox>
   <hbox slot="header">{$t`OAuth2`}</hbox>
   <vbox class="content">
-    <grid>
+    <grid class="fields">
       <label for="ui">{$t`Login UI`}</label>
       <hbox class="ui">
         <select bind:value={oAuth2.uiMethod} required name="ui">

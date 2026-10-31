@@ -2,7 +2,7 @@
   <HeaderGroupBox>
     <hbox slot="header">{$t`Connected accounts`}</hbox>
     <vbox class="content">
-      <grid>
+      <grid class="fields">
         <label for="name">{$t`Send invitations from`}</label>
         <select bind:value={account.inviteAs} name="inviteAs"
           disabled={$identities.length <= 1}>

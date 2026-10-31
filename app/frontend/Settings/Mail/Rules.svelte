@@ -37,7 +37,7 @@
                   />
               </hbox>
               <vbox class="content">
-                <grid class="name-grid">
+                <grid class="name-grid fields">
                   <label for="name">{$t`Rule name`}</label>
                   <input type="text" bind:value={rule.name} name="name" autofocus />
 
@@ -159,5 +159,24 @@
   }
   .buttons.bottom :global(button) {
     margin-inline-start: 8px;
+  }
+  :global(.mobile) .tags-rule-actions :global(.splitter) {
+    flex-direction: column;
+  }
+  :global(.mobile) .tags-rule-actions :global(.splitter > .left) {
+    flex: none;
+    height: 25vh;
+    margin-inline: -16px;
+    border-block: 1px solid var(--border);
+    background-color: var(--main-bg);
+  }
+  :global(.mobile) .tags-rule-actions :global(.splitter-bar) {
+    display: none;
+  }
+  :global(.mobile) .tags-rule-actions .right {
+    height: 75vh;
+  }
+  :global(.mobile) .rule-details {
+    margin: 0px;
   }
 </style>

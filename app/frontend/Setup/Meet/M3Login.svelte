@@ -3,7 +3,7 @@
   subtitle={$t`If you don't have an account yet, you can subscribe on our website.`}
 />
 <vbox flex class="account">
-  <grid>
+  <grid class="fields">
     <label for="username">{$t`Your ${appName} email address`}</label>
     <input type="text" bind:value={config.username} name="username"
       placeholder="fred@example.com" autofocus />

@@ -2,7 +2,7 @@
   <HeaderGroupBox>
     <hbox slot="header">{$t`Create folder`}</hbox>
     <vbox class="content">
-      <grid>
+      <grid class="fields">
         <label for="name">{$t`Folder name`}</label>
         <input type="text" bind:value={name} name="name" autofocus />
 
@@ -107,5 +107,9 @@
   }
   .buttons :global(button) {
     margin-inline-start: 8px;
+  }
+  :global(.mobile) .radiogroup {
+    flex-direction: column;
+    align-items: start;
   }
 </style>

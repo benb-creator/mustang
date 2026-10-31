@@ -178,4 +178,17 @@
     flex-wrap: wrap;
     margin-block-start: 24px;
   }
+  :global(.mobile) .header .buttons {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  :global(.mobile) .header .buttons :global(> button) {
+    min-height: 44px;
+    margin-inline-end: 0px;
+  }
+  :global(.mobile) .browser {
+    min-width: 0px;
+    min-height: 60vh;
+    margin-inline: -16px;
+  }
 </style>

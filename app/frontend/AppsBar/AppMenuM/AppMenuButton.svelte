@@ -28,10 +28,8 @@
   .app-menu-button {
     align-items: center;
     justify-content: center;
-    width: 42px;
-    height: 42px;
-    margin: 1px;
-    padding: 2px;
+    width: 48px;
+    height: 48px;
   }
   .mail :global(svg path.mail) {
     fill: var(--icon-primary);
