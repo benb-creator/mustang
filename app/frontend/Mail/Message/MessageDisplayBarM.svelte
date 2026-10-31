@@ -1,22 +1,6 @@
-<hbox class="buttons"
-  on:swipeleft={onPreviousMessage}
-  on:swiperight={onNextMessage}
-  >
+<hbox class="buttons">
   <AppBarM>
     <!-- left -->
-    <hbox class="spam">
-      <Button
-        icon={$message.isSpam ? NotSpamIcon : SpamIcon}
-        iconSize="24px"
-        iconOnly
-        label={$message.isSpam ? $t`This email is *not* spam` : $t`Treat this email as spam: Move it to the Spam folder, and train the spam filter`}
-        onClick={toggleSpam}
-        disabled={!message}
-        plain
-        />
-    </hbox>
-
-    <!-- left middle -->
     <hbox class="trash">
       <Button
         icon={TrashIcon}
@@ -25,6 +9,18 @@
         label={$t`Delete this message`}
         onClick={deleteMessage}
         disabled={!message}
+        plain
+        />
+    </hbox>
+
+    <!-- left middle -->
+    <hbox class="move button">
+      <Button
+        icon={FolderActionsIcon}
+        iconSize="24px"
+        iconOnly
+        label={$t`Move to folder, or add tag`}
+        onClick={onPopupToggle}
         plain
         />
     </hbox>
@@ -44,13 +40,13 @@
           />
       </hbox>
     {:else}
-      <hbox class="move button" bind:this={popupAnchorE}>
+      <hbox class="reply">
         <Button
-          icon={FolderActionsIcon}
+          icon={ReplyIcon}
           iconSize="24px"
           iconOnly
-          label={$t`Move to folder, or add tag`}
-          onClick={onPopupToggle}
+          label={$t`Reply to author`}
+          onClick={reply}
           plain
           />
       </hbox>
@@ -60,14 +56,16 @@
     <hbox class="menu button">
       <ButtonMenu bind:isMenuOpen>
         <MessageMenu bind:message {printE} />
-        <DisplayModeSwitcher />
+        <hbox class="display-mode">
+          <DisplayModeSwitcher />
+        </hbox>
       </ButtonMenu>
     </hbox>
   </AppBarM>
 </hbox>
-<Popup bind:popupOpen popupAnchor={popupAnchorE} placement="bottom" boundaryElSel=".message-list-pane">
+<Menu bind:isMenuOpen={popupOpen} anchor={null}>
   <MessageMovePopup messages={new ArrayColl([message])} on:close={onPopupClose} />
-</Popup>
+</Menu>
 
 <Print {message} bind:this={printE} />
 
@@ -75,7 +73,7 @@
   import type { EMail } from "../../../logic/Mail/EMail";
   import { mailMustangApp } from "../MailMustangApp";
   import { SpecialFolder } from "../../../logic/Mail/Folder";
-  import { goTo } from "../../AppsBar/selectedApp";
+  import { goTo, goBack } from "../../AppsBar/selectedApp";
   import MessageMenu from "./MessageMenu.svelte";
   import MessageMovePopup from "./MessageMovePopup.svelte";
   import Print from "./MessagePrint.svelte";
@@ -83,16 +81,14 @@
   import AppBarM from "../../AppsBar/AppBarM.svelte";
   import ButtonMenu from "../../Shared/Menu/ButtonMenu.svelte";
   import AppMenuButton from "../../AppsBar/AppMenuM/AppMenuButton.svelte";
-  import Popup from "../../Shared/Popup.svelte";
+  import Menu from "../../Shared/Menu/Menu.svelte";
   import Button from "../../Shared/Button.svelte";
   import FolderIcon from "lucide-svelte/icons/folder";
   import ListIcon from "lucide-svelte/icons/list";
   import TrashIcon from "lucide-svelte/icons/trash-2";
-  import SpamIcon from "lucide-svelte/icons/shield-x";
-  import NotSpamIcon from "lucide-svelte/icons/shield-off";
+  import ReplyIcon from "lucide-svelte/icons/reply";
   import WriteIcon from "lucide-svelte/icons/pencil";
   import FolderActionsIcon from "lucide-svelte/icons/folder-dot";
-  import { URLPart } from "../../../logic/util/blob";
   import { ArrayColl } from "svelte-collections";
   import { t } from "../../../l10n/l10n";
 
@@ -101,40 +97,23 @@
   function goToAccounts() {
     goTo("/mail/", {});
   }
-  function goToMsgList() {
-    goTo(URLPart`/mail/folder/${message.folder.account.id}/${message.folder.id ?? "noid"}/message-list`, {
-      account: message.folder.account,
-      folder: message.folder,
-    });
-  }
   async function deleteMessage() {
     await message.deleteMessage();
-    loadOther();
+    goBack();
   }
-  async function toggleSpam() {
-    await message.treatSpam(!message.isSpam);
-    loadOther();
+  function reply() {
+    let reply = message.compose.replyToAuthor();
+    mailMustangApp.writeMail(reply);
   }
   async function editDraft() {
     await message.loadMIME();
     mailMustangApp.writeMail(message);
   }
 
-  function loadOther() {
-    goToMsgList();
-  }
-  function onNextMessage() {
-    message = message.nextMessage(false);
-  }
-  function onPreviousMessage() {
-    message = message.nextMessage(true);
-  }
-
   let isMenuOpen = false;
   let printE: Print;
 
-  // Folder Popup
-  let popupAnchorE: HTMLElement;
+  // Folder sheet
   let popupOpen = false;
   function onPopupToggle(event) {
     popupOpen = !popupOpen;
@@ -148,5 +127,19 @@
   .menu :global(.island) {
     color: black;
     justify-content: center;
+  }
+  .display-mode {
+    padding: 8px 16px 0px 16px;
+  }
+  .display-mode :global(.island) {
+    flex: 1;
+  }
+  .display-mode :global(button) {
+    flex: 1;
+    height: 48px;
+  }
+  .display-mode :global(button svg) {
+    width: 22px;
+    height: 22px;
   }
 </style>

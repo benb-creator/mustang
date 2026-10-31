@@ -136,9 +136,20 @@
     overflow: hidden;
   }
   :global(.mobile) .folder-header {
-    height: 32px;
-    max-height: 32px;
+    height: 48px;
+    max-height: 48px;
     font-size: 16px;
+    padding-inline: 8px;
+    border-block-start: 1px solid var(--border);
+  }
+  :global(.mobile) .buttons {
+    gap: 12px;
+  }
+  :global(.mobile) .folder-header :global(.buttons button) {
+    width: 44px;
+    height: 44px;
+    margin-inline-start: 0px;
+    justify-content: center;
   }
   .buttons {
     align-items: center;
@@ -175,7 +186,7 @@
   }
   :global(.mobile) .folder-header :global(.search),
   :global(.mobile) .folder-header :global(input[type="search"]) {
-    height: 32px;
+    height: 40px;
   }
   .result-msg-count {
     align-items: center;

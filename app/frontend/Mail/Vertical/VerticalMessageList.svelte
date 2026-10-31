@@ -10,7 +10,24 @@
     columns="auto">
     <svelte:fragment slot="header">
     </svelte:fragment>
-    <VerticalMessageListItem slot="row" let:item message={item} on:click />
+    <svelte:fragment slot="row" let:item>
+      {#if $appGlobal.isMobile}
+        <SwipeRowM
+          onSwipeRight={() => item.deleteMessage()}
+          swipeRightLabel={$t`Delete`}
+          swipeRightIcon={DeleteIcon}
+          swipeRightColor="#D93636"
+          onSwipeLeft={() => item.treatSpam(true)}
+          swipeLeftLabel={$t`Spam`}
+          swipeLeftIcon={SpamIcon}
+          swipeLeftColor="#E08A00"
+          >
+          <VerticalMessageListItem message={item} on:click />
+        </SwipeRowM>
+      {:else}
+        <VerticalMessageListItem message={item} on:click />
+      {/if}
+    </svelte:fragment>
   </FastList>
 </vbox>
 
@@ -20,8 +37,13 @@
   import { EMailCollection } from "../../../logic/Mail/Store/EMailCollection";
   import FastList from "../../Shared/FastList.svelte";
   import VerticalMessageListItem from "./VerticalMessageListItem.svelte";
+  import SwipeRowM from "../../Shared/SwipeRowM.svelte";
+  import { appGlobal } from "../../../logic/app";
+  import DeleteIcon from "lucide-svelte/icons/trash-2";
+  import SpamIcon from "lucide-svelte/icons/shield-x";
   import { catchErrors } from "../../Util/error";
   import type { Collection, ArrayColl } from "svelte-collections";
+  import { t } from "../../../l10n/l10n";
 
   export let messages: Collection<EMail>;
   export let selectedMessage: EMail;

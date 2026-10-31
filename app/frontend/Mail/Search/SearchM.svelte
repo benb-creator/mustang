@@ -1,7 +1,7 @@
 <SearchPane bind:searchMessages />
-<vbox class="results">
+<vbox class="results" class:has-results={searchMessages}>
   {#if searchMessages}
-    <VerticalMessageList {messages} bind:selectedMessage bind:selectedMessages on:click={() => catchErrors(goToMessage)} />
+    <VerticalMessageList messages={searchMessages} bind:selectedMessage bind:selectedMessages on:click={() => catchErrors(goToMessage)} />
     <FolderFooter folder={null} bind:searchMessages />
   {/if}
 </vbox>
@@ -22,7 +22,6 @@
 
   export let searchMessages: ArrayColl<EMail> | null = null;
 
-  let messages = new ArrayColl<EMail>();
   let selectedMessage: EMail;
   let selectedMessages: ArrayColl<EMail>;
 
@@ -34,4 +33,8 @@
 </script>
 
 <style>
+  .results.has-results {
+    flex: 1.4 1 0;
+    border-block-start: 1px solid var(--border);
+  }
 </style>

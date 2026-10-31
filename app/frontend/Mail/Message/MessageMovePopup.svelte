@@ -237,6 +237,37 @@
     padding: 8px 16px;
     border-radius: 0px;
   }
+  :global(.mobile) .buttons > :global(button) {
+    flex: 1 0 auto;
+    min-height: 48px;
+    justify-content: center;
+  }
+  :global(.mobile) .buttons {
+    border-top: none;
+    border-bottom: 1px solid var(--border);
+  }
+  :global(.mobile) .tags {
+    max-width: none;
+    margin: 12px 16px;
+  }
+  :global(.mobile) .folders {
+    height: 50vh;
+  }
+  :global(.mobile) .folders :global(.row.selected .folder .buttons) {
+    display: flex;
+    gap: 4px;
+  }
+  :global(.mobile) .folders :global(.folder .buttons button) {
+    min-height: 40px;
+    min-width: 44px;
+    padding-inline: 12px;
+    justify-content: center;
+  }
+  :global(.mobile) .tags :global(.buttons button) {
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+  }
   /* TODO fix colors on hover
   .buttons > :global(.selected button:hover:not(.disabled)) {
     background-color: unset;

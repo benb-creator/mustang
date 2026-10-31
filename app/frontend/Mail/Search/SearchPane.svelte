@@ -4,7 +4,7 @@
     <hbox flex />
     <hbox class="buttons top-right">
       <RoundButton icon={XIcon} iconSize="16px" padding="4px" border={true} classes="small"
-        onClick={onClear} />
+        onClick={$appGlobal.isMobile ? onClose : onClear} />
     </hbox>
   </hbox>
 
@@ -46,7 +46,8 @@
 
 <script lang="ts">
   import { newServerSearchEMail } from "../../../logic/Mail/Store/setStorage";
-  import { globalSearchTerm } from "../../AppsBar/selectedApp";
+  import { globalSearchTerm, goBack } from "../../AppsBar/selectedApp";
+  import { appGlobal } from "../../../logic/app";
   import type { EMail } from "../../../logic/Mail/EMail";
   import { selectedMessage } from "../Selected";
   import { selectedWorkspace } from "../../MainWindow/Selected";
@@ -112,6 +113,12 @@
     dispatchEvent("clear");
   }
 
+  /** Mobile: Leave the search page */
+  function onClose() {
+    onClear();
+    goBack();
+  }
+
   // window title | search field | (x) button
   $: if ($globalSearchTerm == null) dispatchEvent("clear");
 
@@ -159,5 +166,59 @@
   .results-count {
     margin: 12px 24px;
     justify-content: end;
+  }
+  :global(.mobile) .search {
+    position: relative;
+    min-height: 0px;
+    margin: 0px;
+    overflow-y: auto;
+  }
+  :global(.mobile) .header-bar {
+    position: absolute;
+    top: 6px;
+    inset-inline-end: 4px;
+    z-index: 1;
+    margin: 0px;
+  }
+  :global(.mobile) .header.top {
+    display: none;
+  }
+  :global(.mobile) .buttons.top-right :global(button) {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    border: none;
+  }
+  :global(.mobile) .buttons.top-right :global(svg) {
+    width: 22px;
+    height: 22px;
+  }
+  :global(.mobile) .term {
+    margin: 0px;
+    padding: 6px 52px 6px 8px;
+  }
+  :global(.mobile) .term :global(.search) {
+    flex: 1;
+    height: 44px;
+  }
+  :global(.mobile) .search-criteria {
+    margin: 0px 16px 4px 16px;
+  }
+  :global(.mobile) .results-count {
+    margin: 4px 16px;
+  }
+  :global(.mobile) .search :global(.expander) {
+    border-block-start: 1px solid var(--border);
+  }
+  :global(.mobile) .header:not(.top) {
+    align-items: center;
+    min-height: 48px;
+    padding-inline: 16px 4px;
+    font-size: 16px;
+  }
+  :global(.mobile) .search :global(.expander button.expand) {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
   }
 </style>

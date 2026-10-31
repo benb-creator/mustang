@@ -1,18 +1,19 @@
 <vbox flex class="accounts-pane">
-  <FolderList {folders} bind:selectedFolder bind:selectedFolders on:click={() => catchErrors(onFolderSelected)} />
-
-  <header class="accounts-header font-small">
-    {$t`Accounts`}
-  </header>
   {#if accounts.hasItems}
-    <vbox class="accounts">
-      <AccountSelectorRound {accounts} bind:selectedAccount iconDefault={AccountIcon} iconSize="32px" />
-    </vbox>
+    <hbox class="accounts">
+      <AccountSelectorRound {accounts} bind:selectedAccount iconDefault={AccountIcon} iconSize="24px" />
+    </hbox>
   {:else if $selectedWorkspace}
     <div class="warning no-accounts font-small">
       {$t`No accounts in workspace ${$selectedWorkspace.name}`}
     </div>
   {/if}
+
+  <FolderList {folders} bind:selectedFolder bind:selectedFolders on:click={() => catchErrors(onFolderSelected)}>
+    <hbox class="folders-header font-small" slot="header">
+      {selectedAccount?.name ?? $t`Folders`}
+    </hbox>
+  </FolderList>
 
   <AccountsBarM {selectedAccount} {selectedFolder} />
 </vbox>
@@ -50,35 +51,58 @@
 
 <style>
   .accounts-pane {
-    box-shadow: 2px 0px 6px 0px rgba(0, 0, 0, 10%); /* Also on MessageList */
     z-index: 2;
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
   }
 
-  .accounts-pane :global(.account-list) {
-    margin-block-start: -4px;
-  }
-
-  header {
-    margin-inline-start: 18px;
-    color: grey;
-  }
-  .accounts-header {
-    margin-block-start: 6px;
-  }
-
   .accounts {
-    align-items: center;
-    margin-block: 20px;
+    flex: none;
+    padding-block: 12px 8px;
+    border-block-end: 1px solid var(--border);
+  }
+  .accounts :global(.accounts) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-inline: 8px;
+    scrollbar-width: none;
   }
   .accounts :global(.account) {
-    padding-inline: 16px;
+    flex: none;
+    width: auto;
+    min-width: 64px;
+    max-width: 112px;
+    padding-inline: 6px;
+    margin-inline-end: 0px;
+  }
+  .accounts :global(.account button) {
+    width: 48px;
+    height: 48px;
+    justify-content: center;
+  }
+  .accounts :global(.account .name) {
+    margin-block-start: 4px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .folders-header {
+    padding: 16px 16px 4px 16px !important;
+    color: grey;
+    font-weight: 500;
+  }
+  .accounts-pane :global(.folder) {
+    min-height: 52px;
+    padding-inline: 4px 8px;
+  }
+  .accounts-pane :global(.folder .label) {
+    font-size: 16px;
+    padding-inline-start: 16px;
   }
 
   .warning.no-accounts {
     text-align: center;
     color: grey;
-    height: 110px;
+    padding: 24px 16px;
   }
 </style>

@@ -29,4 +29,17 @@
     padding: 4px;
     overflow-y: auto;
   }
+  :global(.mobile) .attachments {
+    min-height: 0px;
+    max-height: none;
+    contain: inline-size;
+  }
+  :global(.mobile) .attachments-list {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 4px 16px 12px 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
 </style>

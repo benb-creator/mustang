@@ -128,6 +128,9 @@
   .rule-action :global(.read.is-unread svg) {
     fill: green;
   }
+  :global(.mobile) .rule-action > :global(.checkbox) {
+    min-height: 48px;
+  }
   .listbox {
     margin-block-start: 4px;
     margin-block-end: 16px;

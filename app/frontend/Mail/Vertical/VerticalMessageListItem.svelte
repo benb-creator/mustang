@@ -6,8 +6,6 @@
   style="--account-color: {$message.folder.account.color};"
   on:contextmenu={contextMenu.onContextMenu}
   on:click
-  on:swiperight={() => catchErrors(deleteMessage)}
-  on:swipeleft={() => catchErrors(markAsSpam)}
   bind:this={popupAnchor}
   >
   <hbox class="top-row">
@@ -155,9 +153,6 @@
   async function toggleSpam() {
     await message.treatSpam(!message.isSpam);
   }
-  async function markAsSpam() {
-    await message.treatSpam(true);
-  }
   async function deleteMessage() {
     await message.deleteMessage();
   }
@@ -210,6 +205,30 @@
   }
   .contact {
     font-weight: 500;
+  }
+  :global(.mobile) .top-row,
+  :global(.mobile) .bottom-row {
+    box-sizing: border-box;
+  }
+  :global(.mobile) .contact,
+  :global(.mobile) .subject {
+    display: block;
+    min-width: 0;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  :global(.mobile) .date {
+    flex: none;
+    min-width: 0;
+    padding-inline-start: 12px;
+  }
+  :global(.mobile) .unread-dot.button {
+    flex: none;
+    width: 28px;
+  }
+  :global(.mobile) .unread-dot.button:not(.unread) {
+    pointer-events: none;
   }
   .subject,
   .date {

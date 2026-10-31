@@ -17,18 +17,18 @@
       <hbox class="close buttons">
         {#if !appGlobal.isMobile}
           <CloseButton {mail} on:close={onClose} />
+          <RoundButton
+            classes="send"
+            label={sendDisabledTooltip ?? $t`Send`}
+            icon={SendIcon}
+            iconSize="20px"
+            padding="6px"
+            filled
+            disabled={!!sendDisabledTooltip}
+            onClick={onSend}
+            tabindex={2}
+            />
         {/if}
-        <RoundButton
-          classes="send"
-          label={sendDisabledTooltip ?? $t`Send`}
-          icon={SendIcon}
-          iconSize="20px"
-          padding="6px"
-          filled
-          disabled={!!sendDisabledTooltip}
-          onClick={onSend}
-          tabindex={2}
-          />
         <!--
         <Button
           label={$t`Send`}
@@ -176,7 +176,7 @@
   </vbox>
 </Popup>
 {#if $appGlobal.isMobile}
-  <ComposerBarM message={mail} />
+  <ComposerBarM message={mail} {onSend} sendDisabledReason={sendDisabledTooltip} />
 {/if}
 
 <FileSelector bind:this={fileSelector} />
@@ -482,5 +482,113 @@
     background-color: var(--leftbar-bg);
     color: var(--leftbar-fg);
     z-index: 1000;
+  }
+  :global(.mobile) .mail-composer-window {
+    padding: 0px;
+  }
+  :global(.mobile) .window-title-bar {
+    min-height: 48px;
+    align-items: center;
+    padding-inline: 4px 12px;
+  }
+  :global(.mobile) .close.buttons.mobile {
+    margin-inline-end: 4px;
+  }
+  :global(.mobile) .close.buttons.mobile :global(button) {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    border: none;
+  }
+  :global(.mobile) .close.buttons.mobile :global(svg) {
+    width: 22px;
+    height: 22px;
+  }
+  :global(.mobile) grid.recipients {
+    margin: 0px;
+    padding-inline: 16px 8px;
+    border-block-end: 1px solid var(--border);
+  }
+  :global(.mobile) .recipients .label {
+    align-self: center;
+    margin-block-start: 0px;
+  }
+  :global(.mobile) .recipients :global(.persons-autocomplete) {
+    min-height: 48px;
+    border-bottom: none;
+  }
+  :global(.mobile) .recipients :global(.person-autocomplete) {
+    height: 40px;
+  }
+  :global(.mobile) .recipients :global(.person-autocomplete .autocomplete),
+  :global(.mobile) .recipients :global(.person-autocomplete input) {
+    width: 100%;
+  }
+  :global(.mobile) .recipients :global(.person-autocomplete input) {
+    box-shadow: none;
+    padding-inline: 4px !important;
+    font-size: 16px;
+  }
+  :global(.mobile) .cc.buttons {
+    align-items: center;
+    border-bottom: none;
+    margin-block-start: 0px;
+  }
+  :global(.mobile) .cc.buttons > :global(button) {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+  :global(.mobile) .mail-composer-window > :global(.toolbar) {
+    order: 1;
+    contain: inline-size;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-inline: 4px;
+    border-block-start: 1px solid var(--border);
+  }
+  :global(.mobile) .mail-composer-window > :global(.toolbar button.button) {
+    flex: none;
+    min-width: 44px;
+    height: 44px;
+    justify-content: center;
+    color: inherit;
+  }
+  :global(.mobile) .mail-composer-window > :global(.toolbar svg) {
+    width: 20px;
+    height: 20px;
+  }
+  :global(.mobile) .editor-and-attachments {
+    flex-direction: column;
+  }
+  :global(.mobile) .editor-wrapper {
+    margin-block-start: 0px;
+  }
+  :global(.mobile) .editor-wrapper :global(.paper) {
+    border-radius: 0px;
+    box-shadow: none;
+    outline: none;
+  }
+  :global(.mobile) .subject {
+    margin: 0px;
+    padding-inline: 16px;
+    border-block-end: 1px solid var(--border);
+  }
+  :global(.mobile) .subject input {
+    min-height: 44px;
+    border: none;
+  }
+  :global(.mobile) .editor {
+    margin: 12px 16px;
+  }
+  :global(.mobile) .emojis {
+    flex: 2 0 0;
+    width: auto;
+  }
+  :global(.mobile) .attachments {
+    width: auto;
+    max-height: 40%;
+    margin-inline-end: 0px;
   }
 </style>

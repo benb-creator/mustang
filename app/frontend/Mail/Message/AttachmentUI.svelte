@@ -72,6 +72,31 @@
     height: 40px;
     margin: 4px;
   }
+  :global(.mobile) .attachment {
+    flex: none;
+    height: 48px;
+    margin: 0px;
+  }
+  :global(.mobile) .info {
+    position: relative;
+    width: 168px;
+    justify-content: center;
+    padding-inline-end: 40px;
+  }
+  :global(.mobile) .filename {
+    display: block;
+  }
+  :global(.mobile) .bottom-row :global(.menu) {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    inset-inline-end: 0px;
+  }
+  :global(.mobile) .bottom-row :global(.menu button) {
+    width: 40px;
+    height: 100%;
+    justify-content: center;
+  }
   .icon {
     aspect-ratio: 1/1;
     background-color: var(--outstanding-bg);

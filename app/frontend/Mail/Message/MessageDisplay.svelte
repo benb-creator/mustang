@@ -5,6 +5,7 @@
   <vbox flex class="message-display"
     on:keydown={event => catchErrors(() => onKeyOnList(event))}
     tabindex={0}
+    use:swipePages={{ onSwipeRight: onNextMessage, onSwipeLeft: onPreviousMessage, getContentElements: withoutBar }}
     >
     <MessageHeader bind:message />
     <MessageAttachments attachments={message.attachments} />
@@ -31,9 +32,21 @@
   import MessageDisplayBarM from "./MessageDisplayBarM.svelte";
   import Paper from "../../Shared/Paper.svelte";
   import ThreadPane from "../Thread/ThreadPane.svelte";
+  import { swipePages } from "../../Shared/HorizontalSwipe";
   import { catchErrors } from "../../Util/error";
 
   export let message: EMail;
+
+  /** Mobile: Swipe sideways on the header or the bar to show the next or previous message */
+  function onNextMessage() {
+    message = message.nextMessage(false) ?? message;
+  }
+  function onPreviousMessage() {
+    message = message.nextMessage(true) ?? message;
+  }
+  function withoutBar(displayE: HTMLElement) {
+    return [...displayE.querySelectorAll(":scope > :not(.buttons)")] as HTMLElement[];
+  }
 </script>
 
 <style>
@@ -59,5 +72,13 @@
       margin-inline-end: 1px;
       margin-block-end: 1px;
     }
+  }
+  :global(.mobile) .body {
+    margin: 0px;
+  }
+  :global(.mobile) .body :global(.paper) {
+    border-radius: 0px;
+    box-shadow: none;
+    outline: none;
   }
 </style>

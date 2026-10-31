@@ -52,7 +52,21 @@
   .tags :global(.row hbox) {
     font-size: 14px;
   }
+  :global(.mobile) .list {
+    contain: inline-size;
+    margin: 0px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  :global(.mobile) .list :global(.tag-list) {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
   :global(.mobile) .list :global(.tag) {
+    flex: none;
+    min-height: 36px;
+    align-items: center;
     padding: 4px 12px;
   }
   .header {

@@ -1,7 +1,5 @@
 <vbox class="message-header"
   class:outgoing={$message.outgoing}
-  on:swipeleft={onPreviousMessage}
-  on:swiperight={onNextMessage}
   >
   <hbox>
     {#if $message.contact instanceof Person && $message.contact.picture}
@@ -161,13 +159,6 @@
   async function onTagRemove(tag: Tag) {
     await message.removeTag(tag);
   }
-
-  function onNextMessage() {
-    message = message.nextMessage(false);
-  }
-  function onPreviousMessage() {
-    message = message.nextMessage(true);
-  }
 </script>
 
 <style>
@@ -240,5 +231,41 @@
     .date {
       margin-inline-end: 6px;
     }
+  }
+  :global(.mobile) .message-header {
+    padding: 12px 8px 8px 16px;
+  }
+  :global(.mobile) .subject-line {
+    order: -1;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    margin-block: 0px 12px;
+    margin-inline-end: 8px;
+  }
+  :global(.mobile) .subject {
+    font-size: 18px;
+    line-height: 1.3;
+  }
+  :global(.mobile) .date {
+    flex: none;
+    margin-inline: 12px 0px;
+  }
+  :global(.mobile) .message-header > hbox:first-child {
+    align-items: center;
+  }
+  :global(.mobile) .message-header :global(.avatar) {
+    margin-inline-end: 12px;
+  }
+  :global(.mobile) .top-right > :global(.buttons button) {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+  :global(.mobile) .top-right :global(.buttons) {
+    margin-block-end: 0px;
+  }
+  :global(.mobile) .recipients {
+    margin-block-start: 4px;
+    line-height: 1.6;
   }
 </style>
