@@ -33,7 +33,7 @@
   export let persons: Collection<PersonOrGroup>;
   export let selected: PersonOrGroup = $selectedPerson;
   export let selectedPersons: ArrayColl<PersonOrGroup>;
-  export let pictureSize = appGlobal.isMobile ? 32 : 20;
+  export let pictureSize = appGlobal.isMobile ? 40 : 20;
   /** in/out */
   export let searchTerm: string | null = null;
   /* Show or entirely remove the search field -- in */

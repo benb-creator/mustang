@@ -195,8 +195,11 @@
     padding-block: 12px;
   }
   .addressbook-edit {
-    margin-block-start: 6px;
     margin-inline-start: 8px;
+  }
+  .addressbook-edit :global(select) {
+    min-height: 44px;
+    font-size: 16px;
   }
   .top-right :global(.account-selector .icon) {
     width: 20px;
@@ -216,7 +219,7 @@
     margin-block-start: 8px;
   }
   .picture-buttons :global(button) {
-    padding: 6px;
+    padding: 11px;
     border: 1px solid var(--border);
     border-radius: 1000px;
     background-color: var(--main-bg);
@@ -251,6 +254,9 @@
     margin-inline-end: 8px;
     margin-block-end: 8px;
   }
+  .names-edit-box :global(input) {
+    min-height: 40px;
+  }
   .names :global(button.save) {
     visibility: hidden;
   }
@@ -259,5 +265,8 @@
   }
   .company-expander {
     justify-content: end;
+  }
+  .company-expander :global(.content) {
+    min-height: 44px;
   }
 </style>

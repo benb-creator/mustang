@@ -16,6 +16,11 @@
 </script>
 
 <style>
-  .pane {
+  .pane :global(.group) {
+    margin: 0px;
+  }
+  .pane :global(.group > .content) {
+    border-radius: 0px;
+    border-inline: none;
   }
 </style>

@@ -1,14 +1,19 @@
 <GroupBox classes="encryption" headerName={$t`Encryption`} addFunc={() => showImportOverride = true}>
   <EcryptionIcon size="16px" slot="icon" />
   <RoundButton
-    tooltip={$t`Certificates allow you to send encrypted emails, and see whether signed emails come from ${person.name}. Trust in the messages and encryption relies in your confidence that these certificates really belong to ${person.name}.`}
+    tooltip={infoText}
     icon={InfoIcon}
-    disabled
+    disabled={!appGlobal.isMobile}
+    onClick={() => showInfo = !showInfo}
+    selected={showInfo}
     border={false}
     classes="plain"
     slot="buttons-top-right"
     />
   <vbox class="encryption" slot="content">
+    {#if showInfo}
+      <hbox class="info font-smallest">{infoText}</hbox>
+    {/if}
     {#if showImport}
       <EncryptionImport {person} bind:isOpen={showImportOverride} />
     {/if}
@@ -60,11 +65,16 @@
   import InfoIcon from "lucide-svelte/icons/info";
   import ChevronUp from "lucide-svelte/icons/chevron-up";
   import ChevronDown from "lucide-svelte/icons/chevron-down";
+  import { appGlobal } from "../../../logic/app";
   import { catchErrors } from "../../Util/error";
   import { t } from "../../../l10n/l10n";
 
   export let person: Person;
   export let showImportOverride: boolean;
+
+  $: infoText = $t`Certificates allow you to send encrypted emails, and see whether signed emails come from ${person.name}. Trust in the messages and encryption relies in your confidence that these certificates really belong to ${person.name}.`;
+  /** Mobile has no tooltips */
+  let showInfo = false;
 
   $: keys = $person.encryptionPublicKeys;
   $: showImport = $keys.isEmpty || showImportOverride;
@@ -89,6 +99,10 @@
     margin-block-end: 4px;
   }
   .subtitle {
+    opacity: 70%;
+  }
+  .info {
+    margin-block: 4px 8px;
     opacity: 70%;
   }
   .expired-header {

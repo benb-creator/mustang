@@ -67,4 +67,15 @@
     min-width: 400px;
     padding: 6px 0px;
   }
+  :global(.mobile) .bar {
+    justify-content: space-around;
+    padding: 4px 8px;
+  }
+  :global(.mobile) .bar :global(button) {
+    min-width: 48px;
+    min-height: 48px;
+  }
+  :global(.mobile) .popup {
+    min-width: 0px;
+  }
 </style>

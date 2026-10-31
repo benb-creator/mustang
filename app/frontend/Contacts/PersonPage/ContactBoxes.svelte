@@ -342,4 +342,10 @@
   .expanders :global(.icon svg) {
     stroke-width: 1.4px;
   }
+  :global(.mobile) .expanders :global(.content) {
+    min-height: 44px;
+  }
+  :global(.mobile) .background-pattern {
+    display: none;
+  }
 </style>

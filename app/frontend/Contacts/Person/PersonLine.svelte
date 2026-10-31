@@ -62,7 +62,7 @@
     max-width: calc(100% - 42px - 2 * 6px); /* HACK Fix long names overdrawing into avatar column */
   }
   :global(.mobile) .main {
-    min-height: 44px;
+    min-height: 56px;
   }
   .first-row {
     height: 1.3em; /* prevent line breaks */

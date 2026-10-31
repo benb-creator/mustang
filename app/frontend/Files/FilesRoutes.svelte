@@ -9,7 +9,10 @@
     <PersonsM selectedPerson={params?.person ?? $selectedPerson} doSearch={true} />
   </Route>
   <Route path="file">
-    <FileViewer file={params?.file ?? requiredParam()} />
+    <vbox flex class="file-page">
+      <FileViewer file={params?.file ?? requiredParam()} size={96} />
+    </vbox>
+    <FilesBarM />
   </Route>
   <Route path="/">
     <PersonsM selectedPerson={params?.person ?? $selectedPerson} />
@@ -33,6 +36,7 @@
   import PersonsM from "./PersonsM.svelte";
   import FilesM from "./FilesM.svelte";
   import UploadM from "./UploadM.svelte";
+  import FilesBarM from "./FilesBarM.svelte";
   import { getParams } from "../AppsBar/selectedApp";
   import { requiredParam } from "../Util/route";
   import { Route, useLocation } from "svelte-navigator";
@@ -40,3 +44,12 @@
   $: location = useLocation();
   $: params = getParams($location?.state);
 </script>
+
+<style>
+  .file-page {
+    align-items: center;
+    justify-content: center;
+    background-color: var(--main-bg);
+    color: var(--main-fg);
+  }
+</style>

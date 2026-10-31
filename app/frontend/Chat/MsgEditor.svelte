@@ -20,25 +20,47 @@
         <AttachmentsPane message={to.draftMessage} />
       </vbox>
     {/if}
-    <hbox flex>
+    <hbox flex class="input-row">
+      {#if appGlobal.isMobile}
+        <hbox class="input-buttons">
+          <Button classes="formatting-toggle"
+            label={$t`Formatting`}
+            onClick={() => showFormatting = !showFormatting}
+            icon={FormattingIcon}
+            iconSize="22px"
+            iconOnly plain
+            selected={showFormatting}
+            />
+          <Button classes="attach"
+            label={$t`Add attachment`}
+            onClick={onAttachFiles}
+            icon={AttachIcon}
+            iconSize="22px"
+            iconOnly plain
+            />
+        </hbox>
+        <FileSelector bind:this={fileSelector} />
+      {/if}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <vbox flex class="editor-wrapper" on:keydown|capture={ev => isEnterSend && onKeyEnter(ev, () => catchErrors(send))}>
-        <HTMLEditorToolbar {editor}>
-          <Button classes="emoji-toggle"
-            onClick={() => showEmojis = !showEmojis}
-            icon={EmojiIcon}
-            iconSize="16px"
-            selected={showEmojis}
-            slot="start"
-            />
-          <Button classes="enter-toggle"
-            onClick={() => isEnterSend = !isEnterSend}
-            icon={EnterKeyIcon}
-            iconSize="16px"
-            selected={!isEnterSend}
-            slot="last"
-            />
-        </HTMLEditorToolbar>
+        {#if !appGlobal.isMobile || showFormatting}
+          <HTMLEditorToolbar {editor}>
+            <Button classes="emoji-toggle"
+              onClick={() => showEmojis = !showEmojis}
+              icon={EmojiIcon}
+              iconSize="16px"
+              selected={showEmojis}
+              slot="start"
+              />
+            <Button classes="enter-toggle"
+              onClick={() => isEnterSend = !isEnterSend}
+              icon={EnterKeyIcon}
+              iconSize="16px"
+              selected={!isEnterSend}
+              slot="last"
+              />
+          </HTMLEditorToolbar>
+        {/if}
         <vbox flex class="editor-scroll-wrapper">
           <Scroll>
             <vbox flex class="editor">
@@ -68,6 +90,7 @@
   import HTMLEditorToolbar from "../Shared/Editor/HTMLEditorToolbar.svelte";
   import HTMLEditor from "../Shared/Editor/HTMLEditor.svelte";
   import FileDropTarget from "../Mail/Composer/Attachments/FileDropTarget.svelte";
+  import FileSelector from "../Mail/Composer/Attachments/FileSelector.svelte";
   import AttachmentsPane from "../Mail/Composer/Attachments/AttachmentsPane.svelte";
   import GraphicSelector from "./Emoji/GraphicSelector.svelte";
   import Scroll from "../Shared/Scroll.svelte";
@@ -76,21 +99,26 @@
   import SendIcon from "lucide-svelte/icons/send";
   import EnterKeyIcon from "lucide-svelte/icons/corner-down-left";
   import EmojiIcon from "lucide-svelte/icons/smile";
+  import FormattingIcon from "lucide-svelte/icons/type";
+  import AttachIcon from "lucide-svelte/icons/paperclip";
+  import { appGlobal } from "../../logic/app";
   import { onKeyEnter } from "../Util/util";
   import { catchErrors } from "../Util/error";
   import { assert } from "../../logic/util/util";
   import type { Editor } from '@tiptap/core';
+  import { t } from "../../l10n/l10n";
 
   export let to: ChatRoom;
 
   let editor: Editor;
 
-  let isEnterSend = true;
+  let isEnterSend = !appGlobal.isMobile;
   $: to.draftMessage ??= to.newMessage();
   $: attachments = $to.draftMessage.attachments;
   $: $selectedDraft = $to.draftMessage;
   $: $selectedEditor = editor;
   let showEmojis = false;
+  let showFormatting = false;
 
   async function send() {
     assert(to.draftMessage.hasHTML || to.draftMessage.attachments.hasItems, "Message is empty");
@@ -109,7 +137,19 @@
   }
 
   function onAddAttachment(event: CustomEvent) {
-    let files = event.detail.files as File[];
+    addAttachments(event.detail.files as File[]);
+  }
+
+  let fileSelector: FileSelector;
+  async function onAttachFiles() {
+    let files = await fileSelector.selectFiles();
+    if (!files?.length) {
+      return;
+    }
+    addAttachments(files);
+  }
+
+  function addAttachments(files: File[]) {
     for (let file of files) {
       let att = to.draftMessage.newAttachment();
       att.fromFile(file);
@@ -182,5 +222,64 @@
   }
   .send-buttons :global(.button) {
     background-color: unset;
+  }
+  :global(.mobile) .msg-editor {
+    padding: 6px 4px 6px 4px;
+  }
+  :global(.mobile) .input-row {
+    align-items: end;
+  }
+  :global(.mobile) .input-buttons :global(button) {
+    width: 44px;
+    height: 44px;
+  }
+  :global(.mobile) .editor-wrapper {
+    height: auto;
+    min-width: 0px;
+    gap: 4px;
+  }
+  :global(.mobile) .editor-wrapper :global(.toolbar) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    contain: inline-size;
+  }
+  :global(.mobile) .editor-wrapper :global(.toolbar button.button) {
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  :global(.mobile) .editor-scroll-wrapper {
+    border-radius: 22px;
+  }
+  :global(.mobile) .editor-scroll-wrapper :global(.scroll) {
+    flex: none;
+    max-height: 9.5em;
+  }
+  :global(.mobile) .editor-scroll-wrapper :global(.inside) {
+    position: static;
+    height: auto;
+  }
+  :global(.mobile) .editor {
+    flex: none;
+    min-height: 42px;
+    font-size: 16px;
+    justify-content: center;
+    padding: 8px 14px;
+  }
+  :global(.mobile) .send-buttons {
+    margin: 0px;
+  }
+  :global(.mobile) .send-buttons :global(button) {
+    width: 44px;
+    height: 44px;
+  }
+  :global(.mobile) .emojis {
+    width: 100%;
+    height: 260px;
+    contain: inline-size;
+  }
+  :global(.mobile) .emoji-empty {
+    display: none;
   }
 </style>

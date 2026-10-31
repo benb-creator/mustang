@@ -1,7 +1,7 @@
 <vbox flex class="pane">
   {#if messages && room }
     <PersonHeader person={room.contact} />
-    <vbox flex class="messages">
+    <vbox flex class="messages" use:keepScrolledToEnd>
       <MessageList {messages}>
         <svelte:fragment slot="message" let:message let:previousMessage>
           {#if message instanceof ChatMessage }
@@ -46,6 +46,25 @@
     await room?.listMembers();
     await room?.listMessages();
   }
+
+  /** When the on-screen keyboard makes the page smaller, keep the newest messages in view */
+  function keepScrolledToEnd(messagesE: HTMLElement) {
+    let height = messagesE.clientHeight;
+    let observer = new ResizeObserver(() => {
+      let newHeight = messagesE.clientHeight;
+      let scrollE = messagesE.querySelector(".scroll");
+      if (scrollE && newHeight < height) {
+        scrollE.scrollTop += height - newHeight;
+      }
+      height = newHeight;
+    });
+    observer.observe(messagesE);
+    return {
+      destroy() {
+        observer.disconnect();
+      },
+    };
+  }
 </script>
 
 <style>
@@ -56,6 +75,6 @@
     color: var(--offset-fg);
   }
   .editor {
-    height: 112px;
+    flex-shrink: 0;
   }
 </style>

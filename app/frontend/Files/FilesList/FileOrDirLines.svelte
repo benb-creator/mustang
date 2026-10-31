@@ -25,4 +25,8 @@
   .separator {
     min-height: 8px;
   }
+  :global(.mobile) .separator {
+    flex-basis: 100%;
+    min-height: 2px;
+  }
 </style>

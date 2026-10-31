@@ -33,7 +33,7 @@
     <Button
       onClick={remove}
       icon={DeleteIcon}
-      iconOnly plain iconSize="14px"
+      iconOnly plain iconSize={appGlobal.isMobile ? "20px" : "14px"}
       label={$t`Delete this information`} />
   </hbox>
 {:else}
@@ -188,5 +188,36 @@
   }
   .value.edit :global(input:focus) {
     outline: none;
+  }
+  :global(.mobile) .purpose.edit,
+  :global(.mobile) .protocol.edit,
+  :global(.mobile) .actions.edit {
+    margin-block: 2px;
+    padding-block-start: 0px;
+  }
+  :global(.mobile) .purpose.edit,
+  :global(.mobile) .protocol.edit {
+    margin-inline-end: 8px;
+  }
+  :global(.mobile) .purpose.edit select,
+  :global(.mobile) .protocol.edit select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  :global(.mobile) .value.edit {
+    align-items: center;
+    min-height: 44px;
+    margin-block: 2px;
+  }
+  :global(.mobile) .value.edit :global(input) {
+    min-height: 40px;
+  }
+  :global(.mobile) .actions.edit {
+    margin-inline-start: 4px;
+    margin-inline-end: -12px;
+  }
+  :global(.mobile) .actions.edit > :global(button) {
+    min-width: 44px;
+    height: 44px;
   }
 </style>

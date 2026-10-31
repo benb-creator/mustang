@@ -10,7 +10,7 @@ import { assert } from "../../logic/util/util";
 export function openFileFromOtherApp(file: FileEntry) {
   selectedFile.set(file);
   if (appGlobal.isMobile) {
-    goTo("files/file", { file });
+    goTo("/files/file", { file });
   } else {
     openApp(filesMustangApp, { file });
   }

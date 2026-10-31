@@ -7,7 +7,8 @@
         label={$t`Login`}
         icon={LoginIcon}
         classes="small"
-        iconSize="12px"
+        iconSize={appGlobal.isMobile ? "20px" : "12px"}
+        padding={appGlobal.isMobile ? "12px" : "4px"}
         onClick={() => $selectedAccount.loginAndStartup(true)}
         />
     {/if}
@@ -153,5 +154,19 @@
   }
   .label.or {
     margin-block: 6px;
+  }
+  :global(.mobile) .dialog {
+    margin: 8px 12px 16px 16px;
+    gap: 4px;
+  }
+  :global(.mobile) .dialog :global(button) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  :global(.mobile) .dialog > :global(input),
+  :global(.mobile) .dialog > :global(hbox > input),
+  :global(.mobile) .dialog :global(select) {
+    min-height: 44px;
+    font-size: 16px;
   }
 </style>

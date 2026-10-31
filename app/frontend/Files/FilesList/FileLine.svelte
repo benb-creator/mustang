@@ -28,9 +28,11 @@
 <script lang="ts">
   import { File } from "../../../logic/Files/File";
   import { openFileInDefaultApp, fileSize } from "../file";
+  import { openFileFromOtherApp } from "../open";
   import { selectedFile } from "../selected";
   import { onDragStartFile } from "../drag";
   import { getDateTimeString } from "../../../logic/util/date";
+  import { appGlobal } from "../../../logic/app";
   import Clickable from "../../Shared/Clickable.svelte";
   import FileIcon from "../Thumbnail/FileIcon.svelte";
   import { catchErrors } from "../../Util/error";
@@ -40,6 +42,9 @@
 
   function onSelect() {
     $selectedFile = file;
+    if (appGlobal.isMobile) {
+      openFileFromOtherApp(file);
+    }
   }
 </script>
 
@@ -93,5 +98,56 @@
     color: #91939D;
     font-size: 90%;
     font-weight: 300;
+  }
+
+  :global(.mobile) .line {
+    display: grid;
+    flex-basis: 100%;
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas: "first first first" "type size time";
+    align-items: center;
+    min-height: 56px;
+    padding-block: 6px;
+    box-sizing: border-box;
+  }
+  :global(.mobile) .line:hover:not(.selected) > * {
+    background-color: transparent;
+    color: inherit;
+  }
+  :global(.mobile) .line:active:not(.selected) {
+    background-color: var(--hover-bg);
+    color: var(--hover-fg);
+  }
+  :global(.mobile) .line.selected {
+    background-color: var(--selected-bg);
+    color: var(--selected-fg);
+  }
+  :global(.mobile) .firstColumn {
+    grid-area: first;
+    align-items: center;
+    min-width: 0px;
+  }
+  :global(.mobile) .icon :global(svg),
+  :global(.mobile) .icon :global(img) {
+    width: 24px;
+    height: 24px;
+  }
+  :global(.mobile) .name {
+    padding-inline-start: 12px;
+    padding-inline-end: 16px;
+    overflow-wrap: anywhere;
+  }
+  :global(.mobile) .type {
+    grid-area: type;
+    min-width: 0px;
+    padding-inline-start: 52px;
+  }
+  :global(.mobile) .size {
+    grid-area: size;
+    justify-content: start;
+    min-width: 0px;
+  }
+  :global(.mobile) .time {
+    grid-area: time;
   }
 </style>

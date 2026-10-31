@@ -1,31 +1,18 @@
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<hbox class="reaction bar">
-  <RoundButton
-    label={$t`Copy`}
-    icon={hasCopied ? CheckIcon : CopyIcon}
-    onClick={onCopy}
-    border={false} classes="plain"
-    padding="4px"
-    />
-  {#if message instanceof ChatMessage && message.canEdit}
-    <RoundButton
-      label={$t`Edit`}
-      icon={EditIcon}
-      onClick={onEdit}
-      border={false} classes="plain"
-      padding="4px"
+{#if appGlobal.isMobile}
+  <vbox class="actions-list">
+    <MenuItem
+      label={$t`Copy`}
+      icon={CopyIcon}
+      onClick={onCopy}
       />
-  {/if}
-  {#if message instanceof ChatMessage && message.canDeleteForOthers}
-    <ButtonMenu bind:isMenuOpen={isDeleteMenuOpen}>
-      <RoundButton
-        label={$t`Delete`}
-        icon={TrashIcon}
-        onClick={() => isDeleteMenuOpen = !isDeleteMenuOpen}
-        border={false} classes="plain"
-        padding="4px"
-        slot="control"
+    {#if message instanceof ChatMessage && message.canEdit}
+      <MenuItem
+        label={$t`Edit`}
+        icon={EditIcon}
+        onClick={onEdit}
         />
+    {/if}
+    {#if message instanceof ChatMessage && message.canDeleteForOthers}
       <MenuItem
         label={$t`Delete for myself`}
         icon={TrashIcon}
@@ -36,31 +23,89 @@
         icon={TrashIcon}
         onClick={onDeleteForOthers}
         />
-    </ButtonMenu>
-  {:else}
+    {:else}
+      <MenuItem
+        label={$t`Delete`}
+        icon={TrashIcon}
+        onClick={onDelete}
+        />
+    {/if}
+    <MenuItem
+      label={$t`Reply`}
+      icon={ReplyIcon}
+      onClick={onReply}
+      />
+    <MenuItem
+      label={$t`Forward`}
+      icon={ForwardIcon}
+      onClick={onForward}
+      />
+  </vbox>
+{:else}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <hbox class="reaction bar">
     <RoundButton
-      label={$t`Delete`}
-      icon={TrashIcon}
-      onClick={onDelete}
+      label={$t`Copy`}
+      icon={hasCopied ? CheckIcon : CopyIcon}
+      onClick={onCopy}
       border={false} classes="plain"
       padding="4px"
       />
-  {/if}
-  <RoundButton
-    label={$t`Reply`}
-    icon={ReplyIcon}
-    onClick={onReply}
-    border={false} classes="plain"
-    padding="4px"
-    />
-  <RoundButton
-    label={$t`Forward`}
-    icon={ForwardIcon}
-    onClick={onForward}
-    border={false} classes="plain"
-    padding="4px"
-    />
-</hbox>
+    {#if message instanceof ChatMessage && message.canEdit}
+      <RoundButton
+        label={$t`Edit`}
+        icon={EditIcon}
+        onClick={onEdit}
+        border={false} classes="plain"
+        padding="4px"
+        />
+    {/if}
+    {#if message instanceof ChatMessage && message.canDeleteForOthers}
+      <ButtonMenu bind:isMenuOpen={isDeleteMenuOpen}>
+        <RoundButton
+          label={$t`Delete`}
+          icon={TrashIcon}
+          onClick={() => isDeleteMenuOpen = !isDeleteMenuOpen}
+          border={false} classes="plain"
+          padding="4px"
+          slot="control"
+          />
+        <MenuItem
+          label={$t`Delete for myself`}
+          icon={TrashIcon}
+          onClick={onDelete}
+          />
+        <MenuItem
+          label={$t`Delete for everybody`}
+          icon={TrashIcon}
+          onClick={onDeleteForOthers}
+          />
+      </ButtonMenu>
+    {:else}
+      <RoundButton
+        label={$t`Delete`}
+        icon={TrashIcon}
+        onClick={onDelete}
+        border={false} classes="plain"
+        padding="4px"
+        />
+    {/if}
+    <RoundButton
+      label={$t`Reply`}
+      icon={ReplyIcon}
+      onClick={onReply}
+      border={false} classes="plain"
+      padding="4px"
+      />
+    <RoundButton
+      label={$t`Forward`}
+      icon={ForwardIcon}
+      onClick={onForward}
+      border={false} classes="plain"
+      padding="4px"
+      />
+  </hbox>
+{/if}
 
 <script lang="ts">
   import { Message } from "../../../logic/Abstract/Message";
@@ -77,6 +122,7 @@
   import { assert, sleep } from "../../../logic/util/util";
   import ButtonMenu from "../../Shared/Menu/ButtonMenu.svelte";
   import MenuItem from "../../Shared/Menu/MenuItem.svelte";
+  import { appGlobal } from "../../../logic/app";
   import { gt, t } from "../../../l10n/l10n";
 
   export let message: Message;

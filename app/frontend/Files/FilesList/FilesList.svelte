@@ -111,4 +111,30 @@
   .header:not(:hover) :global(.button.sort:not(.selected)) {
     visibility: hidden;
   }
+
+  :global(.mobile) .files-list {
+    display: flex;
+    flex-flow: row wrap;
+    align-content: start;
+  }
+  :global(.mobile) .header {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 44px;
+    padding-inline: 12px 28px;
+    border: none;
+    font-size: 14px;
+  }
+  :global(.mobile) .header :global(button.sort) {
+    position: absolute;
+    inset: 0px;
+    justify-content: end;
+    padding-inline-end: 8px;
+    border-radius: 0px;
+    background-color: transparent;
+  }
+  :global(.mobile) .header :global(.button.sort:not(.selected)) {
+    visibility: visible;
+    opacity: 40%;
+  }
 </style>

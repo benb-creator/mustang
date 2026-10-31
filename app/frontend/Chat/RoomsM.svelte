@@ -22,7 +22,7 @@
   $: accounts = appGlobal.chatAccounts.filterObservable(acc => acc.workspace == $selectedWorkspace || !$selectedWorkspace);
   $: rooms = $selectedAccount ? $selectedAccount.rooms : mergeColls(accounts.map(a => a.rooms));
 
-  let selectedRoom: ChatRoom;
+  let selectedRoom: ChatRoom = null;
 
   $: selectedRoom && openChatRoomFromOtherApp(selectedRoom);
 </script>

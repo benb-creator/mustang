@@ -20,7 +20,7 @@
 
   export let person: Person;
 
-  let isEditing = false;
+  let isEditing = !person.name;
 </script>
 
 <style>
@@ -29,7 +29,7 @@
     background-blend-mode: soft-light;
     background-color: var(--offset-bg);
     color: var(--offset-fg);
-    padding: 8px;
+    padding: 4px;
   }
   .person-page :global(input),
   .person-page :global(textarea) {

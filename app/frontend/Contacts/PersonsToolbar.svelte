@@ -14,16 +14,18 @@
     <RoundButton
       label={$t`Sync from server`}
       icon={SyncIcon}
-      iconSize="12px" padding="4px" classes="sync small" border={false}
+      iconSize={appGlobal.isMobile ? "20px" : "12px"} padding={appGlobal.isMobile ? "12px" : "4px"} classes="sync small" border={false}
       onClick={sync}
       disabled={!$selectedAddressbook?.canSync}
       />
-    <RoundButton
-      label={$t`New contact`}
-      icon={NewContactIcon}
-      iconSize="22px" padding="9px" classes="large create"
-      onClick={addPerson}
-      />
+    {#if !appGlobal.isMobile}
+      <RoundButton
+        label={$t`New contact`}
+        icon={NewContactIcon}
+        iconSize="22px" padding="9px" classes="large create"
+        onClick={addPerson}
+        />
+    {/if}
   </hbox>
 </hbox>
 {#if $newPerson}
@@ -55,7 +57,7 @@
   /** in/out */
   export let selectedAddressbook: Addressbook;
 
-  let pictureSize = appGlobal.isMobile ? 32 : 20;
+  let pictureSize = appGlobal.isMobile ? 40 : 20;
 
   function addPerson() {
     let addressbook = selectedAddressbook ?? appGlobal.addressbooks.first;
@@ -99,6 +101,15 @@
   }
   .buttons :global(.button.disabled) {
     opacity: 10%;
+  }
+  :global(.mobile) .persons-toolbar {
+    margin: 4px 4px 4px 12px;
+    align-items: center;
+  }
+  :global(.mobile) .dropdown :global(select) {
+    min-height: 44px;
+    max-width: none;
+    font-size: 16px;
   }
   .new-person {
     margin-block-end: 10px;

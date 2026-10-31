@@ -28,4 +28,9 @@
     color: var(--offset-fg);
     opacity: 60%; /* TODO Should change only text color */
   }
+  :global(.mobile) .date-separator {
+    width: auto;
+    margin: 16px 16px 0px 16px;
+    text-align: center;
+  }
 </style>

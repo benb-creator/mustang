@@ -92,6 +92,14 @@
   :global(.mobile) .content {
     border-radius: 12px;
     border: 1px solid var(--border);
+    padding: 6px 12px 6px 16px;
+  }
+  :global(.mobile) .group .actions {
+    visibility: visible;
+  }
+  :global(.mobile) .add-row {
+    align-items: center;
+    min-height: 48px;
   }
   .group :global(button.add.top) {
     color: grey;

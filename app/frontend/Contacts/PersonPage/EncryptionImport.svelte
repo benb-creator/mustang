@@ -122,4 +122,11 @@
     margin-inline-end: -8px;
     margin-block-start: -4px;
   }
+  :global(.mobile) .key-import {
+    padding: 8px 8px 8px 12px;
+  }
+  :global(.mobile) .buttons :global(button) {
+    min-width: 44px;
+    min-height: 44px;
+  }
 </style>

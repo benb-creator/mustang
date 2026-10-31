@@ -7,6 +7,7 @@
   deliveryStatus={$message instanceof ChatMessage ? $message.deliveryStatus : DeliveryStatus.Unknown}
   on:pointerenter={onHoverStart}
   on:pointerleave={onHoverEnd}
+  on:contextmenu={onContextMenu}
   >
   {#if !$message.outgoing}
     <vbox class="avatar"  from={author?.name}>
@@ -68,6 +69,12 @@
       </vbox>
     {/if}
   </vbox>
+  {#if appGlobal.isMobile}
+    <Menu bind:isMenuOpen={isActionsSheetOpen} anchor={null}>
+      <ReactionBar {message} bind:isOpen={isActionsSheetOpen} />
+      <ActionBar {message} />
+    </Menu>
+  {/if}
 </hbox>
 
 <script lang="ts">
@@ -82,10 +89,12 @@
   import ReactionBar from "./ReactionBar.svelte";
   import ActionBar from "./ActionBar.svelte";
   import PersonPicture from "../../Contacts/Person/PersonPicture.svelte";
+  import Menu from "../../Shared/Menu/Menu.svelte";
   import WebView from "../../Shared/WebView.svelte";
   import Attachments from "./Attachments.svelte";
   import { sanitizeHTMLWithoutStyleTag } from "../../../logic/util/convertHTML";
   import { getDateTimeString } from "../../../logic/util/date";
+  import { appGlobal } from "../../../logic/app";
 
   export let message: Message;
   export let previousMessage: Message = null;
@@ -106,7 +115,7 @@
   let showActions = false; // on hover (desktop) or long press (mobile)
   let hoverTimer: NodeJS.Timeout | null = null;
   function onHoverStart() {
-    if (hoverTimer) {
+    if (hoverTimer || appGlobal.isMobile) {
       return;
     }
     hoverTimer = setTimeout(() => {
@@ -118,6 +127,14 @@
     clearTimeout(hoverTimer);
     hoverTimer = null;
     showActions = false;
+  }
+
+  let isActionsSheetOpen = false;
+  function onContextMenu(event: MouseEvent) {
+    if (appGlobal.isMobile) {
+      event.preventDefault();
+      isActionsSheetOpen = true;
+    }
   }
 </script>
 
@@ -311,5 +328,18 @@
 
   .outgoing[deliveryStatus=sending] {
     opacity: 70%;
+  }
+
+  :global(.mobile) .message {
+    margin: 12px 12px 0px 8px;
+    max-width: 85%;
+  }
+  :global(.mobile) .message.followup {
+    margin-block-start: 3px;
+  }
+  :global(.mobile) .message .bubble {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 </style>
