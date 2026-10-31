@@ -19,7 +19,8 @@
     justify-content: center;
   }
   .app-bar > :global(button),
-  .app-bar > * > :global(button) {
+  .app-bar > :global(*:not(.app-menu-button)) > :global(button),
+  .app-bar :global(.menu-button) {
     width: 48px;
     margin-inline-start: 2px;
   }
