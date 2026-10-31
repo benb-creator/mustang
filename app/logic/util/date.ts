@@ -27,7 +27,7 @@ export function getDateTimeString(date: Date): string {
   } else { // full date
     dateDetails = { year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "numeric" };
   }
-  return date.toLocaleString(getDateTimeLocale(), dateDetails);
+  return getFormattedDateString(date, dateDetails);
 }
 
 /**
@@ -61,14 +61,36 @@ export function getDateString(date: Date, fullDate?: Intl.DateTimeFormatOptions)
   } else { // full date
     dateDetails = fullDate ?? { year: "numeric", month: "2-digit", day: "2-digit" };
   }
-  return date.toLocaleString(getDateTimeLocale(), dateDetails);
+  return getFormattedDateString(date, dateDetails);
 }
 
+/** Like `date.toLocaleString(getDateTimeLocale(), dateDetails)`, but reuses the formatter */
 export function getFormattedDateString(date: Date, dateDetails: Intl.DateTimeFormatOptions): string {
   if (!date) {
     return "";
   }
-  return date.toLocaleString(getDateTimeLocale(), dateDetails);
+  if (isNaN(date.getTime())) {
+    return date.toString();
+  }
+  return dateTimeFormat(dateDetails).format(date);
+}
+
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
+
+/** Creating an `Intl.DateTimeFormat` is slow, and lists format a date in every row.
+ * A formatter stays in the time zone in which it was created,
+ * so when the device moves to another time zone, it needs a new one. */
+function dateTimeFormat(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  let locale = getDateTimeLocale();
+  let year = new Date().getFullYear();
+  let timeZoneOffsets = new Date(year, 0, 1).getTimezoneOffset() + "/" + new Date(year, 6, 1).getTimezoneOffset();
+  let key = locale + " " + timeZoneOffsets + " " + JSON.stringify(options);
+  let format = dateTimeFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, options);
+    dateTimeFormats.set(key, format);
+  }
+  return format;
 }
 
 /** @returns Time, e.g. "15:23" */
@@ -76,7 +98,7 @@ export function getTimeString(date: Date): string {
   if (!date) {
     return "";
   }
-  return date.toLocaleString(getDateTimeLocale(), { hour: "numeric", minute: "numeric" });
+  return getFormattedDateString(date, { hour: "numeric", minute: "numeric" });
 }
 
 /** @returns Time without AM/PM, e.g. "3:23" or "15:23".
@@ -85,7 +107,7 @@ export function getTimeStringWithoutAMPM(date: Date): string {
   if (!date) {
     return "";
   }
-  return new Intl.DateTimeFormat(getDateTimeLocale(), { hour: "numeric", minute: "numeric" })
+  return dateTimeFormat({ hour: "numeric", minute: "numeric" })
     .formatToParts(date)
     .filter(part => part.type != "dayPeriod")
     .map(part => part.value)
