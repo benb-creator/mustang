@@ -27,7 +27,7 @@
     <hbox class="url">{tap?.url}</hbox>
   </vbox>
 </Popup>
-<svelte:window on:blur={onFocusToWebView} />
+<svelte:window on:blur={onFocusToWebView} on:popstate={() => popupOpen = false} />
 
 <script lang="ts">
   import { linkTapPlugin, type LinkTap } from "../../logic/util/os-integration";
