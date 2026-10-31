@@ -75,12 +75,11 @@
    * instead, and Capacitor then gives it to the system browser. That needs a top navigation.
    * Only a page that a web server gave us is not jailed, e.g. a web app or the payment page:
    * That page gets the origin of its server. A `blob:` URL would get *ours*. */
+  let jail = "allow-popups allow-popups-to-escape-sandbox";
   // #if [MOBILE]
-  const kJail = "allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation";
-  // #else
-  const kJail = "allow-popups allow-popups-to-escape-sandbox";
+  jail += " allow-top-navigation-by-user-activation";
   // #endif
-  $: sandbox = url?.startsWith("https:") ? undefined : kJail;
+  $: sandbox = url?.startsWith("https:") ? undefined : jail;
 
   onMount(() =>{
     if (autoSize) {
