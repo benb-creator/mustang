@@ -1,6 +1,6 @@
 {#if message.sent.getDate() != previousMessage?.sent.getDate() }
   <hbox class="date-separator font-small value">
-    {longDayFormat.format(message.sent)}
+    {message.sent.toLocaleDateString(undefined, longDay)}
   </hbox>
 {/if}
 
@@ -10,12 +10,12 @@
   export let message: Message;
   export let previousMessage: Message = null;
 
-  const longDayFormat = Intl.DateTimeFormat(undefined, {
+  const longDay: Intl.DateTimeFormatOptions = {
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "long",
-  });
+  };
 </script>
 
 <style>
