@@ -39,7 +39,7 @@
   let selectedFolders: ArrayColl<Folder>; /** in/out */
 
   async function onFolderSelected() {
-    await sleep(0.1); // wait for `<FolderList>` to set `selectedFolder`
+    await sleep(0); // wait for `<FolderList>` to set `selectedFolder`
     assert(selectedFolder, "Need folder");
     goTo(URLPart`/mail/folder/${selectedFolder.account.id}/${selectedFolder.id ?? "noid"}/message-list`, {
       account: selectedFolder.account,

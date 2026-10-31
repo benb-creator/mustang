@@ -34,7 +34,7 @@
   export let selectedMessages: ArrayColl<EMail>; /** in/out */
 
   async function goToMessage() {
-    await sleep(0.1); // wait for `<VerticalMessageList>` to set `selectedMessage`
+    await sleep(0); // wait for `<VerticalMessageList>` to set `selectedMessage`
     assert(selectedMessage, "Need message");
     await openEMailMessage(selectedMessage);
   }

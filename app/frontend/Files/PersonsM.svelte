@@ -25,7 +25,7 @@
   let persons = appGlobal.persons;
 
   async function onPersonSelected() {
-    await sleep(0.1); // wait for `<PersonsList>` to set `$selectedPerson`
+    await sleep(0); // wait for `<PersonsList>` to set `$selectedPerson`
     assert($selectedPerson, "Need person");
     goTo(URLPart`/files/person/${$selectedPerson.id}/files`, { person: $selectedPerson });
   }

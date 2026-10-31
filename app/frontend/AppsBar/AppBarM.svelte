@@ -13,13 +13,15 @@
     box-shadow: 1px 0px 3px 0px rgba(22, 12, 39, 20%); /* #160C27 */
     z-index: 4;
     justify-content: center;
+    view-transition-name: app-bar;
   }
   .app-bar > :global(*) {
     flex: 1 0 0;
     justify-content: center;
   }
   .app-bar > :global(button),
-  .app-bar > * > :global(button) {
+  .app-bar > :global(*:not(.app-menu-button)) > :global(button),
+  .app-bar :global(.menu-button) {
     width: 48px;
     margin-inline-start: 2px;
   }

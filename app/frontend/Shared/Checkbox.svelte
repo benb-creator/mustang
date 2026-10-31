@@ -192,16 +192,28 @@
     min-height: 32px;
   }
   :global(.mobile) .knob {
-    height: 32px;
-    width: 32px;
+    top: 3px;
+    left: 0px;
+    right: auto;
+    height: 26px;
+    width: 26px;
+    transform: translateX(3px);
+    transition: transform 160ms cubic-bezier(0.3, 0.7, 0.3, 1), background-color 160ms;
   }
   :global(.mobile) .knob-wrapper {
     height: 32px;
-    width: 64px;
-    min-width: 64px;
+    width: 52px;
+    min-width: 52px;
+  }
+  :global(.mobile) .on .knob {
+    transform: translateX(23px);
   }
   :global(.mobile) .indetermined .knob {
-    left: 16px;
+    left: 0px;
+    transform: translateX(13px);
+  }
+  :global(.mobile) .off.allowIndetermined .knob {
+    left: 0px;
   }
 
   .state-icon-wrapper {

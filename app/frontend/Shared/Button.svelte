@@ -168,6 +168,30 @@
   :global(.mobile) button {
     font-size: 16px;
   }
+  :global(.mobile) .button {
+    transition: transform 80ms ease-out, opacity 80ms ease-out;
+  }
+  /* Touch screens keep :hover after a tap, so show the normal state instead */
+  :global(.mobile) .button:hover:not(.disabled) {
+    background-color: var(--button-bg);
+    color: var(--button-fg);
+  }
+  :global(.mobile) .button.plain:hover:not(.disabled) {
+    background-color: transparent;
+  }
+  :global(.mobile) .button.filled:hover:not(.disabled) {
+    background-color: var(--inverted-bg);
+    color: var(--inverted-fg);
+  }
+  :global(.mobile) .button.selected:hover:not(.disabled) {
+    background-color: var(--selected-bg);
+    color: var(--selected-fg);
+  }
+  :global(.mobile) .button:active:not(.disabled) {
+    transform: scale(0.94);
+    opacity: 0.7;
+    transition: none;
+  }
   button:not(.plain) > .label {
     padding-inline: var(--button-label-padding);
   }

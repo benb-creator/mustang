@@ -2,10 +2,12 @@ import type { MustangApp } from "./MustangApp";
 import { createHashHistory } from "../Util/hashHistory";
 import type AnyObject from "svelte-navigator/types/AnyObject";
 import { appGlobal } from "../../logic/app";
-import { minorError } from "../Util/error";
+import { minorError, showError } from "../Util/error";
+import { sleep } from "../../logic/util/util";
 import { ArrayColl, MapColl } from "svelte-collections";
 import { writable, get, type Writable } from "svelte/store";
 import type RawLocation from "svelte-navigator/types/RawLocation";
+import { tick } from "svelte";
 
 export const selectedApp: Writable<MustangApp> = writable(null);
 export const sidebarApp: Writable<MustangApp> = writable(null);
@@ -28,15 +30,60 @@ export function goTo(pageURL: string, params: PageParams) {
   let location = window.location.hash.slice(1);
   let replace = pageURL == location;
   console.log("Go to", pageURL, replace ? "replace" : "", "from", location, "with params", params);
-  history.navigate(pageURL, {
-    replace,
-    state: addParams(params),
-  });
+  function navigate() {
+    history.navigate(pageURL, {
+      replace,
+      state: addParams(params),
+    });
+  }
+  if (appGlobal.isMobile && !replace) {
+    let isSameApp = pageURL.split("/")[1] == location.split("/")[1];
+    animatePageChange(isSameApp ? "forward" : "switch", navigate)
+      .catch(showError);
+    return;
+  }
+  navigate();
 }
 
 export function goBack() {
+  if (appGlobal.isMobile) {
+    animatePageChange("back", async () => {
+      let popped = new Promise(resolve => window.addEventListener("popstate", resolve, { once: true }));
+      history.navigate(-1);
+      await Promise.race([popped, sleep(0.3)]);
+    }).catch(showError);
+    return;
+  }
   history.navigate(-1);
 }
+
+/** Mobile: Slides the new page in, or out when going back, like native apps do.
+ * The CSS animations are in `app.css`, for `:root[data-page-change]`.
+ * @param direction
+ *   "forward": Deeper into the same app
+ *   "back": Back to the previous page
+ *   "switch": To another app */
+async function animatePageChange(direction: "forward" | "back" | "switch", navigate: () => void | Promise<void>) {
+  if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    await navigate();
+    return;
+  }
+  let root = document.documentElement;
+  root.dataset.pageChange = direction;
+  let transition = document.startViewTransition(async () => {
+    await navigate();
+    await tick();
+  });
+  lastPageChange = transition;
+  try {
+    await transition.finished;
+  } finally {
+    if (lastPageChange == transition) {
+      delete root.dataset.pageChange;
+    }
+  }
+}
+let lastPageChange: ViewTransition;
 
 /** When `goTo()` is called, we need to update `selectedApp` accordingly */
 function syncSelectedApp(params: { location: RawLocation }) {

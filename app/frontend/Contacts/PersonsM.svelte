@@ -33,7 +33,7 @@
   $: persons = (selectedAddressbook?.persons ?? appGlobal.persons) as Collection<Person>;
 
   async function onPersonSelected() {
-    await sleep(0.1); // wait for `<PersonsList>` to set `$selectedPerson`
+    await sleep(0); // wait for `<PersonsList>` to set `$selectedPerson`
     assert($selectedPerson, "Need person");
     goTo(URLPart`/contacts/person/${$selectedPerson.id}/edit`, { person: $selectedPerson });
   }

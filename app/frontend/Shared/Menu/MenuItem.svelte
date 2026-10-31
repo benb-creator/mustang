@@ -29,6 +29,7 @@
 <script lang="ts">
   import Icon from 'svelte-icon/Icon.svelte';
   import { showError } from '../../Util/error';
+  import { appGlobal } from '../../../logic/app';
   import { getContext, type ConstructorOfATypedSvelteComponent } from 'svelte';
   import { t } from '../../../l10n/l10n';
 
@@ -37,7 +38,7 @@
   export let label: string = null;
   export let icon: ConstructorOfATypedSvelteComponent | string = null;
   export let classes = "";
-  export let iconSize = "16px";
+  export let iconSize = appGlobal.isMobile ? "20px" : "16px";
   export let iconOnly = false;
   /** For toggle buttons: pressed/active state */
   export let selected = false;
@@ -116,5 +117,20 @@
   }
   .menuitem.danger {
     color: red;
+  }
+  :global(.mobile) .menuitem {
+    min-height: 52px;
+    padding: 12px 20px;
+  }
+  :global(.mobile) .menuitem .gap {
+    width: 16px;
+  }
+  :global(.mobile) .menuitem:hover:not(.disabled):not(.selected) {
+    background-color: unset !important;
+    color: unset;
+  }
+  :global(.mobile) .menuitem:active:not(.disabled) {
+    background-color: var(--hover-bg) !important;
+    color: var(--hover-fg);
   }
 </style>

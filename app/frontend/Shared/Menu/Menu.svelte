@@ -1,16 +1,35 @@
-<Popup
-  bind:popupOpen={isMenuOpen}
-  popupAnchor={anchor}
-  {placement}
-  {boundaryElSel}>
-  <vbox class="menu"
-    on:keydown={onKeyPress}>
-    <slot />
-  </vbox>
-</Popup>
+{#if appGlobal.isMobile}
+  {#if isMenuOpen}
+    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+    <vbox class="sheet-backdrop" on:click={onMenuClose} use:moveToWindow
+      transition:fade={{ duration: 150 }}>
+      <vbox class="menu sheet"
+        on:click|stopPropagation
+        on:keydown={onKeyPress}
+        transition:fly={{ y: 400, duration: 220, opacity: 1, easing: cubicOut }}>
+        <hbox class="sheet-handle" />
+        <slot />
+      </vbox>
+    </vbox>
+  {/if}
+{:else}
+  <Popup
+    bind:popupOpen={isMenuOpen}
+    popupAnchor={anchor}
+    {placement}
+    {boundaryElSel}>
+    <vbox class="menu"
+      on:keydown={onKeyPress}>
+      <slot />
+    </vbox>
+  </Popup>
+{/if}
 
 <script lang="ts">
   import Popup from "../Popup.svelte";
+  import { appGlobal } from "../../../logic/app";
+  import { fade, fly } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import type { Placement } from "@popperjs/core";
   import { setContext } from "svelte";
 
@@ -45,6 +64,17 @@
     isMenuOpen = false;
   }
   setContext("onMenuClose", onMenuClose);
+
+  /** Mobile: Show the sheet above everything, independent of where the menu button is */
+  function moveToWindow(sheetE: HTMLElement) {
+    sheetE.closest(".main-window")?.append(sheetE);
+    return {
+      destroy() {
+        // When the page closes, Svelte removes only the DOM of the page, and the sheet is no longer in there
+        sheetE.remove();
+      },
+    };
+  }
 </script>
 
 <style>
@@ -62,5 +92,28 @@
       rgba(0, 0, 0, 0.05) 0px 1px 3px,
       rgba(0, 0, 0, 0.05) 0px 20px 25px -5px,
       rgba(0, 0, 0, 0.04) 0px 10px 10px -5px;
+  }
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    justify-content: end;
+    background-color: rgba(0, 0, 0, 30%);
+  }
+  .menu.sheet {
+    max-height: 80vh;
+    overflow-y: auto;
+    padding-block: 0 12px;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 15%);
+  }
+  .sheet-handle {
+    align-self: center;
+    width: 36px;
+    height: 4px;
+    margin-block: 8px;
+    margin-inline: auto;
+    border-radius: 2px;
+    background-color: var(--border);
   }
 </style>
