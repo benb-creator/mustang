@@ -1,6 +1,6 @@
 <vbox class="calling" flex bind:clientWidth={width}>
   <SplitterBidirectional name="calling-contact-history"
-    hasFirst={showContactHistory}
+    hasSecond={showContactHistory}
     initialSecondRatio={0.4}
     horizontal={width < 1000}>
     <vbox flex state={$meeting.state} slot="first">
@@ -186,7 +186,7 @@
   $: participants = meeting.participants;
   $: person = $participants.first?.findPerson();
   $: showAvatar = $meeting.state != MeetingState.Init && $meeting.state != MeetingState.JoinConference;
-  $: showContactHistory = person && !$meeting.hasVideo && !appGlobal.isMobile;
+  $: showContactHistory = !!person && !$meeting.hasVideo && !appGlobal.isMobile;
   let width: number;
 
   const now = new Date();
