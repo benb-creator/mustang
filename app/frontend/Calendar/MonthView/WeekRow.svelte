@@ -1,6 +1,6 @@
 <grid class="week-row">
   {#each days as day, i}
-    <DayLabel {day} column={i + 1} />
+    <DayLabel {day} column={i + 1} withMonthOnMonday={!$appGlobal.isMobile} />
   {/each}
   <grid class="lanes font-small"
     style="--rows: {rows}; --rows-per-line: {WeekRowLayout.kRowsPerLine}"
@@ -24,6 +24,7 @@
 <script lang="ts">
   import type { Event } from "../../../logic/Calendar/Event";
   import { WeekRowLayout } from "./WeekRow";
+  import { appGlobal } from "../../../logic/app";
   import DayLabel from "./DayLabel.svelte";
   import DayCell from "./DayCell.svelte";
   import EventContainer from "./EventContainer.svelte";

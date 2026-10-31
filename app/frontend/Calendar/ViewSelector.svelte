@@ -1,19 +1,36 @@
-<hbox class="container">
-  <select name="" id="" bind:value={dateIntervalSelected}>
-    {#each dateIntervalOptions as opt}
-      <option value={opt.value}>{opt.label}</option>
-    {/each}
-  </select>
-  <hbox class="icon">
-    <ChevronsUpDownIcon size={16} strokeWidth={2}/>
+{#if $appGlobal.isMobile}
+  <hbox class="view-menu">
+    <ButtonMenu label={$t`Change the view`} buttonIcon={ViewIcon}>
+      {#each dateIntervalOptions as opt}
+        <MenuItem label={opt.label}
+          selected={opt.value == String(dateInterval)}
+          onClick={() => selectView(opt.value)} />
+      {/each}
+      <slot />
+    </ButtonMenu>
   </hbox>
-</hbox>
+{:else}
+  <hbox class="container">
+    <select name="" id="" bind:value={dateIntervalSelected}>
+      {#each dateIntervalOptions as opt}
+        <option value={opt.value}>{opt.label}</option>
+      {/each}
+    </select>
+    <hbox class="icon">
+      <ChevronsUpDownIcon size={16} strokeWidth={2}/>
+    </hbox>
+  </hbox>
+{/if}
 
 
 
 <script lang="ts">
-  import ChevronsUpDownIcon from "lucide-svelte/icons/chevrons-up-down";
   import type { DateInterval } from "./selected";
+  import { appGlobal } from "../../logic/app";
+  import ButtonMenu from "../Shared/Menu/ButtonMenu.svelte";
+  import MenuItem from "../Shared/Menu/MenuItem.svelte";
+  import ChevronsUpDownIcon from "lucide-svelte/icons/chevrons-up-down";
+  import ViewIcon from "lucide-svelte/icons/calendar-days";
   import { t } from "../../l10n/l10n";
 
   export let dateInterval: DateInterval; /* in/out */
@@ -40,6 +57,12 @@
 
   let dateIntervalSelected = dateInterval.toString();
   $: dateInterval = parseInt(dateIntervalSelected) as DateInterval;
+
+  /** Mobile: `dateInterval` may have changed from outside, e.g. when tapping a day in the month */
+  function selectView(value: string) {
+    dateIntervalSelected = value;
+    dateInterval = parseInt(value) as DateInterval;
+  }
   const dateIntervalOptions = [
     { value: "1", label: dateIntervalLabel(1) },
     { value: "5", label: dateIntervalLabel(5) },
@@ -52,6 +75,9 @@
 </script>
 
 <style>
+  :global(.mobile) .view-menu {
+    order: 2;
+  }
   .container {
     position: relative;
   }

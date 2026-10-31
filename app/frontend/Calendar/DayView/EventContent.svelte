@@ -18,6 +18,7 @@
   import type { Event } from "../../../logic/Calendar/Event";
   import { openEvent } from "../open";
   import { selectedEvent } from "../selected";
+  import { appGlobal } from "../../../logic/app";
   import Clickable from "../../Shared/Clickable.svelte";
   import { getDurationString, getTimeStringWithoutAMPM } from "../../../logic/util/date";
   import { getDateTimeLocale } from "../../../l10n/l10n";
@@ -32,6 +33,9 @@
 
   function onSelect(ev: MouseEvent) {
     $selectedEvent = event;
+    if (appGlobal.isMobile) {
+      openEvent(event, false);
+    }
   }
 
   function onOpen(ev: MouseEvent) {

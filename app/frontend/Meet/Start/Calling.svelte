@@ -1,9 +1,9 @@
 <vbox class="calling" flex bind:clientWidth={width}>
   <SplitterBidirectional name="calling-contact-history"
-    hasFirst={showContactHistory}
+    hasSecond={showContactHistory}
     initialSecondRatio={0.4}
     horizontal={width < 1000}>
-    <vbox flex state={$meeting.state} slot="first">
+    <vbox flex state={$meeting.state} slot="first" class="call">
       <!-- svelte-ignore element_invalid_self_closing_tag -->
       <hbox flex />
       <hbox class="boxes" flex>
@@ -186,7 +186,7 @@
   $: participants = meeting.participants;
   $: person = $participants.first?.findPerson();
   $: showAvatar = $meeting.state != MeetingState.Init && $meeting.state != MeetingState.JoinConference;
-  $: showContactHistory = person && !$meeting.hasVideo && !appGlobal.isMobile;
+  $: showContactHistory = !!person && !$meeting.hasVideo && !appGlobal.isMobile;
   let width: number;
 
   const now = new Date();
@@ -296,6 +296,39 @@
   .gap {
     min-width: 10%;
     min-height: 10%;
+  }
+  :global(.mobile) .call > hbox:first-child {
+    display: none;
+  }
+  :global(.mobile) .boxes {
+    justify-content: start;
+    align-items: stretch;
+    min-height: 0px;
+    overflow-y: auto;
+  }
+  :global(.mobile) .bottom-bar {
+    flex: none;
+  }
+  :global(.mobile) .boxes > :global(hbox[flex]),
+  :global(.mobile) .gap {
+    display: none;
+  }
+  :global(.mobile) .box,
+  :global(.mobile) .device-setup {
+    min-width: 0px;
+    max-width: none;
+    max-height: none;
+    aspect-ratio: auto;
+    border-radius: 0px;
+  }
+  :global(.mobile) .box {
+    flex: 1 0 auto;
+    padding: 32px 24px 24px 24px;
+  }
+  :global(.mobile) .device-setup {
+    flex: 1 0 auto;
+    min-height: 240px;
+    padding: 8px 0px;
   }
   .device-setup :global(button.button),
   .device-setup :global(button.button:hover:not(.disabled)) {

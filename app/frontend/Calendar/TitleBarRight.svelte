@@ -1,21 +1,34 @@
-<hbox class="title-bar">
-  <RoundButton
-    classes="sync-button"
-    label={$t`Sync all calendars`}
-    icon={SyncIcon}
-    onClick={sync}
-    loadDelayMS={0}
-    iconSize="14px"
-    padding="6px"
-    border={false}
-    />
-</hbox>
-<ViewSelector bind:dateInterval />
+{#if !$appGlobal.isMobile}
+  <hbox class="title-bar">
+    <RoundButton
+      classes="sync-button"
+      label={$t`Sync all calendars`}
+      icon={SyncIcon}
+      onClick={sync}
+      loadDelayMS={0}
+      iconSize="14px"
+      padding="6px"
+      border={false}
+      />
+  </hbox>
+{/if}
+<ViewSelector bind:dateInterval>
+  {#if $appGlobal.isMobile}
+    <MenuDivider />
+    <MenuItem
+      label={$t`Sync all calendars`}
+      icon={SyncIcon}
+      onClick={sync}
+      />
+  {/if}
+</ViewSelector>
 
 <script lang="ts">
   import type { DateInterval } from "./selected";
   import ViewSelector from "./ViewSelector.svelte";
   import RoundButton from "../Shared/RoundButton.svelte";
+  import MenuItem from "../Shared/Menu/MenuItem.svelte";
+  import MenuDivider from "../Shared/Menu/MenuDivider.svelte";
   import SyncIcon from "lucide-svelte/icons/refresh-cw";
   import { t } from "../../l10n/l10n";
   import { appGlobal } from "../../logic/app";

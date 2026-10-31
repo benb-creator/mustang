@@ -45,7 +45,7 @@
 </hbox>
 
 <script lang="ts">
-  import { selectedCalendar } from "../selected";
+  import { selectedCalendar, selectedDate } from "../selected";
   import { setNewEventTime } from "../event";
   import { openEvent } from "../open";
   import AppBarM from "../../AppsBar/AppBarM.svelte";
@@ -69,7 +69,10 @@
 
   function newEvent() {
     let event = $selectedCalendar.newEvent();
-    setNewEventTime(event, false, new Date());
+    let startTime = new Date($selectedDate);
+    let now = new Date();
+    startTime.setHours(now.getHours(), now.getMinutes());
+    setNewEventTime(event, false, startTime);
     openEvent(event, true);
   }
 </script>

@@ -7,7 +7,9 @@
     </hbox>
   {/if}
 
-  <SearchField bind:searchTerm={$globalSearchTerm} placeholder={$t`Search for an appointment`} autofocus />
+  <hbox class="search-field">
+    <SearchField bind:searchTerm={$globalSearchTerm} placeholder={$t`Search for an appointment`} autofocus />
+  </hbox>
 </vbox>
 <SearchBarM />
 
@@ -33,10 +35,14 @@
 </script>
 
 <style>
-  .search-page {
-    padding: 16px 16px 8px 16px;
-  }
   .result-count {
-    margin: 8px;
+    padding: 8px 16px 0px 16px;
+    opacity: 75%;
+  }
+  .search-field {
+    padding: 8px 12px;
+  }
+  .search-field :global(.search) {
+    flex: 1 0 0;
   }
 </style>

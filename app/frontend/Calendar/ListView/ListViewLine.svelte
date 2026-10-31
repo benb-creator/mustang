@@ -1,29 +1,50 @@
-<hbox class="day">
-  {startDay}
-</hbox>
-<hbox class="time">
-  {#if !$event.allDay}
-    {startTime}
-  {/if}
-</hbox>
-<hbox class="event title"
-  on:click
-  on:click={onSelect}
-  on:dblclick={onOpen}
-  title={eventAsText}
-  style="--color: {event.color ?? event.calendar?.color}"
-  class:all-day={$event.allDay}
-  class:selected={$selectedEvent == event}
-  class:unanswered={$event.isUnanswered}
-  class:cancelled={$event.isCancelled}
-  >
-  {$event.title}
-</hbox>
+{#if $appGlobal.isMobile}
+  <hbox class="event-row"
+    on:click
+    on:click={onOpen}
+    style="--color: {event.color ?? event.calendar?.color}"
+    class:cancelled={$event.isCancelled}
+    >
+    <hbox class="color-bar" class:unanswered={$event.isUnanswered} />
+    <vbox class="text" flex>
+      <hbox class="row-title">{$event.title}</hbox>
+      <hbox class="when font-small">
+        <hbox class="day">{startDay}</hbox>
+        {#if !$event.allDay}
+          <hbox class="time">{startTime}</hbox>
+        {/if}
+      </hbox>
+    </vbox>
+  </hbox>
+{:else}
+  <hbox class="day">
+    {startDay}
+  </hbox>
+  <hbox class="time">
+    {#if !$event.allDay}
+      {startTime}
+    {/if}
+  </hbox>
+  <hbox class="event title"
+    on:click
+    on:click={onSelect}
+    on:dblclick={onOpen}
+    title={eventAsText}
+    style="--color: {event.color ?? event.calendar?.color}"
+    class:all-day={$event.allDay}
+    class:selected={$selectedEvent == event}
+    class:unanswered={$event.isUnanswered}
+    class:cancelled={$event.isCancelled}
+    >
+    {$event.title}
+  </hbox>
+{/if}
 
 <script lang="ts">
   import type { Event } from "../../../logic/Calendar/Event";
   import { selectedEvent } from "../selected";
   import { openEvent } from "../open";
+  import { appGlobal } from "../../../logic/app";
   import { getDurationString } from "../../../logic/util/date";
   import { getDateTimeLocale } from "../../../l10n/l10n";
 
@@ -90,5 +111,41 @@
   }
   .time {
     font-weight: 600;
+  }
+  .event-row {
+    align-items: center;
+    min-height: 60px;
+    gap: 12px;
+  }
+  .color-bar {
+    align-self: stretch;
+    width: 4px;
+    margin-block: 10px;
+    margin-inline-start: 16px;
+    border-radius: 2px;
+    background-color: var(--color);
+  }
+  .color-bar.unanswered {
+    opacity: 40%;
+  }
+  .event-row .text {
+    min-width: 0;
+    margin-inline-end: 12px;
+  }
+  .row-title {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .event-row.cancelled .row-title {
+    text-decoration: line-through;
+  }
+  .when {
+    gap: 8px;
+    opacity: 75%;
+  }
+  .when .time {
+    font-weight: normal;
   }
 </style>

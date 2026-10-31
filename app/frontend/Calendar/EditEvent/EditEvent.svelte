@@ -229,6 +229,24 @@
       margin-inline-end: 24px;
     }*/
   }
+  :global(.mobile) .columns {
+    padding: 4px 12px;
+  }
+  :global(.mobile) .time-box {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0px;
+  }
+  :global(.mobile) .event-edit-window :global(input:not([type="checkbox"]):not([type="radio"])),
+  :global(.mobile) .event-edit-window :global(select) {
+    min-height: 40px;
+    font-size: 16px;
+  }
+  :global(.mobile) .event-edit-window :global(button.button.plain) {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
   .mycalendar {
     width: 200px;
     margin-block-start: -10px;

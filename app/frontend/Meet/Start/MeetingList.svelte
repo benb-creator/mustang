@@ -65,4 +65,24 @@
   .title {
     cursor: pointer;
   }
+  :global(.mobile) .time,
+  :global(.mobile) .location,
+  :global(.mobile) .title {
+    align-items: center;
+    min-height: 48px;
+  }
+  :global(.mobile) .time {
+    white-space: nowrap;
+  }
+  :global(.mobile) .location {
+    margin-inline-end: 12px;
+  }
+  :global(.mobile) .title {
+    display: block;
+    align-content: center;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 </style>

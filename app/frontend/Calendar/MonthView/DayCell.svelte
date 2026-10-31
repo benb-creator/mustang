@@ -16,6 +16,8 @@
 
 <script lang="ts">
   import { selectedDate } from "../selected";
+  import { appGlobal } from "../../../logic/app";
+  import { getLocalStorage } from "../../Util/LocalStorage";
   import Clickable from "../../Shared/Clickable.svelte";
   import CurrentTimeMarker from "../CurrentTimeMarker.svelte";
   import { WeekRowLayout } from "./WeekRow";
@@ -31,6 +33,9 @@
 
   function selectDay() {
     $selectedDate = start;
+    if (appGlobal.isMobile) {
+      getLocalStorage("calendar.view").value = 2;
+    }
   }
 
   function onDoubleClick(mouseEvent: MouseEvent) {
@@ -71,6 +76,19 @@
       color: var(--selected-hover-fg);
     }
   }
+  :global(.mobile) .day-cell:hover:not(.selected) {
+    background-color: transparent;
+  }
+  :global(.mobile) .day-cell:hover {
+    background-image: none;
+    color: unset;
+  }
+  @media (prefers-color-scheme: dark) {
+    :global(.mobile) .day-cell.selected:hover {
+      background-color: #193D39;
+      color: unset;
+    }
+  }
   .current-time-marker-range {
     position: absolute;
     top: 0px;
@@ -99,5 +117,8 @@
     .month-name {
       display: none;
     }
+  }
+  :global(.mobile) .month-name {
+    display: none;
   }
 </style>

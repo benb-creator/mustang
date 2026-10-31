@@ -266,4 +266,72 @@
     border-radius: 24px;
     border: 1px solid var(--border);
   }
+  :global(.mobile) .top {
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0px;
+    padding: 4px 8px 4px 4px;
+  }
+  :global(.mobile) .top .buttons {
+    margin: 0px;
+    column-gap: 0px;
+  }
+  :global(.mobile) .top .buttons :global(button.button) {
+    width: 48px;
+    height: 48px;
+    justify-content: center;
+  }
+  :global(.mobile) .top :global(.account-selector select) {
+    min-height: 44px;
+  }
+  /* Same as the big button and the "+" in the bottom bar */
+  :global(.mobile) .top .buttons :global(button.create) {
+    display: none;
+  }
+  :global(.mobile) .payment-bar-container {
+    order: 1;
+    flex-basis: 100%;
+    margin: 4px 4px 0px 8px;
+  }
+  :global(.mobile) .payment-bar {
+    border-radius: 12px;
+  }
+  :global(.mobile) .meetings {
+    flex: 1 0 0;
+    min-height: 0px;
+    align-items: stretch;
+  }
+  :global(.mobile) .meetings > :global(vbox[flex]:empty) {
+    display: none;
+  }
+  :global(.mobile) .upcoming {
+    flex: 1 0 0;
+    justify-content: start;
+    padding: 16px 16px 0px 16px;
+  }
+  :global(.mobile) .title {
+    margin-block-end: 4px;
+  }
+  :global(.mobile) .emptyMsg {
+    text-align: start;
+  }
+  :global(.mobile) .actions-container {
+    flex: none;
+    justify-content: end;
+    align-items: stretch;
+    padding: 16px;
+  }
+  :global(.mobile) .actions :global(> *) {
+    margin-block-start: 16px;
+  }
+  :global(.mobile) .actions :global(button.button) {
+    min-height: 48px;
+    justify-content: center;
+  }
+  :global(.mobile) .meeting-link {
+    flex: 1 0 0;
+    min-height: 48px;
+    font-size: 16px;
+    margin-inline-end: 8px;
+  }
 </style>

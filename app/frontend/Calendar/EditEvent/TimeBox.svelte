@@ -291,6 +291,22 @@
   :global(.inline) {
     display: inline-flex !important;
   }
+  :global(.mobile) .time-box {
+    padding: 4px 0px;
+  }
+  :global(.mobile) .time-box :global(input[type="time"]) {
+    max-width: none;
+    width: 7.5em;
+  }
+  :global(.mobile) .time-box :global(.buttons button.button) {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+  }
+  :global(.mobile) .date-input,
+  :global(.mobile) .time-input {
+    min-height: 44px;
+  }
   @container (max-width: 370px) {
     .time-box {
       padding: 8px 12px;

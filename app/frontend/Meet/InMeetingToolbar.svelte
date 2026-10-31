@@ -341,4 +341,24 @@
       background-color: #A3E5DD;
     }
   }
+  :global(.mobile) .actions {
+    contain: inline-size;
+    margin: 4px;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  :global(.mobile) .actions :global(> *) {
+    flex-shrink: 0;
+    margin-inline-end: 0px;
+  }
+  :global(.mobile) .participants {
+    flex-shrink: 1;
+    min-width: 0px;
+  }
+  :global(.mobile) .actions :global(.leave),
+  :global(.mobile) .actions :global(.leave:hover) {
+    background-color: #F34949;
+    color: white;
+  }
 </style>

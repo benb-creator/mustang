@@ -1,4 +1,4 @@
-<Clickable {onDoubleClick}>
+<Clickable onClick={appGlobal.isMobile ? onDoubleClick : null} {onDoubleClick}>
   <vbox class="hour-slot"
     style="grid-row: {row} / span {kRowsPerHour}"
     on:pointerenter={() => hovering = true}
@@ -13,6 +13,7 @@
 <script lang="ts">
   import { kRowsPerHour } from "./DayColumn";
   import Clickable from "../../Shared/Clickable.svelte";
+  import { appGlobal } from "../../../logic/app";
   import { createEventDispatcher } from 'svelte';
   const dispatchEvent = createEventDispatcher<{ celldblclick: { start: Date, end: Date, mouseEvent: MouseEvent } }>();
 
@@ -46,5 +47,11 @@
   .hour-slot:hover {
     background-color: color-mix(in srgb, var(--selected-calendar-color) 10%, transparent);
     color: white;
+  }
+  :global(.mobile) .hour-slot:hover {
+    background-color: transparent;
+  }
+  :global(.mobile) .hour-slot:active {
+    background-color: color-mix(in srgb, var(--selected-calendar-color) 10%, transparent);
   }
 </style>

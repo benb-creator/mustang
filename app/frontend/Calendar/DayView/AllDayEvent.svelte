@@ -14,6 +14,7 @@
   import Clickable from "../../Shared/Clickable.svelte";
   import { openEvent } from "../open";
   import { selectedEvent } from "../selected";
+  import { appGlobal } from "../../../logic/app";
 
   export let item: EventInDayRow;
 
@@ -22,6 +23,9 @@
 
   function onSelect() {
     $selectedEvent = event;
+    if (appGlobal.isMobile) {
+      openEvent(event, false);
+    }
   }
 
   function onOpen() {

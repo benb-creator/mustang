@@ -16,6 +16,7 @@
   import type { Event } from "../../../logic/Calendar/Event";
   import { openEvent } from "../open";
   import { selectedEvent } from "../selected";
+  import { appGlobal } from "../../../logic/app";
   import Clickable from "../../Shared/Clickable.svelte";
   import { getDurationString } from "../../../logic/util/date";
   import { getDateTimeLocale } from "../../../l10n/l10n";
@@ -33,6 +34,9 @@
 
   function onSelect() {
     $selectedEvent = event;
+    if (appGlobal.isMobile) {
+      openEvent(event, false);
+    }
   }
 
   function onOpen() {
@@ -90,6 +94,12 @@
   /* </copied> */
   .event:hover {
     background-color: #20AF9E70;
+  }
+  :global(.mobile) .event:hover {
+    background-color: var(--color);
+  }
+  :global(.mobile) .time {
+    display: none;
   }
   .time {
     margin-inline-end: 4px;

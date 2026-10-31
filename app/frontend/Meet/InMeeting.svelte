@@ -1,4 +1,4 @@
-<hbox flex>
+<hbox flex class="in-meeting">
   <vbox flex class="main">
     <VideoView {videos} {me} showParticipant={selectedParticipant} {meeting} {isSidebar} />
     <AudioPlayStreams {audioOnlyStreams} />
@@ -56,5 +56,19 @@
   .sidebar {
     min-width: 250px;
     max-width: 350px;
+  }
+  :global(.mobile) .in-meeting {
+    flex-direction: column;
+  }
+  :global(.mobile) .main {
+    min-width: 0px;
+    min-height: 0px;
+  }
+  :global(.mobile) .sidebar {
+    order: -1;
+    flex: 1 0 0;
+    min-width: 0px;
+    max-width: none;
+    min-height: 0px;
   }
 </style>

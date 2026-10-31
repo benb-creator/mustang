@@ -48,4 +48,8 @@
   .suffix {
     padding-inline-start: 6px;
   }
+  :global(.mobile) .label {
+    align-self: center;
+    white-space: nowrap;
+  }
 </style>

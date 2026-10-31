@@ -10,6 +10,9 @@ export function openEvent(event: Event, edit = true) {
   selectedDate.set(new Date(event.startTime));
   startDate.set(new Date(event.startTime));
   if (appGlobal.isMobile) {
+    if (edit && event.isNew) {
+      event.startEditing();
+    }
     goTo("/calendar/event", { event });
   } else {
     openApp(calendarMustangApp, { event });

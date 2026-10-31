@@ -19,6 +19,7 @@
 
 <script lang="ts">
   import { selectedDate } from "../selected";
+  import { appGlobal } from "../../../logic/app";
   import { getToday } from "../../../logic/util/date";
   import Clickable from "../../Shared/Clickable.svelte";
   import TodayIcon from "lucide-svelte/icons/home";
@@ -36,6 +37,9 @@
 
   function selectDay() {
     $selectedDate = day;
+    if (appGlobal.isMobile) {
+      changeToDay();
+    }
   }
 
   function changeToDay() {

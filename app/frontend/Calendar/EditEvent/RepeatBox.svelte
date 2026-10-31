@@ -253,8 +253,30 @@
   .weekdays :global(.weekday.disabled) {
     opacity: inherit;
   }
+  :global(.mobile) .weekdays {
+    row-gap: 8px;
+  }
+  :global(.mobile) .weekdays .label {
+    flex-basis: 100%;
+  }
+  :global(.mobile) .weekdays .options {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  :global(.mobile) .weekdays :global(.weekday) {
+    flex: 0 1 44px;
+    width: auto;
+    height: auto;
+    aspect-ratio: 1;
+    margin: 0px;
+    justify-content: center;
+  }
   .every {
     flex-wrap: wrap;
+  }
+  :global(.mobile) .every {
+    align-items: center;
+    margin-block-start: 8px;
   }
   :global(.inline) {
     display: inline-flex !important;

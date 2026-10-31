@@ -270,6 +270,70 @@
     font-weight: bold;
     margin-block-end: 12px;
   }
+  :global(.mobile) .top {
+    align-items: center;
+    margin: 0px;
+    padding: 4px 8px 4px 4px;
+  }
+  :global(.mobile) .top .buttons {
+    margin: 0px;
+  }
+  :global(.mobile) .top .buttons :global(button.button) {
+    width: 48px;
+    height: 48px;
+    justify-content: center;
+  }
+  :global(.mobile) .top :global(.account-selector select) {
+    min-height: 44px;
+  }
+  :global(.mobile) .main > :global(*) > :global(hbox[flex]:empty),
+  :global(.mobile) .main > :global(*) > :global(vbox[flex]:empty),
+  :global(.mobile) .actions > :global(hbox[flex]:empty) {
+    display: none;
+  }
+  :global(.mobile) .meetings {
+    flex: 1 0 0;
+    min-height: 0px;
+    align-items: stretch;
+  }
+  :global(.mobile) .upcoming {
+    flex: 1 0 0;
+    justify-content: start;
+    padding: 8px 16px 0px 16px;
+  }
+  :global(.mobile) .actions-container {
+    flex: none;
+    align-items: stretch;
+    padding: 8px 16px 16px 16px;
+  }
+  :global(.mobile) .actions {
+    align-items: center;
+  }
+  :global(.mobile) .actions :global(> *) {
+    margin-block-start: 8px;
+  }
+  :global(.mobile) .phone-number {
+    width: 100%;
+    min-height: 48px;
+    text-align: center;
+  }
+  :global(.mobile) .dial.buttons :global(button.button) {
+    width: 64px;
+    height: 64px;
+    justify-content: center;
+  }
+  :global(.mobile) .contact-search {
+    align-self: stretch;
+    margin-block-start: 16px;
+  }
+  :global(.mobile) .contact-search > :global(*),
+  :global(.mobile) .contact-search :global(.autocomplete) {
+    flex: 1 0 0;
+  }
+  :global(.mobile) .contact-search :global(input) {
+    min-height: 44px;
+    font-size: 16px;
+  }
   @media (max-width: 800px) {
     .main {
       flex-direction: column;

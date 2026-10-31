@@ -5,8 +5,7 @@
       style="--rows: {(endHour - startHour) * kRowsPerHour}; --row-height: {pxPerHour / kRowsPerHour}px; --selected-calendar-color: {$selectedCalendar?.color ?? "black"}; {columnWidths}"
       class:enlargeSelectedDay
       class:compact={scrollHeight <= 1000}
-      on:swipeleft={onNextDay}
-      on:swiperight={onPreviousDay}
+      use:swipePages={{ onSwipeLeft: onNextDay, onSwipeRight: onPreviousDay }}
       >
       <grid class="headers">
         <hbox class="top-left header" /><!-- needed for grid -->
@@ -43,6 +42,7 @@
   import type { Event } from "../../../logic/Calendar/Event";
   import { selectedCalendar, type DateInterval } from "../selected";
   import { kRowsPerHour } from "./DayColumn";
+  import { swipePages } from "../../Shared/HorizontalSwipe";
   import { appGlobal } from "../../../logic/app";
   import TimeLabel from "./TimeLabel.svelte";
   import DayColumn from "./DayColumn.svelte";
@@ -214,5 +214,22 @@
     flex: 1 0 0;
     margin-block-start: 1px;
     margin-inline-start: 8px;
+  }
+  :global(.mobile) .week {
+    touch-action: pan-y;
+  }
+  :global(.mobile) .day-header .date-day {
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 2px;
+  }
+  :global(.mobile) .day-header .date {
+    font-size: 120%;
+  }
+  :global(.mobile) .day-header .weekday {
+    flex: none;
+    margin: 0px;
+    font-size: 75%;
+    opacity: 75%;
   }
 </style>

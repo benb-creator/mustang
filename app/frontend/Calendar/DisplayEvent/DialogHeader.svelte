@@ -64,7 +64,7 @@
       </hbox>
       <hbox flex class="spacer" />
       <hbox class="buttons">
-        {#if isFullWindow}
+        {#if isFullWindow && !$appGlobal.isMobile}
           <RoundButton
             label={$t`Shrink dialog to sidebar`}
             icon={ShrinkDialogIcon}
@@ -100,6 +100,7 @@
   import { CalendarEventMustangApp, calendarMustangApp } from "../CalendarMustangApp";
   import { selectedEvent } from "../selected";
   import { openApp, selectedApp, goBack } from "../../AppsBar/selectedApp";
+  import { appGlobal } from "../../../logic/app";
   import Stack from "../../Shared/Stack.svelte";
   import RoundButton from "../../Shared/RoundButton.svelte";
   import Button from "../../Shared/Button.svelte";
@@ -115,7 +116,7 @@
 
   export let event: Event;
 
-  $: isFullWindow = $selectedApp instanceof CalendarEventMustangApp;
+  $: isFullWindow = appGlobal.isMobile || $selectedApp instanceof CalendarEventMustangApp;
   let isDeleteSeriesOpen = false;
 
   function onEdit() {
@@ -249,6 +250,26 @@
   }
   .buttons :global(button.delete) {
     background-color: lightsalmon;
+  }
+  :global(.mobile) .header {
+    height: 56px;
+    margin-block-end: 0px;
+  }
+  :global(.mobile) .buttons {
+    padding: 0px 4px;
+    gap: 4px;
+  }
+  :global(.mobile) .buttons :global(button.button) {
+    width: 44px;
+    height: 44px;
+    margin-inline-start: 0px;
+    justify-content: center;
+  }
+  :global(.mobile) .account-name {
+    align-self: center;
+    margin: 0px 4px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .buttons :global(.menu .menuitem),
   .buttons :global(.menu .label) {

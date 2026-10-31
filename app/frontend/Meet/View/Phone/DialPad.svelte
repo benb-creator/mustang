@@ -33,4 +33,13 @@
   .digit {
     opacity: 50%;
   }
+  :global(.mobile) grid.numbers {
+    column-gap: 24px;
+    row-gap: 12px;
+  }
+  :global(.mobile) .numbers :global(button) {
+    width: 64px;
+    height: 64px;
+    justify-content: center;
+  }
 </style>

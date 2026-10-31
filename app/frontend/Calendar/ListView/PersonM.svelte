@@ -22,11 +22,11 @@
 </script>
 
 <style>
-  .person-page {
-    padding: 16px 16px 8px 16px;
-  }
   .header {
     align-items: center;
-    justify-content: center;
+    min-height: 48px;
+    padding-inline: 16px;
+    font-size: 18px;
+    font-weight: bold;
   }
 </style>

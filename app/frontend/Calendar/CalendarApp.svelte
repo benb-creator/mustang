@@ -58,9 +58,42 @@
     align-items: center;
   }
   .main.mobile {
-    margin-inline-end: 0px;
+    margin: 0px;
   }
   .main.mobile :global(.range-header) {
-    height: 36px;
+    flex: none;
+    height: 48px;
+    padding-inline: 12px 4px;
+    container-type: inline-size;
+  }
+  .main.mobile :global(.range-header .date-range-header) {
+    order: -1;
+    align-self: center;
+    min-width: 0;
+    margin: 0px;
+  }
+  .main.mobile :global(.range-header .date-range) {
+    display: block;
+    min-width: 0;
+    margin-inline: 0px 4px;
+    font-size: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @container (max-width: 379px) {
+    .main.mobile :global(.range-header .date-range) {
+      font-size: 18px;
+    }
+  }
+  .main.mobile :global(.range-header .today-button) {
+    order: 1;
+    align-self: center;
+    margin: 0px;
+  }
+  .main.mobile :global(.range-header button.button) {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
 </style>

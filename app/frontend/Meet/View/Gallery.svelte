@@ -84,4 +84,8 @@
   .participants > :global(.participant) {
     scroll-snap-align: start;
   }
+  :global(.mobile) .participants > :global(.participant) {
+    min-width: 0px;
+    overflow: hidden;
+  }
 </style>

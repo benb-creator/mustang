@@ -4,15 +4,15 @@
     <slot name="top-left" />
     <hbox flex />
     <DateRange bind:date={start} dateInterval={showDays} />
+    {#if $appGlobal.isMobile}
+      <Button classes="today-button" label={$t`Go back to today`} icon={TodayIcon} onClick={goToToday} iconSize="16px" plain iconOnly />
+    {/if}
     <hbox flex />
     <slot name="top-right" />
   </hbox>
   <grid flex class="month"
     style="--selected-calendar-color: {$selectedCalendar?.color ?? "black"}"
-    on:swipeleft={onNextMonth}
-    on:swiperight={onPreviousMonth}
-    on:swipeup={onNextMonth}
-    on:swipedown={onPreviousMonth}
+    use:swipePages={{ onSwipeLeft: onNextMonth, onSwipeRight: onPreviousMonth, onSwipeUp: onNextMonth, onSwipeDown: onPreviousMonth }}
     >
     {#each weekDays as day}
       <hbox class="weekday">
@@ -33,10 +33,14 @@
   import WeekRow from "./WeekRow.svelte";
   import DateRange from "../DateRange.svelte";
   import NewEventMenu from "../NewEventMenu.svelte";
-  import { selectedCalendar } from "../selected";
-  import { getWeekDays } from "../../../logic/util/date";
+  import { selectedCalendar, selectedDate } from "../selected";
+  import { swipePages } from "../../Shared/HorizontalSwipe";
+  import { appGlobal } from "../../../logic/app";
+  import Button from "../../Shared/Button.svelte";
+  import TodayIcon from "lucide-svelte/icons/home";
+  import { getToday, getWeekDays } from "../../../logic/util/date";
   import { catchErrors } from "../../Util/error";
-  import { getDateTimeLocale } from "../../../l10n/l10n";
+  import { getDateTimeLocale, t } from "../../../l10n/l10n";
   import type { Collection } from "svelte-collections";
 
   export let start: Date;
@@ -76,6 +80,11 @@
     start = start;
   }
 
+  function goToToday() {
+    start = getToday();
+    $selectedDate = getToday();
+  }
+
   // <copied from="DateRange.svelte">
   function onNextMonth() {
     start.setDate(start.getDate() + (showDays == 35 ? 42 : showDays));
@@ -113,5 +122,8 @@
   }
   .month-view :global(.date-range .year) {
     font-weight: normal;
+  }
+  :global(.mobile) .month {
+    touch-action: pan-y;
   }
 </style>
