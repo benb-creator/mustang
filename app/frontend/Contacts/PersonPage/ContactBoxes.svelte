@@ -93,6 +93,7 @@
           <ContactEntryUI {entry} coll={groups}
             on:save={save} bind:isEditing={isEditing}>
             <hbox slot="display">{entry.value}</hbox>
+            <hbox slot="edit">{entry.value}</hbox>
           </ContactEntryUI>
         {/each}
       </grid>
