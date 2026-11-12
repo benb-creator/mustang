@@ -160,7 +160,7 @@
 
 <style>
   .open-link-popup {
-    min-width: min(350px, calc(100vw - 32px)); /* phones */
+    min-width: 350px;
     max-width: min(480px, calc(100vw - 32px));
     background-color: var(--bg);
     color: var(--fg);
