@@ -21,6 +21,11 @@ beforeAll(() => {
 
 /** `json.readOnly`: The server doesn't allow changes. `json.parts`: The parts that we don't understand. */
 class TestServerRule extends ServerFilterRule {
+  get id(): string | null {
+    return null;
+  }
+  protected fillFilterRule() {
+  }
   get isReadOnly(): boolean {
     return this.json.readOnly == true;
   }

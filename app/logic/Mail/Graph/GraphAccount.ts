@@ -446,8 +446,7 @@ export class GraphAccount extends ExchangeMailAccount {
     let rules = await this.graphGetAll<any>("mailFolders/inbox/messageRules");
     return rules
       .map(json => this.newServerFilterRule(json))
-      .sort((a, b) => a.priority - b.priority)
-      .map(serverRule => serverRule.toFilterRule());
+      .sort((a, b) => a.priority - b.priority);
   }
 
   protected async uploadServerFilterRules(rules: FilterRuleAction[], deletedIDs: string[]): Promise<void> {

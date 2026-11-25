@@ -1364,8 +1364,7 @@ export class EWSAccount extends ExchangeMailAccount implements EWSSubscribable {
     this.setOutlookRulesExist(response.OutlookRuleBlobExists == "true");
     return ensureArray(response.InboxRules?.Rule)
       .map(json => this.newServerFilterRule(json))
-      .sort((a, b) => a.priority - b.priority)
-      .map(serverRule => serverRule.toFilterRule());
+      .sort((a, b) => a.priority - b.priority);
   }
 
   protected async uploadServerFilterRules(rules: FilterRuleAction[], deletedIDs: string[]): Promise<void> {

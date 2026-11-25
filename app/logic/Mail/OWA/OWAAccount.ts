@@ -934,8 +934,7 @@ export class OWAAccount extends ExchangeMailAccount {
     let response = await this.callOWAOptions(new OWAOptionsRequest("GetInboxRule"));
     return ensureArray(response.InboxRuleCollection?.InboxRules)
       .map(json => this.newServerFilterRule(json))
-      .sort((a, b) => a.priority - b.priority)
-      .map(serverRule => serverRule.toFilterRule());
+      .sort((a, b) => a.priority - b.priority);
   }
 
   protected async uploadServerFilterRules(rules: FilterRuleAction[], deletedIDs: string[]): Promise<void> {

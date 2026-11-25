@@ -9,19 +9,24 @@ import { gt } from "../../../l10n/l10n";
 /** A filter rule that the server runs, in the format of the protocol.
  * We show and change only the parts that we understand. The other parts
  * stay as they are, and the user sees them as plain text. */
-export class ServerFilterRule {
-  readonly account: MailAccount;
+export class ServerFilterRule extends FilterRuleAction {
   /** As the server sent it */
-  readonly json: any;
+  get json(): any {
+    return this.serverJSON;
+  }
   protected readonly canCheckDates: boolean = true;
   protected readonly canCheckCategories: boolean = true;
   protected readonly canDeleteImmediately: boolean = true;
   /** The server allows to change the order of the rules that it doesn't allow to change otherwise */
   protected readonly canReorderReadOnly: boolean = false;
 
-  constructor(account: MailAccount, json: any) {
-    this.account = account;
-    this.json = json ?? {};
+  /** @param json null for a new rule, or a copy that `fromJSON()` fills */
+  constructor(account: MailAccount, json?: any) {
+    super(account);
+    this.serverJSON = json ?? {};
+    this.server = true;
+    this.serverID = this.id;
+    this.fillFilterRule(this);
   }
 
   get id(): string | null {
@@ -76,27 +81,17 @@ export class ServerFilterRule {
     return parts;
   }
 
-  /** Our rule, with the parts of the server rule that we understand */
-  toFilterRule(): FilterRuleAction {
-    let rule = new FilterRuleAction(this.account);
-    rule.server = true;
-    rule.serverID = this.id;
-    rule.serverJSON = this.json;
-    this.fillFilterRule(rule);
-    return rule;
-  }
-
   /** Sets only the parts that `isUnderstood()` */
   protected fillFilterRule(rule: FilterRuleAction) {
     throw new AbstractFunction();
   }
 
-  /** The server rule, changed as the user changed `rule`.
+  /** The server rule, changed as the user changed `rule`. `this` must be as the server sent it.
    * Leaves the parts of the server rule as they are that the user did not change. */
   withChangesFrom(rule: FilterRuleAction, priority: number): ServerFilterRule {
     this.checkSupported(rule);
     let json = structuredClone(this.json);
-    this.writeChanges(json, rule, this.toFilterRule());
+    this.writeChanges(json, rule, this);
     let changed = new (this.constructor as any)(this.account, json) as ServerFilterRule;
     if (this.isReadOnly && changed.isChangedFrom(this)) {
       throw new NotSupported(gt`The mail server does not allow changes to the rule ${rule.name}`);
