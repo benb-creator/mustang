@@ -15,6 +15,7 @@ import type { PrivateKey } from "./Encryption/PrivateKey";
 import { Event } from "../Calendar/Event";
 import { InvitationMessage, type iCalMethod } from "../Calendar/Invitation/InvitationStatus";
 import { FilterMoment } from "./FilterRules/FilterMoments";
+import { LocalFilterRule } from "./FilterRules/LocalFilterRule";
 import type { EncryptionSystem } from "./Encryption/enums";
 import { fileExtensionForMIMEType, assert, AbstractFunction, getUserPreference, setUserPreference } from "../util/util";
 import { blobToDataURL } from "../util/blob";
@@ -709,7 +710,7 @@ export class EMail extends Message {
     } else if (this.folder.specialFolder == SpecialFolder.Sent) {
       moments = [FilterMoment.Outgoing];
     }
-    let rules = account.filterRuleActions.filterOnce(rule => !rule.server && moments.includes(rule.when));
+    let rules = account.filterRuleActions.contents.filter((rule): rule is LocalFilterRule => rule instanceof LocalFilterRule && moments.includes(rule.when));
     for (let rule of rules) {
       try {
         await rule.run(this);

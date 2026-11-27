@@ -3,6 +3,7 @@
 <script lang="ts">
   import { SearchEMail } from "../../../logic/Mail/Store/SearchEMail";
   import { FilterRuleAction } from "../../../logic/Mail/FilterRules/FilterRuleAction";
+  import { LocalFilterRule } from "../../../logic/Mail/FilterRules/LocalFilterRule";
   import { selectedAccount, selectedFolder } from "../../../frontend/Mail/Selected";
   import { isRealFolder, isRealAccount } from "./MailSearch";
   import { catchErrors } from "../../../frontend/Util/error";
@@ -16,7 +17,7 @@
     (isRealFolder($selectedFolder) ? $selectedFolder.account : isRealAccount($selectedAccount) ? $selectedAccount : null);
   const criteria = new SearchEMail();
   criteria.copyFrom(search);
-  const rule = new FilterRuleAction(account, criteria);
+  const rule = new LocalFilterRule(account, criteria);
 
   async function onFinish(rule: FilterRuleAction) {
     // <copied from="../../../frontend/Mail/Search/RulesFromSearchUI.svelte">

@@ -6,7 +6,7 @@ import { SpecialFolder } from "../../../../logic/Mail/Folder";
 import { SQLMailStorage } from "../../../../logic/Mail/SQL/SQLMailStorage";
 import { SQLSourceEMail } from "../../../../logic/Mail/SQL/Source/SQLSourceEMail";
 import { getDatabase } from "../../../../logic/Mail/SQL/SQLDatabase";
-import { FilterRuleAction } from "../../../../logic/Mail/FilterRules/FilterRuleAction";
+import { LocalFilterRule } from "../../../../logic/Mail/FilterRules/LocalFilterRule";
 import { Person } from "../../../../logic/Abstract/Person";
 import { getTagByName } from "../../../../logic/Abstract/Tag";
 import { InProcessSQLiteDatabase } from "../../util/inProcessSQLite";
@@ -125,8 +125,8 @@ async function setupAccountWithNewMail(): Promise<TestEWSAccount> {
 
 /** The rules that the settings UI creates: picking an action also says
  * "this mail is not spam" @see `RuleActions.removeDelete()` */
-function addRule(account: TestEWSAccount, configure: (rule: FilterRuleAction) => void) {
-  let rule = new FilterRuleAction(account);
+function addRule(account: TestEWSAccount, configure: (rule: LocalFilterRule) => void) {
+  let rule = new LocalFilterRule(account);
   rule.name = "Newsletters";
   rule.criteria.bodyText = "acme newsletter"; // the search field stores it lowercase
   rule.markAsSpam = false;

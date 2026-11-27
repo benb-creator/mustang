@@ -15,28 +15,28 @@ export class OWAFilterRule extends ServerFilterRule {
     "DescriptionTimeFormat", "DescriptionTimeZone", "WarningMessages", "RuleProvider"];
 
   get id(): string | null {
-    return sanitize.nonemptystring(this.json.Identity?.RawIdentity, null);
+    return sanitize.nonemptystring(this.serverJSON.Identity?.RawIdentity, null);
   }
 
   get priority(): number {
-    return sanitize.integer(this.json.Priority, 0);
+    return sanitize.integer(this.serverJSON.Priority, 0);
   }
 
   get isReadOnly(): boolean {
-    return !sanitize.boolean(this.json.SupportedByTask ?? true, true);
+    return !sanitize.boolean(this.serverJSON.SupportedByTask ?? true, true);
   }
 
   get isEnabled(): boolean {
-    return sanitize.boolean(this.json.Enabled ?? true, true);
+    return sanitize.boolean(this.serverJSON.Enabled ?? true, true);
   }
 
   get hasError(): boolean {
-    return sanitize.boolean(this.json.InError, false);
+    return sanitize.boolean(this.serverJSON.InError, false);
   }
 
   protected get sections(): Record<string, Record<string, any>> {
     let parameters: Record<string, any> = {};
-    for (let [key, value] of Object.entries(this.json)) {
+    for (let [key, value] of Object.entries(this.serverJSON)) {
       // The server sends an enum that is not set as "Null" and its type, e.g. "NullImportance"
       if (!OWAFilterRule.kOutputOnly.includes(key) && key != "Name" && key != "Priority" &&
           !(typeof value == "string" && value.startsWith("Null"))) {
@@ -67,7 +67,7 @@ export class OWAFilterRule extends ServerFilterRule {
     case "MoveToFolder":
       return !!this.folder(value);
     case "CopyToFolder":
-      return !!this.folder(value) && this.isEmpty(this.json.MoveToFolder);
+      return !!this.folder(value) && this.isEmpty(this.serverJSON.MoveToFolder);
     case "ApplyCategory":
       return this.strings(value).length > 0;
     }
@@ -82,7 +82,7 @@ export class OWAFilterRule extends ServerFilterRule {
   }
 
   protected fillFilterRule(rule: FilterRuleAction) {
-    let json = this.json;
+    let json = this.serverJSON;
     rule.name = sanitize.nonemptylabel(json.Name, "-");
     let has = (key: string) => this.understood("", key);
     let criteria = rule.criteria;
@@ -108,7 +108,7 @@ export class OWAFilterRule extends ServerFilterRule {
   }
 
   protected setPriority(priority: number) {
-    this.json.Priority = priority;
+    this.serverJSON.Priority = priority;
   }
 
   /** All parameters that we understand. For a missing criterion, its empty value. */
@@ -138,7 +138,7 @@ export class OWAFilterRule extends ServerFilterRule {
   /** For `NewInboxRule` */
   get newParameters(): Record<string, any> {
     let parameters: Record<string, any> = {};
-    for (let [key, value] of Object.entries(this.json)) {
+    for (let [key, value] of Object.entries(this.serverJSON)) {
       if (!OWAFilterRule.kOutputOnly.includes(key) && value != null && value !== false) {
         parameters[key] = value;
       }
@@ -148,7 +148,7 @@ export class OWAFilterRule extends ServerFilterRule {
 
   /** For `SetInboxRule` */
   setParameters(original: OWAFilterRule): Record<string, any> {
-    return { Identity: this.json.Identity, ...this.changedProperties(original) };
+    return { Identity: this.serverJSON.Identity, ...this.changedProperties(original) };
   }
 
   /** Shows a person as their email address, and a folder as its name */

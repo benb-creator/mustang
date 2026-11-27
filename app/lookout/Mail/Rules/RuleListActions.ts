@@ -1,4 +1,6 @@
 import { FilterRuleAction } from "../../../logic/Mail/FilterRules/FilterRuleAction";
+import { LocalFilterRule } from "../../../logic/Mail/FilterRules/LocalFilterRule";
+import { ServerFilterRule } from "../../../logic/Mail/FilterRules/ServerFilterRule";
 import type { Folder } from "../../../logic/Mail/Folder";
 import type { MailAccount } from "../../../logic/Mail/MailAccount";
 import { appName } from "../../../logic/build";
@@ -19,7 +21,9 @@ export class RuleListActions {
   static copy(rules: ArrayColl<FilterRuleAction>, rule: FilterRuleAction): FilterRuleAction {
     let copy = rule.clone();
     copy.name = gt`Copy of ${rule.name}`;
-    copy.serverID = null;
+    if (copy instanceof ServerFilterRule) {
+      copy.serverID = null;
+    }
     let index = rules.indexOf(rule);
     if (index < 0) {
       rules.add(copy);
@@ -36,7 +40,7 @@ export class RuleListActions {
     if (rule.toFolderID || rule.criteria.folderID) {
       return gt`This rule uses a folder of ${rule.account.name}, so it can only be copied within that account`;
     }
-    if (rule.server && rule.serverRule?.unknownParts.length) {
+    if (rule instanceof ServerFilterRule && rule.unknownParts.length) {
       return gt`This rule has parts that ${appName} cannot show, so it can only be copied within ${rule.account.name}`;
     }
     return false;
@@ -46,14 +50,20 @@ export class RuleListActions {
     if (account == rule.account) {
       return RuleListActions.copy(rules, rule);
     }
-    let copy = new FilterRuleAction(account);
-    copy.fromJSON(rule.toJSON());
-    copy.name = rule.name;
-    copy.server = rule.server && account.canServerFilterRules;
-    copy.serverID = null;
-    copy.serverJSON = null;
+    let local = new LocalFilterRule(account);
+    local.fromJSON(rule.toJSON());
+    local.name = rule.name;
+    // Without the parts that only the server of `rule` knows
+    let copy = rule instanceof ServerFilterRule && account.canServerFilterRules ? local.runBy(true) : local;
     rules.add(copy);
     return copy;
+  }
+
+  /** Lets the mail server or us run the rule. The rule of the other class replaces it in `rules`. */
+  static runBy(rules: ArrayColl<FilterRuleAction>, rule: FilterRuleAction, server: boolean): FilterRuleAction {
+    let changed = rule.runBy(server);
+    rules.splice(rules.indexOf(rule), 1, changed);
+    return changed;
   }
 
   static moveToFolder(rule: FilterRuleAction, folder: Folder, copy: boolean) {

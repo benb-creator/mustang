@@ -1,5 +1,6 @@
 import type { MailAccount } from "../../../logic/Mail/MailAccount";
 import { FilterRuleAction } from "../../../logic/Mail/FilterRules/FilterRuleAction";
+import { ServerFilterRule } from "../../../logic/Mail/FilterRules/ServerFilterRule";
 import { RuleWizardModel } from "./RuleWizardModel";
 import { ArrayColl } from "svelte-collections";
 
@@ -42,7 +43,7 @@ export class RulesWorkingList {
       return;
     }
     let originals = this.rules.contents.map(copy => {
-      let original = this.originalOf.get(copy) ?? new FilterRuleAction(this.account);
+      let original = this.originalOf.get(copy) ?? this.account.newFilterRule(copy instanceof ServerFilterRule);
       RuleWizardModel.copyInto(copy, original);
       this.originalOf.set(copy, original);
       return original;

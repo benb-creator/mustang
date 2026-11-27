@@ -53,11 +53,11 @@
                     <label>{$t`Run by *=> Who runs the rule: this app, or the mail server`}</label>
                     <hbox class="run-by">
                       <label class="radio" title={cannotRunHere || null}>
-                        <input type="radio" value={false} bind:group={rule.server} disabled={!!cannotRunHere} />
+                        <input type="radio" name="run-by" checked={rule instanceof LocalFilterRule} on:change={() => catchErrors(() => onRunBy(false))} disabled={!!cannotRunHere} />
                         {appName}
                       </label>
                       <label class="radio" title={cannotRunOnServer || null}>
-                        <input type="radio" value={true} bind:group={rule.server} disabled={!!cannotRunOnServer} />
+                        <input type="radio" name="run-by" checked={rule instanceof ServerFilterRule} on:change={() => catchErrors(() => onRunBy(true))} disabled={!!cannotRunOnServer} />
                         {$t`The mail server`}
                       </label>
                     </hbox>
@@ -112,6 +112,8 @@
 <script lang="ts">
   import { MailAccount } from "../../../logic/Mail/MailAccount";
   import { FilterRuleAction } from "../../../logic/Mail/FilterRules/FilterRuleAction";
+  import { LocalFilterRule } from "../../../logic/Mail/FilterRules/LocalFilterRule";
+  import { ServerFilterRule } from "../../../logic/Mail/FilterRules/ServerFilterRule";
   import { FilterMoment } from "../../../logic/Mail/FilterRules/FilterMoments";
   import SearchCriteria from "../../Mail/Search/SearchCriteria.svelte";
   import RuleActions from "../../Mail/Search/RuleActions.svelte";
@@ -142,13 +144,22 @@
 
   $: account, catchErrors(() => account.refreshServerFilterRules());
   $: readOnlyReason = $account && $rule ? rule.readOnlyReason : null;
-  $: unknownParts = $rule?.server ? rule.serverRule?.unknownParts ?? [] : [];
+  $: unknownParts = $rule instanceof ServerFilterRule ? $rule.unknownParts : [];
   $: cannotRunHere = readOnlyReason ?? (unknownParts.length ? $t`${appName} cannot run all parts of this rule` : null);
-  $: cannotRunOnServer = readOnlyReason ?? ($rule?.server ? null : $account.serverFilterRulesReadOnlyReason);
+  $: cannotRunOnServer = readOnlyReason ?? ($rule instanceof ServerFilterRule ? null : $account.serverFilterRulesReadOnlyReason);
 
   function onAdd() {
-    rule = new FilterRuleAction(account);
+    rule = new LocalFilterRule(account);
     rule.name = "-";
+  }
+
+  /** The rule of the other class replaces the rule, also in the list */
+  function onRunBy(server: boolean) {
+    let index = rules.indexOf(rule);
+    rule = rule.runBy(server);
+    if (index >= 0) {
+      rules.splice(index, 1, rule);
+    }
   }
 
   async function onDelete() {

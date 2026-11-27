@@ -4,7 +4,6 @@ import { Provider } from "../../Auth/OAuth2URLs";
 import { GraphFolder } from "./GraphFolder";
 import { GraphSearchEMail } from "./GraphSearchEMail";
 import { GraphFilterRule } from "./GraphFilterRule";
-import type { FilterRuleAction } from "../FilterRules/FilterRuleAction";
 import { GraphAutoResponder } from "./GraphAutoResponder";
 import { GraphTags } from "./GraphTags";
 import type { TGraphFolder } from "./TGraphMail";
@@ -442,26 +441,24 @@ export class GraphAccount extends ExchangeMailAccount {
     return new GraphFilterRule(this, json);
   }
 
-  protected async fetchServerFilterRules(): Promise<FilterRuleAction[]> {
+  protected async fetchServerFilterRules(): Promise<GraphFilterRule[]> {
     let rules = await this.graphGetAll<any>("mailFolders/inbox/messageRules");
     return rules
       .map(json => this.newServerFilterRule(json))
-      .sort((a, b) => a.priority - b.priority)
-      .map(serverRule => serverRule.toFilterRule());
+      .sort((a, b) => a.priority - b.priority);
   }
 
-  protected async uploadServerFilterRules(rules: FilterRuleAction[], deletedIDs: string[]): Promise<void> {
+  protected async uploadServerFilterRules(rules: GraphFilterRule[], deletedIDs: string[]): Promise<void> {
     for (let id of deletedIDs) {
       await this.graphDelete("mailFolders/inbox/messageRules/" + id);
     }
     for (let [i, rule] of rules.entries()) {
-      let serverRule = this.newServerFilterRule(rule.serverJSON);
-      let changed = serverRule.withChangesFrom(rule, i + 1) as GraphFilterRule;
+      let changed = rule.withChanges(i + 1);
       if (!rule.serverID) {
         let created = await this.graphPost("mailFolders/inbox/messageRules", changed.newProperties);
         rule.serverID = this.newServerFilterRule(created).id;
-      } else if (changed.isChangedFrom(serverRule)) {
-        await this.graphPatch("mailFolders/inbox/messageRules/" + rule.serverID, changed.changedProperties(serverRule));
+      } else if (changed.isChangedFrom(rule)) {
+        await this.graphPatch("mailFolders/inbox/messageRules/" + rule.serverID, changed.changedProperties(rule));
       }
     }
   }

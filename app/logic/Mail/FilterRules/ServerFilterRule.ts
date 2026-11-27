@@ -6,24 +6,32 @@ import { appName } from "../../build";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { gt } from "../../../l10n/l10n";
 
-/** A filter rule that the server runs, in the format of the protocol.
+/** A filter rule that the mail server runs. The protocol subclasses read and write the format of the server.
  * We show and change only the parts that we understand. The other parts
  * stay as they are, and the user sees them as plain text. */
-export class ServerFilterRule {
-  readonly account: MailAccount;
-  /** As the server sent it */
-  readonly json: any;
+export class ServerFilterRule extends FilterRuleAction {
+  /** The ID of the rule on the server. null, if it's not on the server yet. */
+  serverID: string | null = null;
+  /** The rule as the server sent it, including the parts that we don't
+   * understand, so that saving the rule doesn't remove them. */
+  serverJSON: any = {};
   protected readonly canCheckDates: boolean = true;
   protected readonly canCheckCategories: boolean = true;
   protected readonly canDeleteImmediately: boolean = true;
   /** The server allows to change the order of the rules that it doesn't allow to change otherwise */
   protected readonly canReorderReadOnly: boolean = false;
 
-  constructor(account: MailAccount, json: any) {
-    this.account = account;
-    this.json = json ?? {};
+  /** @param json As the server sent the rule. Sets the parts that we understand. Omit for a new rule. */
+  constructor(account: MailAccount, json?: any) {
+    super(account);
+    if (json) {
+      this.serverJSON = json;
+      this.serverID = this.id;
+      this.fillFilterRule(this);
+    }
   }
 
+  /** The ID in `serverJSON`. A copy of a rule has the ID of the original there, but no `serverID`. */
   get id(): string | null {
     throw new AbstractFunction();
   }
@@ -36,6 +44,11 @@ export class ServerFilterRule {
   /** The server doesn't allow to change the rule */
   get isReadOnly(): boolean {
     return false;
+  }
+
+  get readOnlyReason(): string | null {
+    return this.account.serverFilterRulesReadOnlyReason ??
+      (this.isReadOnly ? gt`The mail server does not allow changes to this rule` : null);
   }
 
   get isEnabled(): boolean {
@@ -76,14 +89,14 @@ export class ServerFilterRule {
     return parts;
   }
 
-  /** Our rule, with the parts of the server rule that we understand */
-  toFilterRule(): FilterRuleAction {
-    let rule = new FilterRuleAction(this.account);
-    rule.server = true;
-    rule.serverID = this.id;
-    rule.serverJSON = this.json;
-    this.fillFilterRule(rule);
-    return rule;
+  runBy(server: boolean): FilterRuleAction {
+    if (server) {
+      return this;
+    }
+    if (this.unknownParts.length) {
+      throw new NotSupported(gt`${appName} cannot run all parts of the rule ${this.name}`);
+    }
+    return super.runBy(server);
   }
 
   /** Sets only the parts that `isUnderstood()` */
@@ -91,15 +104,15 @@ export class ServerFilterRule {
     throw new AbstractFunction();
   }
 
-  /** The server rule, changed as the user changed `rule`.
+  /** The server rule, changed as the user changed this rule.
    * Leaves the parts of the server rule as they are that the user did not change. */
-  withChangesFrom(rule: FilterRuleAction, priority: number): ServerFilterRule {
-    this.checkSupported(rule);
-    let json = structuredClone(this.json);
-    this.writeChanges(json, rule, this.toFilterRule());
-    let changed = new (this.constructor as any)(this.account, json) as ServerFilterRule;
+  withChanges(priority: number): this {
+    this.checkSupported(this);
+    let json = structuredClone(this.serverJSON);
+    this.writeChanges(json, this, new (this.constructor as any)(this.account, this.serverJSON));
+    let changed = new (this.constructor as any)(this.account, json);
     if (this.isReadOnly && changed.isChangedFrom(this)) {
-      throw new NotSupported(gt`The mail server does not allow changes to the rule ${rule.name}`);
+      throw new NotSupported(gt`The mail server does not allow changes to the rule ${this.name}`);
     }
     if (!this.isReadOnly || this.canReorderReadOnly) {
       changed.setPriority(priority);
@@ -121,15 +134,15 @@ export class ServerFilterRule {
 
   /** The server rule as the user wants it, compared to what we got from the server */
   isChangedFrom(original: ServerFilterRule): boolean {
-    return JSON.stringify(this.json) != JSON.stringify(original.json);
+    return JSON.stringify(this.serverJSON) != JSON.stringify(original.serverJSON);
   }
 
   /** The top-level properties that differ from the server rule `original`. `null` for removed properties. */
   changedProperties(original: ServerFilterRule): Record<string, any> {
     let changes: Record<string, any> = {};
-    for (let key of new Set([...Object.keys(this.json), ...Object.keys(original.json)])) {
-      if (JSON.stringify(this.json[key]) != JSON.stringify(original.json[key])) {
-        changes[key] = this.json[key] ?? null;
+    for (let key of new Set([...Object.keys(this.serverJSON), ...Object.keys(original.serverJSON)])) {
+      if (JSON.stringify(this.serverJSON[key]) != JSON.stringify(original.serverJSON[key])) {
+        changes[key] = this.serverJSON[key] ?? null;
       }
     }
     return changes;
@@ -223,5 +236,20 @@ export class ServerFilterRule {
 
   protected strings(json: any): string[] {
     return sanitize.array(json, []).map(value => sanitize.nonemptystring(value, null)).filter(value => value);
+  }
+
+  fromJSON(json: any) {
+    super.fromJSON(json);
+    this.serverID = sanitize.nonemptystring(json.serverID, null);
+    this.serverJSON = json.serverJSON ?? {};
+  }
+
+  toJSON() {
+    return {
+      ...super.toJSON(),
+      server: true,
+      serverID: this.serverID,
+      serverJSON: this.serverJSON,
+    };
   }
 }

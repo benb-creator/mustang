@@ -13,29 +13,29 @@ export class EWSFilterRule extends ServerFilterRule {
   protected readonly canReorderReadOnly = true;
 
   get id(): string | null {
-    return sanitize.nonemptystring(this.json.RuleId, null);
+    return sanitize.nonemptystring(this.serverJSON.RuleId, null);
   }
 
   get priority(): number {
-    return sanitize.integer(this.json.Priority, 0);
+    return sanitize.integer(this.serverJSON.Priority, 0);
   }
 
   /** Exchange allows to change only the order */
   get isReadOnly(): boolean {
-    return sanitize.boolean(this.json.IsNotSupported, false);
+    return sanitize.boolean(this.serverJSON.IsNotSupported, false);
   }
 
   get isEnabled(): boolean {
-    return sanitize.boolean(this.json.IsEnabled ?? true, true);
+    return sanitize.boolean(this.serverJSON.IsEnabled ?? true, true);
   }
 
   get hasError(): boolean {
-    return sanitize.boolean(this.json.IsInError, false);
+    return sanitize.boolean(this.serverJSON.IsInError, false);
   }
 
   /** Exchange gives senders who are its users as X.500 address. Replaces it with their SMTP address, which we can show and check. */
   async resolveAddresses() {
-    for (let address of ensureArray(this.json.Conditions?.FromAddresses?.Address)) {
+    for (let address of ensureArray(this.serverJSON.Conditions?.FromAddresses?.Address)) {
       let legacyDN = address?.RoutingType == "EX" ? sanitize.nonemptystring(address.EmailAddress, null) : null;
       if (!legacyDN) {
         continue;
@@ -52,13 +52,14 @@ export class EWSFilterRule extends ServerFilterRule {
         }
       }
     }
+    this.fillFilterRule(this); // with the senders that we can show now
   }
 
   protected get sections(): Record<string, Record<string, any>> {
     return {
-      Conditions: this.json.Conditions || {},
-      Exceptions: this.json.Exceptions || {},
-      Actions: this.json.Actions || {},
+      Conditions: this.serverJSON.Conditions || {},
+      Exceptions: this.serverJSON.Exceptions || {},
+      Actions: this.serverJSON.Actions || {},
     };
   }
 
@@ -92,7 +93,7 @@ export class EWSFilterRule extends ServerFilterRule {
       case "MoveToFolder":
         return !!sanitize.nonemptystring(value.FolderId?.Id, null);
       case "CopyToFolder":
-        return !!sanitize.nonemptystring(value.FolderId?.Id, null) && this.isEmpty(this.json.Actions.MoveToFolder);
+        return !!sanitize.nonemptystring(value.FolderId?.Id, null) && this.isEmpty(this.serverJSON.Actions.MoveToFolder);
       case "Delete":
       case "MarkAsRead":
       case "PermanentDelete":
@@ -104,7 +105,7 @@ export class EWSFilterRule extends ServerFilterRule {
   }
 
   protected fillFilterRule(rule: FilterRuleAction) {
-    rule.name = sanitize.nonemptylabel(this.json.DisplayName, "-");
+    rule.name = sanitize.nonemptylabel(this.serverJSON.DisplayName, "-");
     let conditions = this.sections.Conditions;
     let criteria = rule.criteria;
     let condition = (key: string) => this.understood("Conditions", key);
@@ -147,7 +148,7 @@ export class EWSFilterRule extends ServerFilterRule {
   }
 
   protected setPriority(priority: number) {
-    this.json.Priority = String(priority);
+    this.serverJSON.Priority = String(priority);
   }
 
   protected conditionsOf(rule: FilterRuleAction): Record<string, any> {
@@ -216,10 +217,10 @@ export class EWSFilterRule extends ServerFilterRule {
   toRequest(isNew = false): any {
     const kRuleOrder = ["RuleId", "DisplayName", "Priority", "IsEnabled", "IsInError", "Conditions", "Exceptions", "Actions"];
     if (this.isReadOnly) {
-      return this.withNamespaces(this.ordered(this.json, kRuleOrder.slice(0, 4), false));
+      return this.withNamespaces(this.ordered(this.serverJSON, kRuleOrder.slice(0, 4), false));
     }
     const kNewRuleOrder = ["DisplayName", "Priority", "IsEnabled", "Conditions", "Exceptions", "Actions"];
-    let rule = this.ordered(this.json, isNew ? kNewRuleOrder : kRuleOrder, false);
+    let rule = this.ordered(this.serverJSON, isNew ? kNewRuleOrder : kRuleOrder, false);
     const kPredicatesOrder = ["Categories", "ContainsBodyStrings", "ContainsHeaderStrings", "ContainsRecipientStrings",
       "ContainsSenderStrings", "ContainsSubjectOrBodyStrings", "ContainsSubjectStrings", "FlaggedForAction", "FromAddresses",
       "FromConnectedAccounts", "HasAttachments", "Importance", "IsApprovalRequest", "IsAutomaticForward", "IsAutomaticReply",

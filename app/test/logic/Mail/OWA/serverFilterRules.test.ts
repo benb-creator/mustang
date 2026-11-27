@@ -2,7 +2,8 @@
 import { appGlobal } from "../../../../logic/app.ts"; // defeats circular import
 import { OWAAccount } from "../../../../logic/Mail/OWA/OWAAccount";
 import { OWAError } from "../../../../logic/Mail/OWA/OWAError";
-import { FilterRuleAction } from "../../../../logic/Mail/FilterRules/FilterRuleAction";
+import { OWAFilterRule } from "../../../../logic/Mail/OWA/OWAFilterRule";
+import type { ServerFilterRule } from "../../../../logic/Mail/FilterRules/ServerFilterRule";
 import { Person } from "../../../../logic/Abstract/Person";
 import kInboxRule from "./TestData/InboxRule.json";
 import { expect, test } from "vitest";
@@ -81,8 +82,8 @@ function newTestAccount(): TestOWAAccount {
   return account;
 }
 
-function rule(account: OWAAccount, name: string): FilterRuleAction {
-  return account.filterRuleActions.find(rule => rule.name == name);
+function rule(account: OWAAccount, name: string): ServerFilterRule {
+  return account.serverFilterRules.find(rule => rule.name == name);
 }
 
 test("OWA: The server rules come in the order in which the server runs them", async () => {
@@ -92,7 +93,7 @@ test("OWA: The server rules come in the order in which the server runs them", as
 
   expect(account.filterRuleActions.contents.map(rule => rule.name)).toEqual(["Newsletters", "Invoices"]);
   let newsletters = rule(account, "Newsletters");
-  expect(newsletters.server).toBe(true);
+  expect(newsletters).toBeInstanceOf(OWAFilterRule);
   expect(newsletters.criteria.includesPerson?.emailAddresses.first?.value).toBe("news@acme.example");
   expect(newsletters.toFolder?.name).toBe("Newsletters");
   expect(rule(account, "Invoices").criteria.bodyText).toBe("invoice");
@@ -120,9 +121,8 @@ test("OWA: Create and delete server rules", async () => {
   let account = newTestAccount();
   await account.refreshServerFilterRules();
   account.filterRuleActions.remove(rule(account, "Invoices"));
-  let created = new FilterRuleAction(account);
+  let created = account.newServerFilterRule(null);
   created.name = "Offers";
-  created.server = true;
   created.criteria.bodyText = "offer";
   created.toFolder = account.findFolder(folder => folder.name == "Newsletters");
   account.filterRuleActions.add(created);
@@ -151,11 +151,24 @@ test("OWA: The error that the server gives for a rule", async () => {
   await expect(account.saveServerFilterRules()).rejects.toThrow("The folder doesn't exist.");
 });
 
+test("OWA: After a restart, the server rules are OWA rules, and saving them changes nothing", async () => {
+  let account = newTestAccount();
+  await account.refreshServerFilterRules();
+
+  let restarted = newTestAccount();
+  restarted.fromConfigJSON(JSON.parse(JSON.stringify(account.toConfigJSON())));
+
+  expect(restarted.filterRuleActions.contents.every(rule => rule instanceof OWAFilterRule)).toBe(true);
+  expect(rule(restarted, "Newsletters").toFolder?.name).toBe("Newsletters");
+  await restarted.saveServerFilterRules();
+  expect(restarted.changes).toEqual([]);
+});
+
 test("OWA: The parts of a rule that we can't show are listed as text", async () => {
   let account = newTestAccount();
   await account.refreshServerFilterRules();
 
-  let parts = rule(account, "Newsletters").serverRule.unknownParts;
+  let parts = rule(account, "Newsletters").unknownParts;
 
   expect(parts.length).toBe(3); // my name in To, the exception, stop processing
   expect(parts.some(part => part.includes("urgent"))).toBe(true);
@@ -182,7 +195,7 @@ test("OWA: A rule with all the parameters that Exchange Online sends is understo
   expect(testMail.toFolder?.name).toBe("Test Mails");
   expect(testMail.copy).toBe(true);
   expect(testMail.readOnlyReason).toBeNull();
-  expect(testMail.serverRule.unknownParts).toEqual([]);
+  expect(testMail.unknownParts).toEqual([]);
 });
 
 test("OWA: A rule from Exchange Online with a part that we can't show still lists it, and can't move to us", async () => {
@@ -194,12 +207,11 @@ test("OWA: A rule from Exchange Online with a part that we can't show still list
   await account.refreshServerFilterRules();
   let testMail = rule(account, "Test Mail");
 
-  let parts = testMail.serverRule.unknownParts;
+  let parts = testMail.unknownParts;
   expect(parts.length).toBe(2);
   expect(parts.join()).toContain("bob@example.com");
   expect(parts.join()).toContain("High");
-  testMail.server = false;
-  await expect(account.saveServerFilterRules()).rejects.toThrow("Test Mail");
+  expect(() => testMail.runBy(false)).toThrow("Test Mail");
 });
 
 test("OWA: A folder that we can't find by its name is not shown, and stays", async () => {
@@ -209,7 +221,7 @@ test("OWA: A folder that we can't find by its name is not shown, and stays", asy
   let newsletters = rule(account, "Newsletters");
 
   expect(newsletters.toFolderID).toBeNull();
-  expect(newsletters.serverRule.unknownParts.join()).toContain("Old newsletters");
+  expect(newsletters.unknownParts.join()).toContain("Old newsletters");
 
   newsletters.criteria.bodyText = "acme";
   await account.saveServerFilterRules();

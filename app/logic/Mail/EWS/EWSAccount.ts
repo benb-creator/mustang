@@ -5,7 +5,6 @@ import { SpecialFolder, MailShareCombinedPermissions, type Folder, type MailShar
 import { EWSFolder, getEWSItem } from "./EWSFolder";
 import { EWSSearchEMail } from "./EWSSearchEMail";
 import { EWSFilterRule } from "./EWSFilterRule";
-import type { FilterRuleAction } from "../FilterRules/FilterRuleAction";
 import { EWSAutoResponder } from "./EWSAutoResponder";
 import { EWSTags } from "./EWSTags";
 import { deleteExchangePermissions, setExchangePermissions } from "./ExchangePermission";
@@ -1381,27 +1380,24 @@ export class EWSAccount extends ExchangeMailAccount implements EWSSubscribable {
     return new EWSFilterRule(this, json);
   }
 
-  protected async fetchServerFilterRules(): Promise<FilterRuleAction[]> {
+  protected async fetchServerFilterRules(): Promise<EWSFilterRule[]> {
     let response = await this.callEWS({ m$GetInboxRules: {} });
     this.setOutlookRulesExist(sanitize.boolean(response.OutlookRuleBlobExists, false));
     let serverRules = ensureArray(response.InboxRules?.Rule).map(json => this.newServerFilterRule(json));
     await Promise.all(serverRules.map(serverRule => serverRule.resolveAddresses()));
-    return serverRules
-      .sort((a, b) => a.priority - b.priority)
-      .map(serverRule => serverRule.toFilterRule());
+    return serverRules.sort((a, b) => a.priority - b.priority);
   }
 
-  protected async uploadServerFilterRules(rules: FilterRuleAction[], deletedIDs: string[]): Promise<void> {
-    let created: FilterRuleAction[] = [];
+  protected async uploadServerFilterRules(rules: EWSFilterRule[], deletedIDs: string[]): Promise<void> {
+    let created: EWSFilterRule[] = [];
     let createOperations = [];
     let setOperations = [];
     for (let [i, rule] of rules.entries()) {
-      let serverRule = this.newServerFilterRule(rule.serverJSON);
-      let changed = serverRule.withChangesFrom(rule, i + 1) as EWSFilterRule;
+      let changed = rule.withChanges(i + 1);
       if (!rule.serverID) {
         createOperations.push({ t$Rule: changed.toRequest(true) });
         created.push(rule);
-      } else if (changed.isChangedFrom(serverRule)) {
+      } else if (changed.isChangedFrom(rule)) {
         setOperations.push({ t$Rule: changed.toRequest() });
       }
     }

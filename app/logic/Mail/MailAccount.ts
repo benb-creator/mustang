@@ -6,8 +6,9 @@ import type { EMail } from "./EMail";
 import type { SMTPAccount } from "./SMTP/SMTPAccount";
 import { ContactEntry } from "../Abstract/Person";
 import type { PersonUID } from "../Abstract/PersonUID";
-import { FilterRuleAction } from "./FilterRules/FilterRuleAction";
-import type { ServerFilterRule } from "./FilterRules/ServerFilterRule";
+import type { FilterRuleAction } from "./FilterRules/FilterRuleAction";
+import { LocalFilterRule } from "./FilterRules/LocalFilterRule";
+import { ServerFilterRule } from "./FilterRules/ServerFilterRule";
 import { AutoResponder } from "./AutoResponder";
 import { OAuth2 } from "../Auth/OAuth2";
 import { getOAuth2BuiltIn, getProvider } from "../Auth/OAuth2Util";
@@ -18,9 +19,8 @@ import type { Addressbook } from "../Contacts/Addressbook";
 import type { SetupInfo } from "./AutoConfig/SetupInfo";
 import type { SearchEMail } from "./Store/SearchEMail";
 import { appGlobal } from "../app";
-import { appName } from "../build";
 import { sanitize } from "../../../lib/util/sanitizeDatatypes";
-import { AbstractFunction, assert, NotSupported } from "../util/util";
+import { AbstractFunction, assert } from "../util/util";
 import { notifyChangedProperty } from "../util/Observable";
 import { RunOnce } from "../util/flow/RunOnce";
 import { Collection, ArrayColl } from 'svelte-collections';
@@ -304,9 +304,14 @@ export class MailAccount extends TCPAccount {
   async addSharedPerson(person: PersonUID, mailFolder: Folder | null, includeSubfolders: boolean, access: MailShareCombinedPermissions, ...permissions: MailShareIndividualPermissions[]) {
   }
 
-  /** Whether the server can run filter rules. @see `FilterRuleAction.server` */
+  /** Whether the server can run filter rules. @see `ServerFilterRule` */
   get canServerFilterRules(): boolean {
     return false;
+  }
+
+  /** @param server The mail server runs the rule, not we. @see `canServerFilterRules` */
+  newFilterRule(server: boolean): FilterRuleAction {
+    return server ? this.newServerFilterRule(null) : new LocalFilterRule(this);
   }
 
   /** @param json As the server sent the rule. null for a new rule. */
@@ -322,9 +327,9 @@ export class MailAccount extends TCPAccount {
     }
     // Update our server rules with any changes from the server.
     // Collect them in the server's new order, but include any new server rules too.
-    let fetched: FilterRuleAction[] = [];
+    let fetched: ServerFilterRule[] = [];
     for (let serverRule of await this.fetchServerFilterRules()) {
-      let known = this.filterRuleActions.find(rule => rule.server && rule.serverID == serverRule.serverID);
+      let known = this.filterRuleActions.find(rule => rule instanceof ServerFilterRule && rule.serverID == serverRule.serverID) as ServerFilterRule;
       if (known) {
         known.fromJSON(serverRule.toJSON());
       }
@@ -334,7 +339,7 @@ export class MailAccount extends TCPAccount {
     // Insert the updated rules back into the full list in the same places as the server rules were before.
     let rules: FilterRuleAction[] = [];
     for (let rule of this.filterRuleActions) {
-      if (rule.server && rule.serverID) {
+      if (rule instanceof ServerFilterRule && rule.serverID) {
         let next = fetched.shift();
         if (next) {
           rules.push(next);
@@ -354,18 +359,8 @@ export class MailAccount extends TCPAccount {
     if (!this.canServerFilterRules) {
       return;
     }
-    let rules = this.filterRuleActions.contents.filter(rule => rule.server);
-    let movedHere = this.filterRuleActions.find(rule => !rule.server && rule.serverRule?.unknownParts.length > 0);
-    if (movedHere) {
-      throw new NotSupported(gt`${appName} cannot run all parts of the rule ${movedHere.name}`);
-    }
+    let rules = this.serverFilterRules;
     let deletedIDs = [...this.knownServerFilterRuleIDs].filter(id => !rules.some(rule => rule.serverID == id));
-    for (let rule of this.filterRuleActions) {
-      if (rule.serverID && !rule.server) {
-        rule.serverID = null;
-        rule.serverJSON = null;
-      }
-    }
     try {
       await this.uploadServerFilterRules(rules, deletedIDs);
     } finally {
@@ -374,15 +369,20 @@ export class MailAccount extends TCPAccount {
     await this.refreshServerFilterRules();
   }
 
+  /** The rules in `filterRuleActions` that the server runs */
+  get serverFilterRules(): ServerFilterRule[] {
+    return this.filterRuleActions.contents.filter(rule => rule instanceof ServerFilterRule);
+  }
+
   /** @returns The rules on the server, in the order in which the server runs them */
-  protected async fetchServerFilterRules(): Promise<FilterRuleAction[]> {
+  protected async fetchServerFilterRules(): Promise<ServerFilterRule[]> {
     throw new AbstractFunction();
   }
 
   /** Changes only the rules that changed, and sets the `serverID` of the created rules.
    * @param rules All server rules, in the order in which the server should run them
    * @param deletedIDs The server rules that the user removed */
-  protected async uploadServerFilterRules(rules: FilterRuleAction[], deletedIDs: string[]): Promise<void> {
+  protected async uploadServerFilterRules(rules: ServerFilterRule[], deletedIDs: string[]): Promise<void> {
     throw new AbstractFunction();
   }
 
@@ -402,15 +402,15 @@ export class MailAccount extends TCPAccount {
     this.filterRuleActions.clear();
     for (let filterJSON of sanitize.array(json.filterRuleActions, [])) {
       try {
-        let rule = new FilterRuleAction(this);
+        let rule = this.newFilterRule(sanitize.boolean(filterJSON.server, false));
         rule.fromJSON(filterJSON);
         this.filterRuleActions.add(rule);
       } catch (ex) {
         this.errorCallback(ex);
       }
     }
-    this.knownServerFilterRuleIDs = new Set(this.filterRuleActions.contents
-      .filter(rule => rule.server && rule.serverID)
+    this.knownServerFilterRuleIDs = new Set(this.serverFilterRules
+      .filter(rule => rule.serverID)
       .map(rule => rule.serverID));
     if (json.oAuth2) {
       this.oAuth2 = OAuth2.fromConfigJSON(json.oAuth2, this);

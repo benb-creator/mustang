@@ -1,19 +1,16 @@
-import type { EMail } from "../EMail";
 import { FilterMoment } from "./FilterMoments";
-import type { ServerFilterRule } from "./ServerFilterRule";
 import { SearchEMail } from "../Store/SearchEMail";
-import { DeleteStrategy, type MailAccount } from "../MailAccount";
+import type { MailAccount } from "../MailAccount";
 import type { Folder } from "../Folder";
 import { getTagByName, type Tag } from "../../Abstract/Tag";
 import { notifyChangedProperty, Observable } from "../../util/Observable";
-import { assert, booleanHasValue } from "../../util/util";
-import { gt } from "../../../l10n/l10n";
 import { sanitize } from "../../../../lib/util/sanitizeDatatypes";
 import { SetColl } from "svelte-collections";
 
 /** Does automatic user-defined actions on emails,
  * on defined moments (e.g. new email arrived, email sent etc.),
- * for emails that match user-defined criteria. */
+ * for emails that match user-defined criteria.
+ * We run a `LocalFilterRule`, the mail server a `ServerFilterRule`. */
 export class FilterRuleAction extends Observable {
   @notifyChangedProperty
   name: string = "";
@@ -22,27 +19,10 @@ export class FilterRuleAction extends Observable {
   when: FilterMoment = FilterMoment.IncomingBeforeSpam;
   /** For which subset of emails the filter should run */
   readonly criteria = new SearchEMail();
-  /** The server runs this rule, not we. @see `MailAccount.canServerFilterRules` */
-  @notifyChangedProperty
-  server = false;
-  /** The ID of the rule on the server. null, if it's not on the server yet. */
-  serverID: string | null = null;
-  /** The rule as the server sent it, including the parts that we don't
-   * understand, so that saving the rule doesn't remove them. */
-  serverJSON: any = null;
-
-  /** null, if the rule is not on the server yet */
-  get serverRule(): ServerFilterRule | null {
-    return this.serverJSON ? this.account.newServerFilterRule(this.serverJSON) : null;
-  }
 
   /** Why the user cannot change this rule. null, if they can. */
   get readOnlyReason(): string | null {
-    if (!this.server) {
-      return null;
-    }
-    return this.account.serverFilterRulesReadOnlyReason ??
-      (this.serverRule?.isReadOnly ? gt`The mail server does not allow changes to this rule` : null);
+    return null;
   }
 
   /** The following actions cannot be combined:
@@ -88,50 +68,14 @@ export class FilterRuleAction extends Observable {
     this.criteria.account = this.account = account;
   }
 
-  /** Checks for a match, and runs the filter action, as needed. */
-  async run(email: EMail): Promise<void> {
-    if (!this.criteria.matches(email)) {
-      return;
-    }
-    await this.doAction(email);
-  }
-
-  /** Executes the filter action.
-   * Unconditionally, i.e. does not check for match. */
-  async doAction(email: EMail): Promise<void> {
-    if (booleanHasValue(this.markAsRead)) {
-      await email.markRead(this.markAsRead);
-    }
-    if (booleanHasValue(this.markAsStarred)) {
-      await email.markStarred(this.markAsStarred);
-    }
-    if (this.addTags.hasItems) {
-      for (let tag of this.addTags) {
-        await email.addTag(tag);
-      }
-    }
-    if (booleanHasValue(this.markAsSpam)) {
-      await email.treatSpam(this.markAsSpam);
-      if (this.markAsSpam) {
-        return;
-      }
-    }
-    if (this.deleteImmediately) {
-      await email.deleteMessage(DeleteStrategy.DeleteImmediately);
-      return;
-    }
-    if (this.deleteTrash) {
-      await email.deleteMessage(DeleteStrategy.MoveToTrash);
-      return;
-    }
-    if (this.toFolderID) {
-      assert(this.toFolder, gt`The target folder of filter rule ${this.name} does not exist anymore`);
-      if (this.copy) {
-        await this.toFolder.copyMessageHere(email);
-      } else {
-        await this.toFolder.moveMessageHere(email);
-      }
-    }
+  /** The same rule, run by the mail server, if `server`, otherwise by us.
+   * Throws, if that one cannot run all parts of the rule.
+   * @returns This rule, or one of the other class, which replaces this one in the lists */
+  runBy(server: boolean): FilterRuleAction {
+    let rule = this.account.newFilterRule(server);
+    rule.fromJSON(this.toJSON());
+    rule.name = this.name;
+    return rule;
   }
 
   fromJSON(json: any) {
@@ -152,9 +96,6 @@ export class FilterRuleAction extends Observable {
     this.toFolderID = sanitize.nonemptystring(json.toFolder, null);
     this._toFolder = null;
     this.addTags.replaceAll(sanitize.array(json.addTags, [])?.map(name => getTagByName(name)));
-    this.server = json.server === true;
-    this.serverID = sanitize.nonemptystring(json.serverID, null);
-    this.serverJSON = json.serverJSON ?? null;
   }
 
   toJSON() {
@@ -171,9 +112,6 @@ export class FilterRuleAction extends Observable {
       // toFolderAccountID: this.toFolder?.account?.id,
       toFolder: this.toFolderID,
       addTags: this.addTags.contents.map(tag => tag.name),
-      server: this.server,
-      serverID: this.serverID,
-      serverJSON: this.serverJSON,
     };
   }
 

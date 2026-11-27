@@ -9,30 +9,30 @@ export class GraphFilterRule extends ServerFilterRule {
   protected readonly canCheckDates = false;
 
   get id(): string | null {
-    return sanitize.nonemptystring(this.json.id, null);
+    return sanitize.nonemptystring(this.serverJSON.id, null);
   }
 
   get priority(): number {
-    return sanitize.integer(this.json.sequence, 0);
+    return sanitize.integer(this.serverJSON.sequence, 0);
   }
 
   get isReadOnly(): boolean {
-    return sanitize.boolean(this.json.isReadOnly, false);
+    return sanitize.boolean(this.serverJSON.isReadOnly, false);
   }
 
   get isEnabled(): boolean {
-    return sanitize.boolean(this.json.isEnabled ?? true, true);
+    return sanitize.boolean(this.serverJSON.isEnabled ?? true, true);
   }
 
   get hasError(): boolean {
-    return sanitize.boolean(this.json.hasError, false);
+    return sanitize.boolean(this.serverJSON.hasError, false);
   }
 
   protected get sections(): Record<string, Record<string, any>> {
     return {
-      conditions: this.json.conditions ?? {},
-      exceptions: this.json.exceptions ?? {},
-      actions: this.json.actions ?? {},
+      conditions: this.serverJSON.conditions ?? {},
+      exceptions: this.serverJSON.exceptions ?? {},
+      actions: this.serverJSON.actions ?? {},
     };
   }
 
@@ -62,7 +62,7 @@ export class GraphFilterRule extends ServerFilterRule {
       case "moveToFolder":
         return !!sanitize.nonemptystring(value, null);
       case "copyToFolder":
-        return !!sanitize.nonemptystring(value, null) && this.isEmpty(this.json.actions.moveToFolder);
+        return !!sanitize.nonemptystring(value, null) && this.isEmpty(this.serverJSON.actions.moveToFolder);
       case "markAsRead":
       case "delete":
       case "permanentDelete":
@@ -74,7 +74,7 @@ export class GraphFilterRule extends ServerFilterRule {
   }
 
   protected fillFilterRule(rule: FilterRuleAction) {
-    rule.name = sanitize.nonemptylabel(this.json.displayName, "-");
+    rule.name = sanitize.nonemptylabel(this.serverJSON.displayName, "-");
     let conditions = this.sections.conditions;
     let condition = (key: string) => this.understood("conditions", key);
     let criteria = rule.criteria;
@@ -114,7 +114,7 @@ export class GraphFilterRule extends ServerFilterRule {
   }
 
   protected setPriority(priority: number) {
-    this.json.sequence = priority;
+    this.serverJSON.sequence = priority;
   }
 
   protected conditionsOf(rule: FilterRuleAction): Record<string, any> {
@@ -169,7 +169,7 @@ export class GraphFilterRule extends ServerFilterRule {
 
   /** For creating the rule */
   get newProperties(): Record<string, any> {
-    let { displayName, sequence, isEnabled, conditions, exceptions, actions } = this.json;
+    let { displayName, sequence, isEnabled, conditions, exceptions, actions } = this.serverJSON;
     return { displayName, sequence, isEnabled, conditions, exceptions, actions };
   }
 
