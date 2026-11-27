@@ -2,6 +2,7 @@
 import { appGlobal } from "../../../../logic/app.ts"; // defeats circular import
 import { GraphAccount } from "../../../../logic/Mail/Graph/GraphAccount";
 import { GraphFilterRule } from "../../../../logic/Mail/Graph/GraphFilterRule";
+import { LocalFilterRule } from "../../../../logic/Mail/FilterRules/LocalFilterRule";
 import type { ServerFilterRule } from "../../../../logic/Mail/FilterRules/ServerFilterRule";
 import { Person } from "../../../../logic/Abstract/Person";
 import { expect, test } from "vitest";
@@ -128,6 +129,16 @@ test("Graph: A date span is not saved to the server, because Graph cannot check 
 
   await expect(account.saveServerFilterRules()).rejects.toThrow();
   expect(account.requests).toEqual([]);
+});
+
+test("Graph: A local rule with a date span does not move to the server, because Graph cannot check it", async () => {
+  let account = new TestGraphAccount();
+  let local = new LocalFilterRule(account);
+  local.name = "Old mails";
+  local.criteria.sentDateMax = new Date("2026-01-01T00:00:00Z");
+  local.markAsRead = true;
+
+  expect(() => local.runBy(true)).toThrow("Old mails");
 });
 
 test("Graph: After a restart, the server rules are Graph rules, and saving them changes nothing", async () => {

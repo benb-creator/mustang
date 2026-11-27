@@ -3,7 +3,9 @@ import { appGlobal } from "../../../../logic/app.ts"; // defeats circular import
 import { OWAAccount } from "../../../../logic/Mail/OWA/OWAAccount";
 import { OWAError } from "../../../../logic/Mail/OWA/OWAError";
 import { OWAFilterRule } from "../../../../logic/Mail/OWA/OWAFilterRule";
+import { LocalFilterRule } from "../../../../logic/Mail/FilterRules/LocalFilterRule";
 import type { ServerFilterRule } from "../../../../logic/Mail/FilterRules/ServerFilterRule";
+import { getTagByName } from "../../../../logic/Abstract/Tag";
 import { Person } from "../../../../logic/Abstract/Person";
 import kInboxRule from "./TestData/InboxRule.json";
 import { expect, test } from "vitest";
@@ -149,6 +151,19 @@ test("OWA: The error that the server gives for a rule", async () => {
   rule(account, "Invoices").markAsRead = null;
 
   await expect(account.saveServerFilterRules()).rejects.toThrow("The folder doesn't exist.");
+});
+
+test("OWA: A local rule for a tag does not move to the server, because OWA cannot check categories", async () => {
+  let account = newTestAccount();
+  let local = new LocalFilterRule(account);
+  local.name = "Family";
+  local.criteria.tags.add(getTagByName("Family"));
+  local.markAsRead = true;
+
+  expect(local.cannotRunOnServer).toContain("Family");
+  expect(() => local.runBy(true)).toThrow("Family");
+  local.criteria.tags.clear();
+  expect(local.runBy(true)).toBeInstanceOf(OWAFilterRule);
 });
 
 test("OWA: After a restart, the server rules are OWA rules, and saving them changes nothing", async () => {

@@ -129,7 +129,19 @@ test("The user lets the mail server run a rule, and then us again", async () => 
   expect(uploads).toEqual([["Newsletters (new)"], []]);
 });
 
-test("A copy of a server rule for another account: That server runs it", () => {
+test("A rule that the mail server cannot run stays with us", () => {
+  letServerRunRules(account);
+  newRule("Unread").criteria.isRead = false;
+  let list = new RulesWorkingList(account);
+  let copy = list.rules.first;
+
+  expect(() => RuleListActions.runBy(list.rules, copy, true)).toThrow("Unread");
+
+  expect(list.rules.contents).toEqual([copy]);
+  expect(list.isChanged).toBe(false);
+});
+
+test("A copy of a server rule for another account: That server runs it, if it can, otherwise we", () => {
   letServerRunRules(account);
   let secondAccount = RulesTestAccount.create("b", ["Inbox"]);
   letServerRunRules(secondAccount);
@@ -144,6 +156,9 @@ test("A copy of a server rule for another account: That server runs it", () => {
   expect(copy.markAsRead).toBe(true);
   expect(copy.serverID).toBeNull();
   expect(copy.serverJSON).toEqual({});
+
+  rule.criteria.isRead = false;
+  expect(RuleListActions.copyToAccount(rule, secondAccount, secondAccount.filterRuleActions)).toBeInstanceOf(LocalFilterRule);
 });
 
 test("Copy to another account only without folders", () => {

@@ -113,6 +113,7 @@
   import type { MailAccount } from "../../../logic/Mail/MailAccount";
   import type { Folder } from "../../../logic/Mail/Folder";
   import type { FilterRuleAction } from "../../../logic/Mail/FilterRules/FilterRuleAction";
+  import { LocalFilterRule } from "../../../logic/Mail/FilterRules/LocalFilterRule";
   import { ServerFilterRule } from "../../../logic/Mail/FilterRules/ServerFilterRule";
   import { appGlobal } from "../../../logic/app";
   import { appName } from "../../../logic/build";
@@ -194,7 +195,7 @@
   $: readOnlyReason = selected && version >= 0 && $account ? selected.readOnlyReason : null;
   $: unknownParts = selected instanceof ServerFilterRule && version >= 0 ? selected.unknownParts : [];
   $: cannotRunHere = readOnlyReason ?? (unknownParts.length ? $t`${appName} cannot run all parts of this rule` : null);
-  $: cannotRunOnServer = readOnlyReason ?? (selected instanceof ServerFilterRule ? null : $account.serverFilterRulesReadOnlyReason);
+  $: cannotRunOnServer = readOnlyReason ?? (selected instanceof LocalFilterRule && version >= 0 && $account.canServerFilterRules ? selected.cannotRunOnServer : null);
 
   function workingList(mailAccount: MailAccount): RulesWorkingList {
     let existing = workingLists.get(mailAccount);

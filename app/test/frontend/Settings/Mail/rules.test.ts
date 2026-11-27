@@ -7,6 +7,7 @@ import { DummyMailStorage } from "../../../../logic/Mail/Store/DummyMailStorage"
 import { FilterRuleAction } from "../../../../logic/Mail/FilterRules/FilterRuleAction";
 import { LocalFilterRule } from "../../../../logic/Mail/FilterRules/LocalFilterRule";
 import { ServerFilterRule } from "../../../../logic/Mail/FilterRules/ServerFilterRule";
+import { FilterMoment } from "../../../../logic/Mail/FilterRules/FilterMoments";
 import { availableTags, getTagByName } from "../../../../logic/Abstract/Tag";
 import Rules from "../../../../frontend/Settings/Mail/Rules.svelte";
 import { flushSync, mount, unmount } from "svelte";
@@ -290,6 +291,14 @@ test("The user lets Mustang run a server rule again", async () => {
   expect(account.filterRuleActions.contents).toEqual([rule]);
 });
 
+test("A rule that the mail server cannot run says why, and stays with us", () => {
+  account.hasServerRules = true;
+  newRule("Sent mails").when = FilterMoment.Outgoing;
+  showRulesPage();
+
+  expect(runByRadio("The mail server").disabled).toBe(true);
+  expect(target.querySelector(".server-notes").textContent).toContain("Sent mails");
+});
 
 test("A server rule that the server doesn't allow to change is read-only, and shows the parts that we can't show", () => {
   account.hasServerRules = true;

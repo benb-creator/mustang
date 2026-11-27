@@ -1,7 +1,7 @@
 import type { EMail } from "../EMail";
 import { FilterRuleAction } from "./FilterRuleAction";
 import { DeleteStrategy } from "../MailAccount";
-import { assert, booleanHasValue } from "../../util/util";
+import { assert, booleanHasValue, NotSupported } from "../../util/util";
 import { gt } from "../../../l10n/l10n";
 
 /** A filter rule that we run, on the emails that we download */
@@ -52,7 +52,19 @@ export class LocalFilterRule extends FilterRuleAction {
     }
   }
 
+  /** Why the mail server cannot run this rule. null, if it can. */
+  get cannotRunOnServer(): string | null {
+    return this.account.serverFilterRulesReadOnlyReason ?? this.account.newServerFilterRule(null).unsupportedReason(this);
+  }
+
   runBy(server: boolean): FilterRuleAction {
-    return server ? super.runBy(server) : this;
+    if (!server) {
+      return this;
+    }
+    let reason = this.cannotRunOnServer;
+    if (reason) {
+      throw new NotSupported(reason);
+    }
+    return super.runBy(server);
   }
 }

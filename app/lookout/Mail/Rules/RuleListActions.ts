@@ -53,8 +53,8 @@ export class RuleListActions {
     let local = new LocalFilterRule(account);
     local.fromJSON(rule.toJSON());
     local.name = rule.name;
-    // Without the parts that only the server of `rule` knows
-    let copy = rule instanceof ServerFilterRule && account.canServerFilterRules ? local.runBy(true) : local;
+    // The other server runs it, if it can. Without the parts that only the server of `rule` knows.
+    let copy = rule instanceof ServerFilterRule && account.canServerFilterRules && !local.cannotRunOnServer ? local.runBy(true) : local;
     rules.add(copy);
     return copy;
   }

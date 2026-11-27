@@ -107,7 +107,10 @@ export class ServerFilterRule extends FilterRuleAction {
   /** The server rule, changed as the user changed this rule.
    * Leaves the parts of the server rule as they are that the user did not change. */
   withChanges(priority: number): this {
-    this.checkSupported(this);
+    let unsupported = this.unsupportedReason(this);
+    if (unsupported) {
+      throw new NotSupported(unsupported);
+    }
     let json = structuredClone(this.serverJSON);
     this.writeChanges(json, this, new (this.constructor as any)(this.account, this.serverJSON));
     let changed = new (this.constructor as any)(this.account, json);
@@ -148,8 +151,8 @@ export class ServerFilterRule extends FilterRuleAction {
     return changes;
   }
 
-  /** Throws, if the server cannot run the rule as the user defined it */
-  protected checkSupported(rule: FilterRuleAction) {
+  /** Why the server cannot run `rule` as the user defined it. null, if it can. */
+  unsupportedReason(rule: FilterRuleAction): string | null {
     let criteria = rule.criteria;
     if (rule.when == FilterMoment.Outgoing ||
         booleanHasValue(criteria.isOutgoing) || booleanHasValue(criteria.isRead) || booleanHasValue(criteria.isReplied) ||
@@ -157,12 +160,13 @@ export class ServerFilterRule extends FilterRuleAction {
         criteria.messageID || criteria.threadID || criteria.folderID || criteria.hasAttachmentMIMETypes.hasItems ||
         !this.canCheckDates && (criteria.sentDateMin || criteria.sentDateMax) ||
         !this.canCheckCategories && criteria.tags.hasItems) {
-      throw new NotSupported(gt`The mail server cannot check all criteria of the rule ${rule.name}`);
+      return gt`The mail server cannot check all criteria of the rule ${rule.name}`;
     }
     if (rule.markAsRead === false || booleanHasValue(rule.markAsStarred) || rule.markAsSpam ||
         !this.canDeleteImmediately && rule.deleteImmediately) {
-      throw new NotSupported(gt`The mail server cannot do all actions of the rule ${rule.name}`);
+      return gt`The mail server cannot do all actions of the rule ${rule.name}`;
     }
+    return null;
   }
 
   /** Writes the properties that the user changed into a section of the server rule.

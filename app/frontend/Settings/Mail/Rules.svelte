@@ -146,7 +146,7 @@
   $: readOnlyReason = $account && $rule ? rule.readOnlyReason : null;
   $: unknownParts = $rule instanceof ServerFilterRule ? $rule.unknownParts : [];
   $: cannotRunHere = readOnlyReason ?? (unknownParts.length ? $t`${appName} cannot run all parts of this rule` : null);
-  $: cannotRunOnServer = readOnlyReason ?? ($rule instanceof ServerFilterRule ? null : $account.serverFilterRulesReadOnlyReason);
+  $: cannotRunOnServer = readOnlyReason ?? ($rule instanceof LocalFilterRule && $account.canServerFilterRules ? $rule.cannotRunOnServer : null);
 
   function onAdd() {
     rule = new LocalFilterRule(account);

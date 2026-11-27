@@ -5,6 +5,7 @@ import { EWSFilterRule } from "../../../../logic/Mail/EWS/EWSFilterRule";
 import type { FilterRuleAction } from "../../../../logic/Mail/FilterRules/FilterRuleAction";
 import { LocalFilterRule } from "../../../../logic/Mail/FilterRules/LocalFilterRule";
 import type { ServerFilterRule } from "../../../../logic/Mail/FilterRules/ServerFilterRule";
+import { FilterMoment } from "../../../../logic/Mail/FilterRules/FilterMoments";
 import { AuthMethod } from "../../../../logic/Abstract/Account";
 import { Person } from "../../../../logic/Abstract/Person";
 import { expect, test } from "vitest";
@@ -355,6 +356,7 @@ test("EWS: While Outlook keeps its own copy of the rules, the server rules are r
   expect(account.serverFilterRulesReadOnlyReason).toMatch(/Outlook/);
   expect(rule(account, "Invoices").readOnlyReason).toBe(account.serverFilterRulesReadOnlyReason);
   expect(local.readOnlyReason).toBeNull();
+  expect(local.cannotRunOnServer).toBe(account.serverFilterRulesReadOnlyReason);
 
   server.outlookRulesExist = false;
   await account.refreshServerFilterRules();
@@ -388,6 +390,24 @@ test("EWS: A rule with parts that we can't run does not move to us", async () =>
   expect(account.serverFilterRules).toEqual([newsletters]);
   await account.saveServerFilterRules();
   expect(updates).toEqual([]);
+});
+
+test("EWS: A local rule that Exchange cannot run does not move to the server, and the other rules still save", async () => {
+  let { account, updates } = newTestAccount([kInvoicesRule]);
+  await account.refreshServerFilterRules();
+  let unread = localRule(account, "Unread");
+  unread.criteria.isRead = false;
+  let sent = localRule(account, "Sent");
+  sent.when = FilterMoment.Outgoing;
+
+  expect(unread.cannotRunOnServer).toContain("Unread");
+  expect(sent.cannotRunOnServer).toContain("Sent");
+  expect(() => runBy(unread, true)).toThrow("Unread");
+
+  expect(account.filterRuleActions.contents).toContain(unread);
+  rule(account, "Invoices").criteria.bodyText = "bill";
+  await account.saveServerFilterRules();
+  expect(updates.length).toBe(1);
 });
 
 test("EWS: After a restart, the server rules are EWS rules with the parts that we can't show, and the local rules are local", async () => {
